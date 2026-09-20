@@ -1,6 +1,6 @@
 import { useRef, useState, type ReactNode } from "react";
 import toast from "react-hot-toast";
-import { Bell, CheckCircle2, ChevronLeft, ChevronRight, Download, Package, UserPlus, Wallet } from "lucide-react";
+import { Bell, CheckCircle2, ChevronLeft, ChevronRight, Download, Home, LogOut, Package, UserPlus, Wallet } from "lucide-react";
 import { api, formatDate, mediaUrl, money } from "../lib/api";
 import { creditsFromDebtError, debtFacts, debtNotes, isDebtError } from "../lib/debt";
 import { openInvoice, type InvoiceData } from "../lib/invoice";
@@ -207,36 +207,44 @@ export function PortalPage() {
 
   return (
     <div className="portal-shell min-h-screen text-navy-900">
-      <header className="portal-header text-white">
-        <div className="flex items-center justify-between px-4 py-4 sm:px-8">
+      <header className="portal-nav text-white">
+        <div className="flex items-center justify-between px-4 py-3 sm:px-8">
           <Logo />
-          <div className="flex items-center gap-3 text-sm">
-            <a className="hidden text-[#f7d7c4] sm:inline" href="/">Inicio</a>
+          <div className="flex items-center gap-2">
+            <a
+              href="/"
+              className="inline-flex h-10 items-center gap-2 rounded-xl bg-white/10 px-3.5 text-sm font-semibold text-white hover:bg-white/20"
+            >
+              <Home size={16} /> Inicio
+            </a>
             <button
               type="button"
-              className="rounded-xl border border-white/15 px-3 py-2 text-[#f7d7c4] hover:bg-white/10"
+              className="inline-flex h-10 items-center gap-2 rounded-xl bg-gold-500 px-3.5 text-sm font-semibold text-navy-950 hover:bg-gold-600"
               onClick={() => {
                 setData(null);
                 setError("");
                 setActiveCreditId("");
               }}
             >
-              Salir
+              <LogOut size={16} /> Salir
             </button>
           </div>
         </div>
-        <div className="px-4 pb-8 sm:px-8">
+      </header>
+
+      <div className="px-4 pt-5 sm:px-8">
+        <div className="portal-hero overflow-hidden rounded-3xl px-5 py-6 text-white sm:px-7">
           <div className="flex items-start gap-4">
             <ProfilePhoto name={data.client.name} photoUrl={data.client.photoUrl} />
             <div className="min-w-0">
-              <p className="text-sm text-[#f7d7c4]">Mi cuenta · {LEVEL_LABELS[data.client.level]}</p>
+              <p className="text-sm text-gold-300">Mi cuenta · {LEVEL_LABELS[data.client.level]}</p>
               <h1 className="font-display text-4xl font-semibold capitalize tracking-tight text-white">{data.client.name.toLowerCase()}</h1>
               <p className="mt-1 text-sm text-slate-300">
                 {data.client.code} · puedes pedir {catalogAccessLabel(data.client.level)}
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <LevelBadge level={data.client.level} />
-                <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-[#f7d7c4]">
+                <span className="rounded-full bg-navy-800 px-3 py-1 text-xs text-gold-100">
                   {data.client.points} pts
                   {progress.next ? ` · ${progress.remaining} para ${LEVEL_LABELS[progress.next]}` : ""}
                 </span>
@@ -267,7 +275,7 @@ export function PortalPage() {
             </button>
             <button
               type="button"
-              className="btn-ghost border-white/15 bg-transparent text-white hover:bg-white/10"
+              className="btn-ghost border-white/15 bg-transparent text-white hover:bg-navy-800"
               disabled={busy === "collect"}
               onClick={async () => {
                 if (busy) return;
@@ -286,7 +294,7 @@ export function PortalPage() {
             </button>
             <button
               type="button"
-              className="btn-ghost border-white/15 bg-transparent text-white hover:bg-white/10"
+              className="btn-ghost border-white/15 bg-transparent text-white hover:bg-navy-800"
               onClick={() => {
                 setReferError(undefined);
                 setReferOpen(true);
@@ -296,7 +304,7 @@ export function PortalPage() {
             </button>
           </div>
         </div>
-      </header>
+      </div>
 
       <main className="space-y-8 px-4 py-8 sm:px-8">
         <section>
@@ -577,7 +585,7 @@ function ProfilePhoto({ name, photoUrl }: { name: string; photoUrl?: string | nu
   return photoUrl ? (
     <img src={mediaUrl(photoUrl)} alt={name} className="h-24 w-24 rounded-full object-cover ring-2 ring-gold-400" />
   ) : (
-    <div className="flex h-24 w-24 items-center justify-center rounded-full bg-white/10 text-3xl font-semibold text-[#f7d7c4] ring-2 ring-[#f7d7c4]">
+    <div className="flex h-24 w-24 items-center justify-center rounded-full bg-navy-800 text-3xl font-semibold text-gold-300 ring-2 ring-gold-400">
       {initial}
     </div>
   );
@@ -597,8 +605,8 @@ function SectionHead({ title, hint }: { title: string; hint: string }) {
   return (
     <div className="mb-3">
       <h2 className="font-display text-3xl font-semibold tracking-tight text-navy-900">{title}</h2>
-      <div className="mt-1.5 h-1 w-11 rounded-full bg-[#E08A5A]" />
-      <p className="mt-2 text-sm font-medium text-[#1f3d38]/70">{hint}</p>
+      <div className="mt-1.5 h-1 w-11 rounded-full bg-gold-500" />
+      <p className="mt-2 text-sm font-medium text-navy-800/70">{hint}</p>
     </div>
   );
 }
@@ -671,7 +679,7 @@ function InstallmentPlan({
               key={item.id}
               type="button"
               className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
-                item.id === credit.id ? "bg-[#164843] text-white" : "bg-[#eef6f3] text-[#1f3d38]"
+                item.id === credit.id ? "bg-navy-900 text-white" : "bg-slate-100 text-navy-800"
               }`}
               onClick={() => onSelect(item.id)}
             >
@@ -690,8 +698,8 @@ function InstallmentPlan({
         </p>
       </div>
       <div className="px-5 py-5">
-        <div className="h-2.5 overflow-hidden rounded-full bg-[#e6efeC]">
-          <div className="h-full rounded-full bg-[#E08A5A]" style={{ width: `${percent}%` }} />
+        <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+          <div className="h-full rounded-full bg-gold-500" style={{ width: `${percent}%` }} />
         </div>
       </div>
       <ul className={`space-y-2 px-4 pb-4 ${credit.installments.length > 8 ? "max-h-[28rem] overflow-y-auto" : ""}`}>
@@ -701,10 +709,10 @@ function InstallmentPlan({
           return (
             <li
               key={item.id}
-              className={`flex items-center gap-3 rounded-2xl px-4 py-3.5 ${isNext ? "bg-[#fff1e8]" : "bg-[#f4faf7]"}`}
+              className={`flex items-center gap-3 rounded-2xl px-4 py-3.5 ${isNext ? "bg-gold-50" : "bg-slate-50"}`}
             >
               <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                status === "PAID" ? "bg-emerald-100 text-emerald-800" : isNext ? "bg-[#E08A5A] text-white" : "bg-white text-[#1f3d38]"
+                status === "PAID" ? "bg-emerald-100 text-emerald-800" : isNext ? "bg-gold-500 text-navy-950" : "bg-white text-navy-900"
               }`}>
                 {item.number}
               </span>

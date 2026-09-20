@@ -16,3 +16,9 @@ export const createExpenseSchema = z.object({
       return date <= today;
     }, { message: "La fecha no puede ser futura" }),
 });
+
+export const updateExpenseSchema = createExpenseSchema.partial();
+
+export const voidExpenseSchema = z.object({
+  reason: z.string().trim().min(5, "El motivo debe tener al menos 5 caracteres").max(400),
+});

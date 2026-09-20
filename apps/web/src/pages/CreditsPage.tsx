@@ -3,10 +3,14 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { api, formatDate, money } from "../lib/api";
+import { creditsFromDebtError, debtFacts, debtNotes, isDebtError } from "../lib/debt";
 import { Field, FormattedInput, fieldHint } from "../components/Form";
 import { PageHeader } from "../components/PageHeader";
 import { DataTable } from "../components/DataTable";
 import { ArrowLeft, FileText, Pencil, Plus } from "lucide-react";
+import { ConfirmModal } from "../components/ConfirmModal";
+import { InfoModal } from "../components/InfoModal";
+import { RowActions } from "../components/RowActions";
 import {
   catalogsForLevel,
   CATALOG_TIER_LABELS,
@@ -27,6 +31,7 @@ import {
   type ClientLevel,
   type CreditStatus,
   type InstallmentStatus,
+  type OutstandingCredit,
   type PaymentFrequency,
 } from "@hogarplus/shared";
 import { CreditBadge, InstallmentBadge } from "../components/Badges";
@@ -48,10 +53,22 @@ type Credit = {
 };
 
 export function CreditsPage() {
+  const qc = useQueryClient();
   const [search, setSearch] = useState("");
+  const [confirm, setConfirm] = useState<{ credit: Credit; activate: boolean } | null>(null);
   const q = useQuery({
     queryKey: ["credits", search],
     queryFn: () => api<Credit[]>(`/api/credits?pageSize=50&search=${encodeURIComponent(search)}`),
+  });
+  const toggle = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: CreditStatus }) =>
+      api(`/api/credits/${id}`, { method: "PATCH", body: JSON.stringify({ status }) }),
+    onSuccess: () => {
+      toast.success(confirm?.activate ? "Crédito reactivado" : "Crédito desactivado");
+      qc.invalidateQueries({ queryKey: ["credits"] });
+      setConfirm(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
   const rows = q.data?.data ?? [];
 
@@ -74,10 +91,10 @@ export function CreditsPage() {
         emptyTitle="Sin créditos"
         emptyDescription="Entrega el primer producto a crédito para abrir cartera."
         emptyAction={<a className="btn-gold" href="/creditos/nuevo">Nuevo crédito</a>}
-        headers={["Código", "Cliente", "Producto", "Inicial", "Cuota", "Saldo", "Estado"]}
+        headers={["Código", "Cliente", "Producto", "Inicial", "Cuota", "Saldo", "Estado", "Acciones"]}
       >
         {rows.map((c) => (
-          <tr key={c.id} className="border-t">
+          <tr key={c.id} className={`border-t ${c.status === "CANCELLED" ? "opacity-60" : ""}`}>
             <td className="px-5 py-3.5"><Link className="font-semibold" to={`/creditos/${c.id}`}>{c.code}</Link></td>
             <td className="px-5 py-3.5">{c.client.firstName} {c.client.lastName}</td>
             <td className="px-5 py-3.5">{c.product.name}</td>
@@ -88,9 +105,38 @@ export function CreditsPage() {
             </td>
             <td className="px-5 py-3.5">{money(c.balance)}</td>
             <td className="px-5 py-3.5"><CreditBadge status={c.status} /></td>
+            <td className="px-5 py-3.5">
+              <RowActions
+                active={c.status === "ACTIVE"}
+                onDeactivate={c.status === "ACTIVE" ? () => setConfirm({ credit: c, activate: false }) : undefined}
+                onActivate={c.status === "CANCELLED" ? () => setConfirm({ credit: c, activate: true }) : undefined}
+              />
+            </td>
           </tr>
         ))}
       </DataTable>
+      {confirm && (
+        <ConfirmModal
+          title={confirm.activate ? "Reactivar crédito" : "Desactivar crédito"}
+          message={confirm.activate ? "Vas a reactivar" : "Vas a desactivar"}
+          itemName={`${confirm.credit.code} · ${confirm.credit.product.name}`}
+          confirmText={confirm.activate ? "Reactivar" : "Desactivar"}
+          loading={toggle.isPending}
+          error={toggle.error instanceof Error ? toggle.error.message : undefined}
+          consequences={
+            confirm.activate
+              ? ["Volverá a cobranza y se le podrán aplicar pagos"]
+              : [
+                  "No se borra: cuotas y pagos se quedan",
+                  "Deja de salir en cobranza",
+                  "El inventario no se revierte: el producto ya salió",
+                  "Puedes reactivarlo si fue un error",
+                ]
+          }
+          onClose={() => setConfirm(null)}
+          onConfirm={() => toggle.mutate({ id: confirm.credit.id, status: confirm.activate ? "ACTIVE" : "CANCELLED" })}
+        />
+      )}
     </div>
   );
 }
@@ -192,9 +238,21 @@ export function NewCreditPage() {
   const clients = useQuery({
     queryKey: ["clients"],
     queryFn: () =>
-      api<Array<{ id: string; firstName: string; lastName: string; affiliationPaid: boolean; level: ClientLevel }>>(
-        "/api/clients?pageSize=100",
-      ),
+      api<Array<{
+        id: string;
+        firstName: string;
+        lastName: string;
+        affiliationPaid: boolean;
+        level: ClientLevel;
+        credits?: Array<{
+          id: string;
+          code: string;
+          balance: number;
+          weeklyQuota: number;
+          product: { name: string };
+          installments: Array<{ dueDate: string; amount: number; number: number; status: InstallmentStatus }>;
+        }>;
+      }>>("/api/clients?pageSize=100"),
   });
   const products = useQuery({
     queryKey: ["products"],
@@ -212,6 +270,7 @@ export function NewCreditPage() {
   const [weeklyQuota, setWeeklyQuota] = useState("");
   const [weeks, setWeeks] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [debt, setDebt] = useState<OutstandingCredit | null>(null);
 
   useEffect(() => {
     if (!settings.data) return;
@@ -220,6 +279,27 @@ export function NewCreditPage() {
   }, [settings.data]);
 
   const selectedClient = (clients.data?.data ?? []).find((c) => c.id === clientId);
+  const openDebt = (selectedClient?.credits ?? [])
+    .filter((credit) => Number(credit.balance) > 0)
+    .map((credit) => {
+      const remaining = (credit.installments ?? []).filter((item) => item.status !== "PAID");
+      const next = remaining[0];
+      return {
+        id: credit.id,
+        code: credit.code,
+        productName: credit.product.name,
+        balance: Number(credit.balance),
+        weeklyQuota: Number(credit.weeklyQuota),
+        remaining: remaining.length,
+        nextDueDate: next?.dueDate ?? null,
+        nextAmount: next ? Number(next.amount) : null,
+        overdueCount: remaining.filter((item) => item.status === "OVERDUE").length,
+      } satisfies OutstandingCredit;
+    })[0] ?? null;
+
+  useEffect(() => {
+    setDebt(openDebt);
+  }, [clientId, openDebt?.id]);
   const allowedTiers = selectedClient ? catalogsForLevel(selectedClient.level) : [];
   const visibleProducts = (products.data?.data ?? []).filter((p) =>
     selectedClient ? allowedTiers.includes(p.catalogTier) : true,
@@ -260,7 +340,13 @@ export function NewCreditPage() {
       const id = (res.data as { id: string }).id;
       navigate(`/creditos/${id}`);
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      if (isDebtError(e)) {
+        setDebt(creditsFromDebtError(e)[0] ?? openDebt);
+        return;
+      }
+      toast.error(e.message);
+    },
   });
 
   return (
@@ -285,6 +371,10 @@ export function NewCreditPage() {
           };
           setErrors(next);
           const message = firstError(Object.values(next));
+          if (openDebt) {
+            setDebt(openDebt);
+            return;
+          }
           if (message) {
             toast.error(message);
             return;
@@ -315,6 +405,11 @@ export function NewCreditPage() {
             Nivel {LEVEL_LABELS[selectedClient.level]}: puede tomar {catalogAccessLabel(selectedClient.level)}.
           </p>
         )}
+        {openDebt && (
+          <button type="button" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-left text-sm" onClick={() => setDebt(openDebt)}>
+            <b>Tiene saldo pendiente</b> en {openDebt.productName} ({money(openDebt.balance)}). Hay que saldarlo antes de entregar otro producto.
+          </button>
+        )}
         <CreditPlanFields
           price={product?.price ?? 0}
           frequency={frequency}
@@ -327,8 +422,22 @@ export function NewCreditPage() {
           setWeeks={setWeeks}
           errors={errors}
         />
-        <button className="btn-primary">Crear y entregar</button>
+        <button className="btn-primary" disabled={Boolean(openDebt)}>
+          {openDebt ? "Saldar el anterior primero" : "Crear y entregar"}
+        </button>
       </form>
+      {debt && (
+        <InfoModal
+          title="Hay que saldar el crédito anterior"
+          message="Este cliente todavía debe"
+          itemName={debt.productName}
+          facts={debtFacts(debt)}
+          notes={debtNotes(debt)}
+          actionLabel="Ir a registrar pago"
+          onAction={() => navigate(`/pagos?creditId=${debt.id}&clientId=${clientId}`)}
+          onClose={() => setDebt(null)}
+        />
+      )}
     </div>
   );
 }
@@ -338,6 +447,7 @@ export function CreditDetailPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [editing, setEditing] = useState(false);
+  const [confirmOff, setConfirmOff] = useState(false);
   const q = useQuery({
     queryKey: ["credit", id],
     queryFn: () =>
@@ -391,6 +501,17 @@ export function CreditDetailPage() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+  const toggle = useMutation({
+    mutationFn: (status: CreditStatus) =>
+      api(`/api/credits/${id}`, { method: "PATCH", body: JSON.stringify({ status }) }),
+    onSuccess: () => {
+      toast.success(c?.status === "ACTIVE" ? "Crédito desactivado" : "Crédito reactivado");
+      qc.invalidateQueries({ queryKey: ["credit", id] });
+      qc.invalidateQueries({ queryKey: ["credits"] });
+      setConfirmOff(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   if (!c) return <p>Cargando...</p>;
   const nextOpen = c.installments.find((item) => item.status !== "PAID");
@@ -406,6 +527,11 @@ export function CreditDetailPage() {
         actions={[
           { label: "Volver", icon: ArrowLeft, variant: "ghost", onClick: () => navigate("/creditos") },
           ...(canEditPlan ? [{ label: "Editar plan", icon: Pencil, variant: "ghost" as const, onClick: () => setEditing((v) => !v) }] : []),
+          {
+            label: c.status === "ACTIVE" ? "Desactivar" : "Reactivar",
+            variant: "ghost" as const,
+            onClick: () => setConfirmOff(true),
+          },
           { label: "Registrar pago", href: `/pagos?creditId=${id}&clientId=${c.client.id}` },
         ]}
       />
@@ -493,6 +619,28 @@ export function CreditDetailPage() {
           </tbody>
         </table>
       </div>
+      {confirmOff && (
+        <ConfirmModal
+          title={c.status === "ACTIVE" ? "Desactivar crédito" : "Reactivar crédito"}
+          message={c.status === "ACTIVE" ? "Vas a desactivar" : "Vas a reactivar"}
+          itemName={`${c.code} · ${c.product.name}`}
+          confirmText={c.status === "ACTIVE" ? "Desactivar" : "Reactivar"}
+          loading={toggle.isPending}
+          error={toggle.error instanceof Error ? toggle.error.message : undefined}
+          consequences={
+            c.status === "ACTIVE"
+              ? [
+                  "No se borra: cuotas y pagos se quedan",
+                  "Deja de salir en cobranza",
+                  "El inventario no se revierte: el producto ya salió",
+                  "Puedes reactivarlo si fue un error",
+                ]
+              : ["Volverá a cobranza y se le podrán aplicar pagos"]
+          }
+          onClose={() => setConfirmOff(false)}
+          onConfirm={() => toggle.mutate(c.status === "ACTIVE" ? "CANCELLED" : "ACTIVE")}
+        />
+      )}
     </div>
   );
 }

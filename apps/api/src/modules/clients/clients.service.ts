@@ -1,10 +1,14 @@
 import { Prisma } from "@prisma/client";
+import fs from "fs";
 import { levelFromPoints, POINTS_RULES, digitsOnly } from "@hogarplus/shared";
 import { settingsService } from "../settings/settings.service";
 import { prisma } from "../../lib/prisma";
+import { absoluteUploadPath, MAX_CLIENT_IMAGES, publicUploadPath } from "../../lib/upload";
 import { markOverdueInstallments } from "../../shared/sla";
 import { AppError, nextCode, pagination } from "../../shared/utils";
 import { writeAudit } from "../../middleware/auth";
+import { notifyStaff } from "../notifications/notifications.service";
+import { referralsService } from "../referrals/referrals.service";
 import type { z } from "zod";
 import type { createClientSchema, updateClientSchema } from "./clients.schema";
 
@@ -28,6 +32,8 @@ const clientSelect = {
   referredById: true,
   notes: true,
   locationUrl: true,
+  referenceName: true,
+  referencePhone: true,
   routeId: true,
   createdAt: true,
   referredBy: { select: { id: true, code: true, firstName: true, lastName: true } },
@@ -65,12 +71,14 @@ export class ClientsService {
         select: {
           ...clientSelect,
           _count: { select: { credits: true } },
+          images: { orderBy: { createdAt: "asc" }, take: 1, select: { id: true, path: true } },
           credits: {
             where: { status: "ACTIVE" },
             orderBy: { createdAt: "desc" },
-            take: 1,
+            take: 8,
             select: {
               id: true,
+              code: true,
               startDate: true,
               balance: true,
               weeklyQuota: true,
@@ -81,7 +89,7 @@ export class ClientsService {
               installments: {
                 where: { status: { not: "PAID" } },
                 orderBy: { dueDate: "asc" },
-                take: 1,
+                take: 20,
                 select: { dueDate: true, amount: true, number: true, status: true },
               },
             },
@@ -107,6 +115,21 @@ export class ClientsService {
         payments: { orderBy: { createdAt: "desc" }, take: 20 },
         pointsLedger: { orderBy: { createdAt: "desc" }, take: 30 },
         collectionNotes: { include: { user: { select: { name: true } } }, orderBy: { createdAt: "desc" }, take: 15 },
+        images: { orderBy: { createdAt: "asc" } },
+        referralsMade: {
+          orderBy: { createdAt: "desc" },
+          take: 20,
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            phone: true,
+            status: true,
+            pointsAwarded: true,
+            createdAt: true,
+            registeredClient: { select: { id: true, code: true } },
+          },
+        },
       },
     });
     if (!client) throw new AppError(404, "NOT_FOUND", "Cliente no encontrado");
@@ -117,6 +140,14 @@ export class ClientsService {
     const exists = await prisma.client.findUnique({ where: { documentId: input.documentId } });
     if (exists) throw new AppError(409, "DUPLICATE", "Ya existe un cliente con esa cédula");
 
+    if (input.referredById) {
+      const referrer = await prisma.client.findUnique({ where: { id: input.referredById } });
+      if (!referrer || referrer.status !== "ACTIVE") {
+        throw new AppError(400, "REFERRER_INVALID", "El cliente que lo trajo no está activo");
+      }
+    }
+
+    let notices: Awaited<ReturnType<typeof referralsService.convertForNewClient>> = [];
     const client = await prisma.$transaction(async (tx) => {
       const created = await tx.client.create({
         data: {
@@ -132,17 +163,32 @@ export class ClientsService {
           referredById: input.referredById,
           notes: input.notes,
           locationUrl: input.locationUrl,
+          referenceName: input.referenceName,
+          referencePhone: input.referencePhone,
           routeId: input.routeId,
           createdById: actorId,
         },
       });
 
       if (input.payAffiliation) {
-        await this.payAffiliationInTx(tx, created.id, input.referredById, actorId, input.affiliationMethod ?? "CASH");
+        await this.payAffiliationInTx(tx, created.id, actorId, input.affiliationMethod ?? "CASH");
       }
 
-      return tx.client.findUniqueOrThrow({ where: { id: created.id }, select: clientSelect });
+      const saved = await tx.client.findUniqueOrThrow({ where: { id: created.id }, select: clientSelect });
+      notices = await referralsService.convertForNewClient(tx, {
+        id: saved.id,
+        code: saved.code,
+        firstName: saved.firstName,
+        lastName: saved.lastName,
+        phone: saved.phone,
+        referredById: saved.referredById,
+      });
+      return saved;
     });
+
+    for (const notice of notices) {
+      await notifyStaff(notice);
+    }
 
     await writeAudit({ userId: actorId, action: "CREATE", entity: "Client", entityId: client.id, after: client, ip });
     return client;
@@ -166,6 +212,8 @@ export class ClientsService {
         catalogApproved: input.catalogApproved,
         notes: input.notes,
         locationUrl: input.locationUrl === undefined ? undefined : input.locationUrl,
+        referenceName: input.referenceName === undefined ? undefined : input.referenceName,
+        referencePhone: input.referencePhone === undefined ? undefined : input.referencePhone,
         routeId: input.routeId === undefined ? undefined : input.routeId || null,
       },
       select: clientSelect,
@@ -180,13 +228,12 @@ export class ClientsService {
     if (!client) throw new AppError(404, "NOT_FOUND", "Cliente no encontrado");
     if (client.affiliationPaid) throw new AppError(409, "ALREADY_PAID", "La afiliación ya fue pagada");
 
-    return prisma.$transaction((tx) => this.payAffiliationInTx(tx, clientId, client.referredById, actorId, method));
+    return prisma.$transaction((tx) => this.payAffiliationInTx(tx, clientId, actorId, method));
   }
 
   private async payAffiliationInTx(
     tx: Prisma.TransactionClient,
     clientId: string,
-    referredById: string | null | undefined,
     actorId: string,
     method: "CASH" | "TRANSFER" | "DEPOSIT",
   ) {
@@ -207,12 +254,6 @@ export class ClientsService {
       paymentId: payment.id,
       note: "Completar afiliación/contrato",
     });
-
-    if (referredById) {
-      await this.addPoints(tx, referredById, "REFERRAL", POINTS_RULES.REFERRAL, {
-        note: "Referido que completó afiliación",
-      });
-    }
 
     return tx.client.update({
       where: { id: clientId },
@@ -247,6 +288,39 @@ export class ClientsService {
       where: { id: clientId },
       data: { points: nextPoints, level },
     });
+  }
+
+  async addImages(clientId: string, files: Express.Multer.File[]) {
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
+      include: { _count: { select: { images: true } } },
+    });
+    if (!client) throw new AppError(404, "NOT_FOUND", "Cliente no encontrado");
+    if (client._count.images + files.length > MAX_CLIENT_IMAGES) {
+      throw new AppError(400, "TOO_MANY_FILES", `Este cliente ya tiene el máximo de ${MAX_CLIENT_IMAGES} fotos`);
+    }
+
+    await prisma.clientImage.createMany({
+      data: files.map((file) => ({
+        clientId,
+        path: publicUploadPath(clientId, file.filename),
+        originalName: file.originalname,
+      })),
+    });
+
+    return prisma.clientImage.findMany({
+      where: { clientId },
+      orderBy: { createdAt: "asc" },
+    });
+  }
+
+  async removeImage(clientId: string, imageId: string) {
+    const image = await prisma.clientImage.findFirst({ where: { id: imageId, clientId } });
+    if (!image) throw new AppError(404, "NOT_FOUND", "Imagen no encontrada");
+    const diskPath = absoluteUploadPath(image.path);
+    if (fs.existsSync(diskPath)) fs.unlinkSync(diskPath);
+    await prisma.clientImage.delete({ where: { id: imageId } });
+    return { id: imageId };
   }
 }
 

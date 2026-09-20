@@ -19,4 +19,5 @@ export const updateCreditSchema = z.object({
   frequency: z.enum(PAYMENT_FREQUENCIES).optional(),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "La fecha no es válida").optional(),
   notes: z.string().max(400).optional(),
+  status: z.enum(["ACTIVE", "CANCELLED"]).optional(),
 });

@@ -9,7 +9,7 @@ import type { noteSchema } from "./collections.schema";
 function installmentOpenWhere(): Prisma.InstallmentWhereInput {
   return {
     status: { not: "PAID" },
-    credit: { status: "ACTIVE" },
+    credit: { status: "ACTIVE", client: { status: "ACTIVE" } },
   };
 }
 
@@ -106,6 +106,7 @@ export class CollectionsService {
       prisma.credit.findMany({
         where: {
           status: "ACTIVE",
+          client: { status: "ACTIVE" },
           installments: {
             none: {
               dueDate: { lte: todayEnd },
@@ -153,6 +154,7 @@ export class CollectionsService {
       prisma.credit.findMany({
         where: {
           status: "ACTIVE",
+          client: { status: "ACTIVE" },
           installments: { some: { status: "PREPAID" } },
         },
         include: {

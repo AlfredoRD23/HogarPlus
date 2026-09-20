@@ -151,6 +151,8 @@ model Client {
   referredById    String?
   notes           String?      @db.Text
   locationUrl     String?      @db.Text
+  referenceName   String?
+  referencePhone  String?
   routeId         String?
   createdById     String
   createdAt       DateTime     @default(now())
@@ -165,11 +167,26 @@ model Client {
   pointsLedger   PointsLedger[]
   collectionNotes CollectionNote[]
   productRequests ProductRequest[]
+  images          ClientImage[]
+  referralsMade   Referral[] @relation("ReferralsMade")
+  fromReferral    Referral?  @relation("ReferralRegistered")
 
   @@index([status, level])
   @@index([phone])
   @@index([lastName, firstName])
   @@index([routeId])
+}
+
+model ClientImage {
+  id           String   @id @default(cuid())
+  clientId     String
+  path         String
+  originalName String?
+  createdAt    DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, createdAt])
 }
 
 model Product {
@@ -348,6 +365,8 @@ model Expense {
   incurredOn  DateTime
   userId      String
   createdAt   DateTime        @default(now())
+  voidedAt    DateTime?
+  voidReason  String?
 
   user User @relation(fields: [userId], references: [id])
 
@@ -391,6 +410,33 @@ enum RequestStatus {
 enum NotificationType {
   PRODUCT_REQUEST
   COLLECT_ME
+  REFERRAL_LEAD
+  REFERRAL_REGISTERED
+}
+
+enum ReferralStatus {
+  PENDING
+  REGISTERED
+  CANCELLED
+}
+
+model Referral {
+  id                 String         @id @default(cuid())
+  referrerId         String
+  firstName          String
+  lastName           String
+  phone              String
+  status             ReferralStatus @default(PENDING)
+  registeredClientId String?        @unique
+  pointsAwarded      Boolean        @default(false)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  referrer         Client  @relation("ReferralsMade", fields: [referrerId], references: [id])
+  registeredClient Client? @relation("ReferralRegistered", fields: [registeredClientId], references: [id])
+
+  @@index([phone, status])
+  @@index([referrerId, createdAt])
 }
 
 model CollectionRoute {

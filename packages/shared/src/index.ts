@@ -83,7 +83,7 @@ export const POINTS_RULES: Record<PointsAction, number> = {
   WEEKLY_ON_TIME: 10,
   ADVANCE: 15,
   AFFILIATION: 20,
-  REFERRAL: 30,
+  REFERRAL: 5,
   PRODUCT_COMPLETED: 50,
   LATE_PAYMENT: 0,
 };
@@ -115,7 +115,7 @@ export const POINTS_ACTION_LABELS: Record<PointsAction, string> = {
   WEEKLY_ON_TIME: "Cuota a tiempo",
   ADVANCE: "Adelanto",
   AFFILIATION: "Afiliación",
-  REFERRAL: "Referido",
+  REFERRAL: "Referido exitoso",
   PRODUCT_COMPLETED: "Producto completado",
   LATE_PAYMENT: "Pago atrasado",
 };
@@ -169,7 +169,14 @@ export function productRequestAccess(
   level: ClientLevel,
   tier: CatalogTier,
   catalogApproved: boolean,
+  hasDebt = false,
 ): { canRequest: boolean; lockReason: string | null } {
+  if (hasDebt) {
+    return {
+      canRequest: false,
+      lockReason: "Debes saldar tu producto anterior antes de pedir otro",
+    };
+  }
   if (!catalogsForLevel(level).includes(tier)) {
     const need = requiredLevelForTier(tier);
     return {
@@ -195,8 +202,45 @@ export const REQUEST_STATUS_LABELS: Record<RequestStatus, string> = {
   REJECTED: "Rechazada",
 };
 
-export const NOTIFICATION_TYPES = ["PRODUCT_REQUEST", "COLLECT_ME"] as const;
+export const NOTIFICATION_TYPES = ["PRODUCT_REQUEST", "COLLECT_ME", "REFERRAL_LEAD", "REFERRAL_REGISTERED"] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
+
+export const REFERRAL_STATUSES = ["PENDING", "REGISTERED", "CANCELLED"] as const;
+export type ReferralStatus = (typeof REFERRAL_STATUSES)[number];
+
+export const REFERRAL_STATUS_LABELS: Record<ReferralStatus, string> = {
+  PENDING: "Pendiente de entrar",
+  REGISTERED: "Ya es cliente",
+  CANCELLED: "Cancelado",
+};
+
+export type OutstandingCredit = {
+  id: string;
+  code: string;
+  productName: string;
+  balance: number;
+  weeklyQuota: number;
+  remaining: number;
+  nextDueDate: string | null;
+  nextAmount: number | null;
+  overdueCount: number;
+};
+
+export function normalizePersonKey(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+export function namesLookAlike(left: string, right: string) {
+  const a = normalizePersonKey(left);
+  const b = normalizePersonKey(right);
+  if (!a || !b) return false;
+  return a === b || a.includes(b) || b.includes(a);
+}
 
 export function catalogTierLabel(tier: CatalogTier | string): string {
   return CATALOG_TIER_LABELS[tier as CatalogTier] ?? tier;

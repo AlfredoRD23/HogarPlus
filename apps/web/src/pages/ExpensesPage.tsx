@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { api, formatDate, money } from "../lib/api";
 import { Field, FormattedInput, Modal, fieldHint } from "../components/Form";
+import { ConfirmModal } from "../components/ConfirmModal";
+import { RowActions } from "../components/RowActions";
 import { PageHeader } from "../components/PageHeader";
 import { DataTable } from "../components/DataTable";
 import { Plus, Receipt } from "lucide-react";
@@ -24,7 +26,30 @@ export function ExpensesPage() {
   const [open, setOpen] = useState(false);
   const q = useQuery({
     queryKey: ["expenses"],
-    queryFn: () => api<Array<{ id: string; category: string; amount: number; description: string; incurredOn: string }>>("/api/expenses"),
+    queryFn: () => api<Array<{ id: string; category: string; amount: number; description: string; incurredOn: string; voidedAt?: string | null }>>("/api/expenses"),
+  });
+  const [editing, setEditing] = useState<{ id: string; category: string; amount: number; description: string; incurredOn: string } | null>(null);
+  const [voiding, setVoiding] = useState<{ id: string; description: string } | null>(null);
+  const update = useMutation({
+    mutationFn: ({ id, body }: { id: string; body: Record<string, unknown> }) =>
+      api(`/api/expenses/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      toast.success("Gasto actualizado");
+      qc.invalidateQueries({ queryKey: ["expenses"] });
+      setEditing(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const voidExpense = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
+      api(`/api/expenses/${id}/void`, { method: "POST", body: JSON.stringify({ reason }) }),
+    onSuccess: () => {
+      toast.success("Gasto anulado");
+      qc.invalidateQueries({ queryKey: ["expenses"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      setVoiding(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
   const create = useMutation({
     mutationFn: (body: Record<string, unknown>) => api("/api/expenses", { method: "POST", body: JSON.stringify(body) }),
@@ -55,14 +80,23 @@ export function ExpensesPage() {
         emptyTitle="Sin gastos"
         emptyDescription="Registra nómina, transporte u otros gastos."
         emptyAction={<button className="btn-gold" onClick={() => setOpen(true)}>Nuevo gasto</button>}
-        headers={["Fecha", "Categoría", "Descripción", "Monto"]}
+        headers={["Fecha", "Categoría", "Descripción", "Monto", "Acciones"]}
       >
         {rows.map((e) => (
-          <tr key={e.id} className="border-t">
+          <tr key={e.id} className={`border-t ${e.voidedAt ? "opacity-40" : ""}`}>
             <td className="px-5 py-3.5">{formatDate(e.incurredOn)}</td>
             <td className="px-5 py-3.5">{CATEGORIES.find(([key]) => key === e.category)?.[1] ?? e.category}</td>
-            <td className="px-5 py-3.5">{e.description}</td>
+            <td className="px-5 py-3.5">{e.description}{e.voidedAt ? " · anulado" : ""}</td>
             <td className="px-5 py-3.5 text-right font-semibold">{money(e.amount)}</td>
+            <td className="px-5 py-3.5">
+              {!e.voidedAt ? (
+                <RowActions
+                  onEdit={() => setEditing(e)}
+                  onDeactivate={() => setVoiding({ id: e.id, description: e.description })}
+                  deactivateLabel="Anular"
+                />
+              ) : "—"}
+            </td>
           </tr>
         ))}
       </DataTable>
@@ -71,17 +105,48 @@ export function ExpensesPage() {
           <ExpenseForm onCancel={() => setOpen(false)} onSave={(b) => create.mutate(b)} />
         </Modal>
       )}
+      {editing && (
+        <Modal title="Editar gasto" onClose={() => setEditing(null)}>
+          <ExpenseForm initial={editing} onCancel={() => setEditing(null)} onSave={(b) => update.mutate({ id: editing.id, body: b })} />
+        </Modal>
+      )}
+      {voiding && (
+        <ConfirmModal
+          title="Anular gasto"
+          message="Vas a anular"
+          itemName={voiding.description}
+          confirmText="Anular"
+          loading={voidExpense.isPending}
+          error={voidExpense.error instanceof Error ? voidExpense.error.message : undefined}
+          requireReason
+          consequences={[
+            "El gasto no se borra: queda anulado",
+            "Deja de contar en reportes",
+            "No afecta clientes, créditos ni pagos",
+          ]}
+          onClose={() => setVoiding(null)}
+          onConfirm={(reason) => voidExpense.mutate({ id: voiding.id, reason: reason ?? "" })}
+        />
+      )}
     </div>
   );
 }
 
-function ExpenseForm({ onSave, onCancel }: { onSave: (b: Record<string, unknown>) => void; onCancel: () => void }) {
+function ExpenseForm({
+  onSave,
+  onCancel,
+  initial,
+}: {
+  onSave: (b: Record<string, unknown>) => void;
+  onCancel: () => void;
+  initial?: { category: string; amount: number; description: string; incurredOn: string };
+}) {
   const today = new Date().toISOString().slice(0, 10);
   const [f, setF] = useState({
-    category: "OPERATIONS",
-    amount: "",
-    description: "",
-    incurredOn: today,
+    category: initial?.category ?? "OPERATIONS",
+    amount: initial ? String(initial.amount) : "",
+    description: initial?.description ?? "",
+    incurredOn: initial ? initial.incurredOn.slice(0, 10) : today,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   return (
@@ -96,11 +161,7 @@ function ExpenseForm({ onSave, onCancel }: { onSave: (b: Record<string, unknown>
           incurredOn: dateError(f.incurredOn) ?? "",
         };
         setErrors(next);
-        const message = firstError(Object.values(next));
-        if (message) {
-          toast.error(message);
-          return;
-        }
+        if (firstError(Object.values(next))) return;
         onSave({
           category: f.category,
           amount: parseMoney(f.amount),

@@ -69,8 +69,22 @@ export function NotificationCenter() {
                     await api(`/api/notifications/${item.id}/read`, { method: "POST" });
                     qc.invalidateQueries({ queryKey: ["notifications"] });
                     setOpen(false);
-                    if (item.type === "PRODUCT_REQUEST") navigate("/solicitudes");
-                    else if (item.type === "COLLECT_ME") navigate(item.clientId ? `/clientes/${item.clientId}` : "/cobranza");
+                    switch (item.type) {
+                      case "PRODUCT_REQUEST":
+                        navigate("/solicitudes");
+                        break;
+                      case "COLLECT_ME":
+                        navigate(item.clientId ? `/clientes/${item.clientId}` : "/cobranza");
+                        break;
+                      case "REFERRAL_LEAD":
+                      case "REFERRAL_REGISTERED":
+                        navigate(item.clientId ? `/clientes/${item.clientId}` : "/clientes");
+                        break;
+                      default: {
+                        const _exhaustive: never = item.type;
+                        return _exhaustive;
+                      }
+                    }
                   }}
                 >
                   <p className="font-semibold">{item.title}</p>

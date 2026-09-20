@@ -38,7 +38,7 @@ export class DashboardService {
           credit: { status: "ACTIVE" },
         },
       }),
-      prisma.expense.aggregate({ where: { incurredOn: { gte: weekAgo } }, _sum: { amount: true } }),
+      prisma.expense.aggregate({ where: { incurredOn: { gte: weekAgo }, voidedAt: null }, _sum: { amount: true } }),
       prisma.payment.findMany({
         where: { voidedAt: null },
         orderBy: { createdAt: "desc" },

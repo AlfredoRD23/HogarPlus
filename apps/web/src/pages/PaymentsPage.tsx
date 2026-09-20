@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { api, formatDate, money } from "../lib/api";
 import { Field, FormattedInput, fieldHint } from "../components/Form";
+import { ConfirmModal } from "../components/ConfirmModal";
 import { PageHeader } from "../components/PageHeader";
 import { DataTable } from "../components/DataTable";
 import { Wallet } from "lucide-react";
@@ -55,6 +56,18 @@ export function PaymentsPage() {
     }
   }, [settings.data, form.amount]);
 
+  const [voiding, setVoiding] = useState<Payment | null>(null);
+  const voidPayment = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
+      api(`/api/payments/${id}/void`, { method: "POST", body: JSON.stringify({ reason }) }),
+    onSuccess: () => {
+      toast.success("Pago anulado");
+      qc.invalidateQueries({ queryKey: ["payments"] });
+      qc.invalidateQueries({ queryKey: ["credits"] });
+      setVoiding(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
   const create = useMutation({
     mutationFn: () =>
       api("/api/payments", {
@@ -99,10 +112,7 @@ export function PaymentsPage() {
           };
           setErrors(next);
           const message = firstError(Object.values(next));
-          if (message) {
-            toast.error(message);
-            return;
-          }
+          if (message) return;
           create.mutate();
         }}
       >
@@ -146,7 +156,7 @@ export function PaymentsPage() {
         rows={rows.length}
         emptyTitle="Sin pagos"
         emptyDescription="Los cobros aparecerán aquí al registrar la primera cuota."
-        headers={["Código", "Cliente", "Tipo", "Monto", "Inicial / Resta", "Fecha"]}
+        headers={["Código", "Cliente", "Tipo", "Monto", "Inicial / Resta", "Fecha", "Acciones"]}
       >
         {rows.map((p) => (
           <tr key={p.id} className={`border-t ${p.voidedAt ? "opacity-40" : ""}`}>
@@ -166,9 +176,37 @@ export function PaymentsPage() {
               ) : "—"}
             </td>
             <td className="px-5 py-3.5">{formatDate(p.createdAt)}</td>
+            <td className="px-5 py-3.5">
+              {!p.voidedAt && p.type !== "AFFILIATION" ? (
+                <button type="button" className="btn-danger btn-compact" onClick={() => setVoiding(p)}>Anular</button>
+              ) : p.voidedAt ? (
+                <span className="text-xs font-bold uppercase text-rose-700">Anulado</span>
+              ) : "—"}
+            </td>
           </tr>
         ))}
       </DataTable>
+      {voiding && (
+        <ConfirmModal
+          title="Anular pago"
+          message="Vas a anular"
+          itemName={voiding.code}
+          confirmText="Anular pago"
+          loadingText="Anulando..."
+          loading={voidPayment.isPending}
+          error={voidPayment.error instanceof Error ? voidPayment.error.message : undefined}
+          requireReason
+          reasonLabel="Motivo de anulación"
+          consequences={[
+            "El pago no se borra: queda marcado como anulado",
+            "Las cuotas cubiertas vuelven a pendiente",
+            "El saldo del crédito sube otra vez",
+            "La afiliación no se puede anular desde aquí",
+          ]}
+          onClose={() => setVoiding(null)}
+          onConfirm={(reason) => voidPayment.mutate({ id: voiding.id, reason: reason ?? "" })}
+        />
+      )}
       </div>
     </div>
   );

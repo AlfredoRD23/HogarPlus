@@ -18,7 +18,7 @@ export class ReportsService {
         select: { createdAt: true, amount: true, type: true, method: true },
       }),
       prisma.expense.findMany({
-        where: { incurredOn: { gte: from } },
+        where: { incurredOn: { gte: from }, voidedAt: null },
         select: { incurredOn: true, amount: true, category: true },
       }),
       prisma.client.count({ where: { status: "ACTIVE" } }),

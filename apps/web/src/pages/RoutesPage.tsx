@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import { MapPinned, Plus } from "lucide-react";
 import { api } from "../lib/api";
 import { Field, FormattedInput, Modal } from "../components/Form";
+import { ConfirmModal } from "../components/ConfirmModal";
 import { PageHeader } from "../components/PageHeader";
 import { formatPhoneRD } from "@hogarplus/shared";
 
@@ -35,6 +36,8 @@ type ClientOption = { id: string; firstName: string; lastName: string; code: str
 export function RoutesPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [confirmOff, setConfirmOff] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", area: "", notes: "" });
   const [pick, setPick] = useState<string[]>([]);
@@ -64,6 +67,26 @@ export function RoutesPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const update = useMutation({
+    mutationFn: () => api(`/api/routes/${selected}`, { method: "PATCH", body: JSON.stringify(form) }),
+    onSuccess: () => {
+      toast.success("Ruta actualizada");
+      qc.invalidateQueries({ queryKey: ["routes"] });
+      qc.invalidateQueries({ queryKey: ["route", selected] });
+      setEditing(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const toggle = useMutation({
+    mutationFn: (active: boolean) => api(`/api/routes/${selected}`, { method: "PATCH", body: JSON.stringify({ active }) }),
+    onSuccess: () => {
+      toast.success("Ruta actualizada");
+      qc.invalidateQueries({ queryKey: ["routes"] });
+      qc.invalidateQueries({ queryKey: ["route", selected] });
+      setConfirmOff(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
   const assign = useMutation({
     mutationFn: () =>
       api(`/api/routes/${selected}/clients`, { method: "POST", body: JSON.stringify({ clientIds: pick }) }),
@@ -98,7 +121,7 @@ export function RoutesPage() {
               className={`w-full border-b px-4 py-3 text-left ${selected === item.id ? "bg-gold-50" : "hover:bg-slate-50"}`}
               onClick={() => setSelected(item.id)}
             >
-              <p className="font-semibold">{item.name}</p>
+              <p className="font-semibold">{item.name}{item.active ? "" : " (inactiva)"}</p>
               <p className="text-xs text-slate-500">{item.area || "Sin zona"} · {item._count?.clients ?? 0} clientes</p>
             </button>
           ))}
@@ -107,7 +130,23 @@ export function RoutesPage() {
           {!route && <p className="text-sm text-slate-500">Elige una ruta para ver y enlazar clientes.</p>}
           {route && (
             <>
-              <h2 className="font-display text-2xl">{route.name}</h2>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="font-display text-2xl">{route.name}{route.active ? "" : " · inactiva"}</h2>
+                <div className="flex gap-2">
+                  <button
+                    className="btn-ghost btn-compact"
+                    onClick={() => {
+                      setForm({ name: route.name, area: route.area ?? "", notes: route.notes ?? "" });
+                      setEditing(true);
+                    }}
+                  >
+                    Editar
+                  </button>
+                  <button className="btn-danger btn-compact" onClick={() => setConfirmOff(true)}>
+                    {route.active ? "Desactivar" : "Reactivar"}
+                  </button>
+                </div>
+              </div>
               <p className="text-sm text-slate-500">{route.area || "Sin zona"} {route.notes ? `· ${route.notes}` : ""}</p>
               <ul className="mt-4 space-y-2">
                 {route.clients.length === 0 && <li className="text-sm text-slate-500">Esta ruta no tiene clientes todavía.</li>}
@@ -150,10 +189,7 @@ export function RoutesPage() {
             className="grid gap-3"
             onSubmit={(e) => {
               e.preventDefault();
-              if (form.name.trim().length < 2) {
-                toast.error("Ponle un nombre a la ruta");
-                return;
-              }
+              if (form.name.trim().length < 2) return;
               create.mutate();
             }}
           >
@@ -172,6 +208,53 @@ export function RoutesPage() {
             </div>
           </form>
         </Modal>
+      )}
+      {editing && (
+        <Modal title="Editar ruta" onClose={() => setEditing(false)}>
+          <form
+            className="grid gap-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (form.name.trim().length < 2) return;
+              update.mutate();
+            }}
+          >
+            <Field label="Nombre">
+              <FormattedInput kind="city" required value={form.name} onValue={(v) => setForm({ ...form, name: v })} />
+            </Field>
+            <Field label="Zona o sector">
+              <FormattedInput kind="city" value={form.area} onValue={(v) => setForm({ ...form, area: v })} />
+            </Field>
+            <Field label="Nota">
+              <FormattedInput kind="text" value={form.notes} onValue={(v) => setForm({ ...form, notes: v })} />
+            </Field>
+            <div className="flex justify-end gap-2">
+              <button type="button" className="btn-ghost" onClick={() => setEditing(false)}>Cancelar</button>
+              <button className="btn-primary">Guardar</button>
+            </div>
+          </form>
+        </Modal>
+      )}
+      {confirmOff && route && (
+        <ConfirmModal
+          title={route.active ? "Desactivar ruta" : "Reactivar ruta"}
+          message={route.active ? "Vas a desactivar" : "Vas a reactivar"}
+          itemName={route.name}
+          confirmText={route.active ? "Desactivar" : "Reactivar"}
+          loading={toggle.isPending}
+          error={toggle.error instanceof Error ? toggle.error.message : undefined}
+          consequences={
+            route.active
+              ? [
+                  "Los clientes siguen enlazados a esta ruta",
+                  "No se borra ningún cobro ni ficha",
+                  "Puedes reactivarla cuando quieras",
+                ]
+              : ["Volverá a usarse en cobranza"]
+          }
+          onClose={() => setConfirmOff(false)}
+          onConfirm={() => toggle.mutate(!route.active)}
+        />
       )}
     </div>
   );

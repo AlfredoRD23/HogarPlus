@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { Inbox } from "lucide-react";
 import { api, money } from "../lib/api";
+import { ConfirmModal } from "../components/ConfirmModal";
 import { PageHeader } from "../components/PageHeader";
 import { DataTable } from "../components/DataTable";
 import { CatalogBadge, LevelBadge } from "../components/Badges";
@@ -18,6 +20,7 @@ type RequestRow = {
 
 export function RequestsPage() {
   const qc = useQueryClient();
+  const [confirm, setConfirm] = useState<{ row: RequestRow; status: RequestStatus } | null>(null);
   const q = useQuery({
     queryKey: ["requests"],
     queryFn: () => api<RequestRow[]>("/api/requests?pageSize=50"),
@@ -28,6 +31,7 @@ export function RequestsPage() {
     onSuccess: () => {
       toast.success("Solicitud actualizada");
       qc.invalidateQueries({ queryKey: ["requests"] });
+      setConfirm(null);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -69,8 +73,8 @@ export function RequestsPage() {
               {row.status === "PENDING" ? (
                 <div className="flex flex-wrap gap-2">
                   <Link className="btn-gold" to={`/creditos/nuevo?clientId=${row.client.id}`}>Crear crédito</Link>
-                  <button className="btn-primary" onClick={() => update.mutate({ id: row.id, status: "APPROVED" })}>Aprobar</button>
-                  <button className="btn-ghost" onClick={() => update.mutate({ id: row.id, status: "REJECTED" })}>Rechazar</button>
+                  <button className="btn-primary" onClick={() => setConfirm({ row, status: "APPROVED" })}>Aprobar</button>
+                  <button className="btn-ghost" onClick={() => setConfirm({ row, status: "REJECTED" })}>Rechazar</button>
                 </div>
               ) : (
                 <Link className="font-semibold text-navy-800" to={`/creditos/nuevo?clientId=${row.client.id}`}>Ir a crédito</Link>
@@ -79,6 +83,31 @@ export function RequestsPage() {
           </tr>
         ))}
       </DataTable>
+      {confirm && (
+        <ConfirmModal
+          title={confirm.status === "APPROVED" ? "Aprobar solicitud" : "Rechazar solicitud"}
+          message={confirm.status === "APPROVED" ? "Vas a aprobar el pedido de" : "Vas a rechazar el pedido de"}
+          itemName={`${confirm.row.client.firstName} ${confirm.row.product.name}`}
+          confirmText={confirm.status === "APPROVED" ? "Aprobar" : "Rechazar"}
+          loading={update.isPending}
+          error={update.error instanceof Error ? update.error.message : undefined}
+          consequences={
+            confirm.status === "APPROVED"
+              ? [
+                  "La solicitud queda aprobada",
+                  "Aún debes crear el crédito para entregar el producto",
+                  "El historial del cliente no se borra",
+                ]
+              : [
+                  "No se borra: queda como rechazada",
+                  "El cliente puede volver a pedir el producto",
+                  "No se crea ningún crédito",
+                ]
+          }
+          onClose={() => setConfirm(null)}
+          onConfirm={() => update.mutate({ id: confirm.row.id, status: confirm.status })}
+        />
+      )}
     </div>
   );
 }

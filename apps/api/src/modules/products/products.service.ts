@@ -25,7 +25,13 @@ export class ProductsService {
     };
 
     const [items, total] = await prisma.$transaction([
-      prisma.product.findMany({ where, skip, take, orderBy: { name: "asc" } }),
+      prisma.product.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { name: "asc" },
+        include: { _count: { select: { credits: true } } },
+      }),
       prisma.product.count({ where }),
     ]);
 

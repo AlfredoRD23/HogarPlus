@@ -28,6 +28,14 @@ export function errorHandler(
     return;
   }
 
+  if (err instanceof Error && err.name === "MulterError") {
+    res.status(400).json({
+      success: false,
+      error: { code: "UPLOAD_ERROR", message: "No se pudo cargar la imagen. Revisa el tamaño y el formato." },
+    });
+    return;
+  }
+
   console.error(err);
   res.status(500).json({
     success: false,

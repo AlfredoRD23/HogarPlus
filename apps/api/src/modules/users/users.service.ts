@@ -71,6 +71,17 @@ export class UsersService {
   async update(id: string, input: z.infer<typeof updateUserSchema>, actorId: string, ip?: string) {
     const before = await prisma.user.findUnique({ where: { id } });
     if (!before) throw new AppError(404, "NOT_FOUND", "Usuario no encontrado");
+    if (input.active === false && id === actorId) {
+      throw new AppError(400, "SELF_DISABLE", "No puedes desactivar tu propia cuenta");
+    }
+    if (input.active === false && before.role === "DIRECCION") {
+      const others = await prisma.user.count({
+        where: { role: "DIRECCION", active: true, id: { not: id } },
+      });
+      if (others === 0) {
+        throw new AppError(400, "LAST_DIRECCION", "Debe quedar al menos un usuario de Dirección activo");
+      }
+    }
 
     const user = await prisma.user.update({
       where: { id },

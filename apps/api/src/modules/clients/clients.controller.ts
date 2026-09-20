@@ -60,6 +60,18 @@ export class ClientsController {
     const data = await clientsService.payAffiliation(req.params.id, body.method, actor.id);
     res.json({ success: true, data });
   }
+
+  async addImages(req: Request, res: Response) {
+    const files = (req.files as Express.Multer.File[] | undefined) ?? [];
+    if (files.length === 0) throw new AppError(400, "NO_FILE", "Selecciona al menos una imagen");
+    const data = await clientsService.addImages(req.params.id, files);
+    res.status(201).json({ success: true, data });
+  }
+
+  async removeImage(req: Request, res: Response) {
+    const data = await clientsService.removeImage(req.params.id, req.params.imageId);
+    res.json({ success: true, data });
+  }
 }
 
 export const clientsController = new ClientsController();

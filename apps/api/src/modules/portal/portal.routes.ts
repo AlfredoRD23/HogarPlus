@@ -5,7 +5,10 @@ import { prisma } from "../../lib/prisma";
 import { asyncHandler } from "../../shared/http";
 import { markOverdueInstallments } from "../../shared/sla";
 import { AppError } from "../../shared/utils";
+import { assertNoOutstandingDebt, outstandingCredits } from "../../shared/debt";
 import { notifyStaff } from "../notifications/notifications.service";
+import { createReferralSchema } from "../referrals/referrals.schema";
+import { referralsService } from "../referrals/referrals.service";
 
 export const portalRouter = Router();
 
@@ -30,6 +33,9 @@ async function findPortalClient(documentId: string, phone: string) {
     },
   });
   if (!client) throw new AppError(404, "NOT_FOUND", "No encontramos una cuenta con esos datos");
+  if (client.status !== "ACTIVE") {
+    throw new AppError(403, "INACTIVE", "Esta cuenta está desactivada. Habla con HogarPlus");
+  }
   return client;
 }
 
@@ -53,11 +59,15 @@ portalRouter.post(
         payments: { where: { voidedAt: null }, orderBy: { createdAt: "desc" }, take: 12 },
         pointsLedger: { orderBy: { createdAt: "desc" }, take: 12 },
         productRequests: { where: { status: "PENDING" }, select: { productId: true } },
+        referralsMade: { orderBy: { createdAt: "desc" }, take: 12 },
       },
     });
 
     if (!client) {
       throw new AppError(404, "NOT_FOUND", "No encontramos una cuenta con esos datos");
+    }
+    if (client.status !== "ACTIVE") {
+      throw new AppError(403, "INACTIVE", "Esta cuenta está desactivada. Habla con HogarPlus");
     }
 
     const products = await prisma.product.findMany({
@@ -66,8 +76,10 @@ portalRouter.post(
       select: { id: true, name: true, category: true, catalogTier: true, price: true, description: true },
     });
     const pendingIds = new Set(client.productRequests.map((item) => item.productId));
+    const debt = await outstandingCredits(client.id);
+    const hasDebt = debt.length > 0;
     const catalog = products.map((product) => {
-      const access = productRequestAccess(client.level, product.catalogTier, client.catalogApproved);
+      const access = productRequestAccess(client.level, product.catalogTier, client.catalogApproved, hasDebt);
       return {
         ...product,
         canRequest: access.canRequest,
@@ -91,6 +103,8 @@ portalRouter.post(
         payments: client.payments,
         pointsLedger: client.pointsLedger,
         catalog,
+        debt,
+        referrals: client.referralsMade,
       },
     });
   }),
@@ -104,6 +118,7 @@ portalRouter.post(
     if (!client.affiliationPaid) {
       throw new AppError(400, "NO_AFFILIATION", "Debes tener la afiliación pagada para solicitar un producto");
     }
+    await assertNoOutstandingDebt(client.id);
     const product = await prisma.product.findUnique({ where: { id: body.productId } });
     if (!product || product.status !== "ACTIVE") {
       throw new AppError(404, "NOT_FOUND", "Producto no disponible");
@@ -157,5 +172,23 @@ portalRouter.post(
       roles: ["DIRECCION", "COBRANZA", "ADMINISTRACION"],
     });
     res.status(201).json({ success: true, data: { ok: true } });
+  }),
+);
+
+portalRouter.post(
+  "/refer",
+  asyncHandler(async (req, res) => {
+    const identity = identitySchema.parse(req.body);
+    const lead = createReferralSchema.parse({
+      firstName: req.body.firstName,
+      lastName: req.body.lastName,
+      phone: req.body.referredPhone,
+    });
+    const client = await findPortalClient(identity.documentId, identity.phone);
+    if (lead.phone === identity.phone) {
+      throw new AppError(400, "SELF_REFERRAL", "No puedes referirte a ti mismo");
+    }
+    const data = await referralsService.createLead(client.id, lead);
+    res.status(201).json({ success: true, data });
   }),
 );

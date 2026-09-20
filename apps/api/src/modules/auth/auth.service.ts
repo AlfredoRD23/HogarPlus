@@ -35,8 +35,8 @@ export class AuthService {
       where: { id },
       select: { id: true, email: true, name: true, role: true, phone: true, active: true },
     });
-    if (!user) {
-      throw new AppError(404, "NOT_FOUND", "Usuario no encontrado");
+    if (!user || !user.active) {
+      throw new AppError(401, "INACTIVE", "Tu usuario está desactivado");
     }
     return user;
   }

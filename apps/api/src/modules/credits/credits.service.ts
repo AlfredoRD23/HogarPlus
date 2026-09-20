@@ -11,6 +11,7 @@ import {
 import { prisma } from "../../lib/prisma";
 import { settingsService } from "../settings/settings.service";
 import { markOverdueInstallments } from "../../shared/sla";
+import { assertNoOutstandingDebt } from "../../shared/debt";
 import { addByFrequency, AppError, money, nextCode, pagination } from "../../shared/utils";
 import { writeAudit } from "../../middleware/auth";
 import type { z } from "zod";
@@ -109,10 +110,7 @@ export class CreditsService {
       throw new AppError(400, "NEEDS_EVALUATION", "Los productos Oro requieren aprobación de capacidad de pago");
     }
 
-    const active = await prisma.credit.count({ where: { clientId: client.id, status: "ACTIVE" } });
-    if (active >= 2) {
-      throw new AppError(400, "CREDIT_LIMIT", "El cliente ya tiene el máximo de créditos activos");
-    }
+    await assertNoOutstandingDebt(client.id);
 
     const settings = await settingsService.getAll();
     const frequency = input.frequency ?? "WEEKLY";
@@ -213,6 +211,49 @@ export class CreditsService {
       include: { installments: true, payments: { where: { voidedAt: null } } },
     });
     if (!before) throw new AppError(404, "NOT_FOUND", "Crédito no encontrado");
+
+    if (input.status === "CANCELLED") {
+      if (before.status !== "ACTIVE") {
+        throw new AppError(400, "CREDIT_CLOSED", "Solo se puede desactivar un crédito activo");
+      }
+      const credit = await prisma.credit.update({
+        where: { id },
+        data: { status: "CANCELLED", notes: input.notes },
+        include: creditInclude,
+      });
+      await writeAudit({
+        userId: actorId,
+        action: "UPDATE",
+        entity: "Credit",
+        entityId: id,
+        before: { status: before.status },
+        after: { status: credit.status },
+        ip,
+      });
+      return credit;
+    }
+
+    if (input.status === "ACTIVE") {
+      if (before.status !== "CANCELLED") {
+        throw new AppError(400, "CREDIT_CLOSED", "Solo se puede reactivar un crédito desactivado");
+      }
+      const credit = await prisma.credit.update({
+        where: { id },
+        data: { status: "ACTIVE", notes: input.notes },
+        include: creditInclude,
+      });
+      await writeAudit({
+        userId: actorId,
+        action: "UPDATE",
+        entity: "Credit",
+        entityId: id,
+        before: { status: before.status },
+        after: { status: credit.status },
+        ip,
+      });
+      return credit;
+    }
+
     if (before.status !== "ACTIVE") {
       throw new AppError(400, "CREDIT_CLOSED", "Solo se puede editar un crédito activo");
     }

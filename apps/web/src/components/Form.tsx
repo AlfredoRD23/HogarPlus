@@ -19,10 +19,12 @@ export function Modal({
   title,
   children,
   onClose,
+  zClass = "z-[100]",
 }: {
   title: string;
   children: ReactNode;
   onClose: () => void;
+  zClass?: string;
 }) {
   useEffect(() => {
     const previous = document.body.style.overflow;
@@ -33,7 +35,7 @@ export function Modal({
   }, []);
 
   return createPortal(
-    <div className="modal-overlay z-[100]" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div className={`modal-overlay ${zClass}`} role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <div className="modal-panel">
         <div className="flex shrink-0 items-center justify-between bg-navy-900 px-5 py-4 text-white">
           <h3 id="modal-title" className="font-display text-lg">

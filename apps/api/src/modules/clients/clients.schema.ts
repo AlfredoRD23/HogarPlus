@@ -27,8 +27,24 @@ export const createClientSchema = z.object({
   address: z.string().max(160).optional(),
   city: z.string().trim().max(50).optional(),
   province: z.string().trim().max(50).optional(),
-  referredById: z.string().optional(),
+  referredById: z.string().min(1).optional().or(z.literal("")).transform((value) => value || undefined),
   notes: z.string().max(400).optional(),
+  referenceName: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .transform((value) => (value ? value.trim() : undefined))
+    .refine((value) => !value || !personNameError(value, "nombre de la referencia"), {
+      message: "El nombre de la referencia solo puede incluir letras",
+    }),
+  referencePhone: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .transform((value) => (value ? digitsOnly(value) : undefined))
+    .refine((value) => !value || isValidPhoneRD(value), {
+      message: "El teléfono de la referencia debe iniciar con 809, 829 o 849",
+    }),
   locationUrl: z
     .string()
     .max(500)
@@ -46,6 +62,13 @@ export const createClientSchema = z.object({
       code: z.ZodIssueCode.custom,
       path: ["payAffiliation"],
       message: "Para entregar un producto hay que cobrar la afiliación",
+    });
+  }
+  if (Boolean(data.referenceName) !== Boolean(data.referencePhone)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: data.referenceName ? ["referencePhone"] : ["referenceName"],
+      message: "La referencia necesita nombre y teléfono",
     });
   }
 });
@@ -78,6 +101,29 @@ export const updateClientSchema = z.object({
   status: z.enum(CLIENT_STATUSES).optional(),
   catalogApproved: z.boolean().optional(),
   notes: z.string().max(400).optional(),
+  referenceName: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .transform((value) => {
+      if (value === undefined) return undefined;
+      return value.trim() || null;
+    })
+    .refine((value) => value === undefined || value === null || !personNameError(value, "nombre de la referencia"), {
+      message: "El nombre de la referencia solo puede incluir letras",
+    }),
+  referencePhone: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .transform((value) => {
+      if (value === undefined) return undefined;
+      const digits = digitsOnly(value);
+      return digits || null;
+    })
+    .refine((value) => value === undefined || value === null || isValidPhoneRD(value), {
+      message: "El teléfono de la referencia debe iniciar con 809, 829 o 849",
+    }),
   locationUrl: z
     .string()
     .max(500)
@@ -99,4 +145,14 @@ export const updateClientSchema = z.object({
       if (value === undefined) return undefined;
       return value.trim() || null;
     }),
+}).superRefine((data, ctx) => {
+  const hasName = Boolean(data.referenceName);
+  const hasPhone = Boolean(data.referencePhone);
+  if (data.referenceName !== undefined && data.referencePhone !== undefined && hasName !== hasPhone) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: hasName ? ["referencePhone"] : ["referenceName"],
+      message: "La referencia necesita nombre y teléfono",
+    });
+  }
 });

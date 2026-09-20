@@ -29,6 +29,19 @@ body {
     @apply rounded-2xl border border-slate-200 bg-white shadow-card;
   }
 
+  .carousel {
+    @apply flex snap-x snap-mandatory gap-4 overflow-x-auto pb-1;
+    scrollbar-width: none;
+  }
+
+  .carousel::-webkit-scrollbar {
+    display: none;
+  }
+
+  .carousel-item {
+    @apply shrink-0 snap-start;
+  }
+
   .modal-overlay {
     @apply fixed inset-0 flex items-end justify-center sm:items-center;
     background: rgb(15 23 42 / 0.35);

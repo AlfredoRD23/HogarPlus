@@ -31,7 +31,7 @@ export function UsersPage() {
     <div className="space-y-4">
       <PageHeader
         title="Usuarios y roles"
-        description="El acceso se valida contra la base de datos y los permisos del rol"
+        description="Crea cuentas para el equipo y asigna un rol"
         icon={Shield}
         actions={[{ label: "Nuevo usuario", icon: Plus, onClick: () => setOpen(true) }]}
       />

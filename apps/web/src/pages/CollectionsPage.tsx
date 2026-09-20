@@ -37,7 +37,7 @@ export function CollectionsPage() {
     <div className="space-y-4">
       <PageHeader
         title="Cobranza"
-        description="Al día, vence hoy, vencidos y adelantados. Los indicadores salen de cuotas reales."
+        description="Al día, vence hoy, vencidos y adelantados"
         icon={Bell}
       />
       <div className="grid gap-4 md:grid-cols-4">

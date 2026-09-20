@@ -54,7 +54,7 @@ export function DashboardPage() {
       {pendingSetup && (
         <div className="panel p-5">
           <h2 className="font-display text-xl">Puesta en marcha</h2>
-          <p className="mt-1 text-sm text-slate-500">Completa estos pasos con datos reales. El tablero se llena solo.</p>
+          <p className="mt-1 text-sm text-slate-500">Completa estos pasos para empezar a usar el panel.</p>
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
             <Step done={setup.hasClients} label="Registrar clientes" onClick={() => navigate("/clientes")} />
             <Step done={setup.hasProducts} label="Cargar catálogo" onClick={() => navigate("/productos")} />
@@ -94,7 +94,7 @@ export function DashboardPage() {
             <li className="flex justify-between"><span>Gastos 7 días</span><b>{money(d?.kpis.weeklyExpenses ?? 0)}</b></li>
           </ul>
           <p className="mt-4 rounded-xl bg-gold-50 p-3 text-xs text-navy-800">
-            El dinero cobrado no es utilidad. Separe costo de mercancía, gastos, reserva de morosidad y capital reinvertible.
+            El cobro, el costo de mercancía y los gastos se muestran por separado.
           </p>
         </div>
       </div>

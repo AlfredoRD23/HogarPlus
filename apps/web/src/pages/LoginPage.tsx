@@ -31,7 +31,7 @@ export function LoginPage() {
             ))}
           </div>
         </div>
-        <p className="text-sm text-slate-300">Acceso interno · Cartera · Cobranza · Inventario</p>
+        <p className="text-sm text-slate-300">Cartera · Cobranza · Inventario</p>
       </section>
       <section className="flex items-center justify-center p-6">
         <form
@@ -61,8 +61,8 @@ export function LoginPage() {
           <div className="lg:hidden">
             <Logo />
           </div>
-          <h1 className="mt-4 font-display text-3xl text-navy-900">Ingreso al sistema</h1>
-          <p className="mt-2 text-sm text-slate-500">Usa tu usuario real. La sesión se valida contra la base de datos.</p>
+          <h1 className="mt-4 font-display text-3xl text-navy-900">Iniciar sesión</h1>
+          <p className="mt-2 text-sm text-slate-500">Ingresa con tu correo y contraseña.</p>
           <div className="mt-6">
             <Field label="Correo" hint={fieldHint("email")}>
               <FormattedInput kind="email" required autoComplete="username" value={email} onValue={setEmail} />

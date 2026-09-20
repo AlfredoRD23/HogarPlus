@@ -57,7 +57,7 @@ export function ProductsPage() {
         loading={q.isLoading}
         rows={rows.length}
         emptyTitle="Catálogo vacío"
-        emptyDescription="Carga el primer producto con costo y precio reales."
+        emptyDescription="Agrega el primer producto al catálogo."
         emptyAction={<button className="btn-gold" onClick={() => setOpen(true)}>Nuevo producto</button>}
         headers={["SKU", "Producto", "Área", "Catálogo", "Costo", "Precio", "Stock"]}
       >

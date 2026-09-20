@@ -30,7 +30,7 @@ export function ReportsPage() {
     <div className="space-y-4">
       <PageHeader
         title="Reportes"
-        description="Cifras tomadas de créditos, pagos y gastos reales de los últimos 90 días"
+        description="Resumen de créditos, pagos y gastos"
         icon={BarChart3}
       />
       <div className="grid gap-4 md:grid-cols-4">

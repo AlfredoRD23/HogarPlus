@@ -35,7 +35,7 @@ export function CreditsPage() {
     <div className="space-y-4">
       <PageHeader
         title="Créditos"
-        description="Precio, saldo, cuota y costo se registran por separado"
+        description="Precio, saldo, cuota y costo de cada entrega"
         icon={FileText}
         searchPlaceholder="Buscar código, cliente o cédula"
         searchValue={search}
@@ -101,7 +101,7 @@ export function NewCreditPage() {
         }),
       }),
     onSuccess: (res) => {
-      toast.success("Crédito creado y mercancía descontada");
+      toast.success("Crédito creado");
       const id = (res.data as { id: string }).id;
       navigate(`/creditos/${id}`);
     },
@@ -166,7 +166,7 @@ export function NewCreditPage() {
         </div>
         {product && (
           <p className="rounded-xl bg-gold-50 p-3 text-sm">
-            Precio {money(product.price)} · Plan {money((parseMoney(weeklyQuota) || 0) * (parseInteger(weeks) || 0))} · El cobro no se contabiliza como ganancia.
+            Precio {money(product.price)} · Plan {money((parseMoney(weeklyQuota) || 0) * (parseInteger(weeks) || 0))}
           </p>
         )}
         <button className="btn-primary">Crear y entregar</button>

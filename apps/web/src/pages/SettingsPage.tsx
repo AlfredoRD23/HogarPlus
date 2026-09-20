@@ -69,7 +69,7 @@ export function SettingsPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Reglas de negocio" description="Cuota, afiliación y reserva se leen y guardan en la base de datos" icon={Settings} />
+      <PageHeader title="Reglas de negocio" description="Afiliación, cuota semanal y reserva de caja" icon={Settings} />
       <div className="panel max-w-2xl p-6">
       <form
         className="mt-4 grid gap-3 sm:grid-cols-2"

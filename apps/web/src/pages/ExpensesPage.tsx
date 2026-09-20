@@ -53,7 +53,7 @@ export function ExpensesPage() {
         loading={q.isLoading}
         rows={rows.length}
         emptyTitle="Sin gastos"
-        emptyDescription="Registra operación, transporte u otros costos reales."
+        emptyDescription="Registra nómina, transporte u otros gastos."
         emptyAction={<button className="btn-gold" onClick={() => setOpen(true)}>Nuevo gasto</button>}
         headers={["Fecha", "Categoría", "Descripción", "Monto"]}
       >

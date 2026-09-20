@@ -82,7 +82,7 @@ export function PaymentsPage() {
     <div className="space-y-4">
       <PageHeader
         title="Pagos"
-        description="El cobro se aplica al saldo y a las cuotas. No se trata como utilidad."
+        description="Registra cobros y aplícalos a las cuotas del cliente"
         icon={Wallet}
       />
       <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
@@ -107,7 +107,7 @@ export function PaymentsPage() {
         }}
       >
         <h2 className="font-display text-2xl">Registrar pago</h2>
-        <p className="text-xs text-slate-500">El sistema aplica FIFO a cuotas, marca adelantos y no trata el cobro como utilidad.</p>
+        <p className="text-xs text-slate-500">El pago se aplica primero a las cuotas más antiguas.</p>
         <Field label="Cliente" error={errors.clientId}>
           <select className={`input ${errors.clientId ? "input-error" : ""}`} required value={form.clientId} onChange={(e) => setForm({ ...form, clientId: e.target.value })}>
             <option value="">Seleccione</option>

@@ -57,20 +57,21 @@ export function createApp() {
 
   const webDist = [
     path.resolve(process.cwd(), "apps/web/dist"),
+    path.resolve(process.cwd(), "apps/api/public"),
     path.resolve(__dirname, "../../../web/dist"),
+    path.resolve(__dirname, "../../public"),
   ].find((dir) => fs.existsSync(path.join(dir, "index.html")));
 
   if (webDist) {
+    console.log(`HogarPlus sirviendo panel desde ${webDist}`);
     app.use(express.static(webDist));
-    app.get(/^(?!\/api\/|\/uploads\/).*/, (req, res, next) => {
-      if (req.method !== "GET") {
-        next();
-        return;
-      }
+    app.get(/^(?!\/api\/|\/uploads\/).*/, (_req, res, next) => {
       res.sendFile(path.join(webDist, "index.html"), (err) => {
         if (err) next(err);
       });
     });
+  } else {
+    console.warn("HogarPlus no encontró apps/web/dist; la raíz seguirá en JSON 404");
   }
 
   app.use(notFound);

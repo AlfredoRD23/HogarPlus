@@ -21,4 +21,4 @@ RUN npx prisma generate --schema=apps/api/prisma/schema.prisma \
 
 ENV NODE_ENV=production
 EXPOSE 8080
-CMD ["node", "apps/api/dist/src/main.js"]
+CMD ["sh", "-c", "npx prisma db push --schema=apps/api/prisma/schema.prisma --skip-generate && node apps/api/dist/src/main.js"]

@@ -1,12 +1,20 @@
 import { Prisma } from "@prisma/client";
-import { catalogsForLevel, CATALOG_TIER_LABELS, digitsOnly, LEVEL_LABELS } from "@hogarplus/shared";
+import {
+  catalogsForLevel,
+  CATALOG_TIER_LABELS,
+  digitsOnly,
+  financedAmount,
+  installmentAmounts,
+  LEVEL_LABELS,
+  type PaymentFrequency,
+} from "@hogarplus/shared";
 import { prisma } from "../../lib/prisma";
 import { settingsService } from "../settings/settings.service";
 import { markOverdueInstallments } from "../../shared/sla";
-import { addWeeks, AppError, money, nextCode, pagination } from "../../shared/utils";
+import { addByFrequency, AppError, money, nextCode, pagination } from "../../shared/utils";
 import { writeAudit } from "../../middleware/auth";
 import type { z } from "zod";
-import type { createCreditSchema } from "./credits.schema";
+import type { createCreditSchema, updateCreditSchema } from "./credits.schema";
 
 const creditInclude = {
   client: {
@@ -107,15 +115,22 @@ export class CreditsService {
     }
 
     const settings = await settingsService.getAll();
+    const frequency = input.frequency ?? "WEEKLY";
+    const downPayment = Number(input.downPayment ?? 0);
+    const price = money(product.price);
+    if (downPayment >= price) {
+      throw new AppError(400, "DOWN_PAYMENT_HIGH", "El pago inicial debe ser menor que el precio del producto");
+    }
     const weeks = input.weeks ?? settings.defaultWeeks;
-    const weeklyQuota = new Prisma.Decimal(input.weeklyQuota ?? settings.weeklyQuota);
-    const price = product.price;
-    const expected = weeklyQuota.times(weeks);
-    if (expected.lessThan(price)) {
-      throw new AppError(400, "QUOTA_TOO_LOW", "Las cuotas no cubren el precio del producto");
+    const amounts = installmentAmounts(price, downPayment, weeks);
+    const weeklyQuota = new Prisma.Decimal(input.weeklyQuota ?? amounts[0] ?? settings.weeklyQuota);
+    const financed = financedAmount(price, downPayment);
+    const planned = amounts.reduce((sum, amount) => sum + amount, 0);
+    if (planned + 0.05 < financed) {
+      throw new AppError(400, "QUOTA_TOO_LOW", "Las cuotas no cubren el saldo después del pago inicial");
     }
 
-    const startDate = input.startDate ? new Date(input.startDate) : new Date();
+    const startDate = input.startDate ? new Date(`${input.startDate}T12:00:00`) : new Date();
 
     const credit = await prisma.$transaction(async (tx) => {
       const created = await tx.credit.create({
@@ -127,7 +142,9 @@ export class CreditsService {
           cost: product.cost,
           weeklyQuota,
           weeks,
-          balance: price,
+          downPayment,
+          frequency,
+          balance: financed,
           affiliationFee: 0,
           status: "ACTIVE",
           startDate,
@@ -138,17 +155,29 @@ export class CreditsService {
       });
 
       await tx.installment.createMany({
-        data: Array.from({ length: weeks }, (_, i) => {
-          const amount = i === weeks - 1 ? price.minus(weeklyQuota.times(weeks - 1)) : weeklyQuota;
-          return {
-            creditId: created.id,
-            number: i + 1,
-            dueDate: addWeeks(startDate, i),
-            amount,
-            status: "PENDING" as const,
-          };
-        }),
+        data: amounts.map((amount, i) => ({
+          creditId: created.id,
+          number: i + 1,
+          dueDate: addByFrequency(startDate, frequency, i),
+          amount,
+          status: "PENDING" as const,
+        })),
       });
+
+      if (downPayment > 0) {
+        await tx.payment.create({
+          data: {
+            code: await nextCode("payment", "PAG"),
+            clientId: client.id,
+            creditId: created.id,
+            amount: downPayment,
+            method: "CASH",
+            type: "DOWN_PAYMENT",
+            notes: "Pago inicial al entregar el producto",
+            createdById: actorId,
+          },
+        });
+      }
 
       await tx.product.update({ where: { id: product.id }, data: { stock: { decrement: 1 } } });
       await tx.inventoryMovement.create({
@@ -175,6 +204,109 @@ export class CreditsService {
       ip,
     });
 
+    return credit;
+  }
+
+  async update(id: string, input: z.infer<typeof updateCreditSchema>, actorId: string, ip?: string) {
+    const before = await prisma.credit.findUnique({
+      where: { id },
+      include: { installments: true, payments: { where: { voidedAt: null } } },
+    });
+    if (!before) throw new AppError(404, "NOT_FOUND", "Crédito no encontrado");
+    if (before.status !== "ACTIVE") {
+      throw new AppError(400, "CREDIT_CLOSED", "Solo se puede editar un crédito activo");
+    }
+
+    const planTouched =
+      input.weeklyQuota !== undefined ||
+      input.weeks !== undefined ||
+      input.downPayment !== undefined ||
+      input.frequency !== undefined ||
+      input.startDate !== undefined;
+
+    const hasInstallmentPayments = before.installments.some((item) => Number(item.paidAmount) > 0);
+    if (planTouched && hasInstallmentPayments) {
+      throw new AppError(400, "PLAN_LOCKED", "Ya hay cuotas cobradas. No se puede cambiar el plan, solo la nota");
+    }
+
+    const credit = await prisma.$transaction(async (tx) => {
+      if (!planTouched) {
+        return tx.credit.update({
+          where: { id },
+          data: { notes: input.notes },
+          include: creditInclude,
+        });
+      }
+
+      const price = money(before.price);
+      const downPayment = Number(input.downPayment ?? before.downPayment);
+      if (downPayment >= price) {
+        throw new AppError(400, "DOWN_PAYMENT_HIGH", "El pago inicial debe ser menor que el precio del producto");
+      }
+      const weeks = input.weeks ?? before.weeks;
+      const frequency = (input.frequency ?? before.frequency) as PaymentFrequency;
+      const startDate = input.startDate ? new Date(`${input.startDate}T12:00:00`) : before.startDate;
+      const amounts = installmentAmounts(price, downPayment, weeks);
+      const weeklyQuota = new Prisma.Decimal(input.weeklyQuota ?? amounts[0] ?? money(before.weeklyQuota));
+      const financed = financedAmount(price, downPayment);
+
+      await tx.installment.deleteMany({ where: { creditId: id } });
+      await tx.installment.createMany({
+        data: amounts.map((amount, i) => ({
+          creditId: id,
+          number: i + 1,
+          dueDate: addByFrequency(startDate, frequency, i),
+          amount,
+          status: "PENDING" as const,
+        })),
+      });
+
+      const initial = before.payments.find((payment) => payment.type === "DOWN_PAYMENT");
+      if (downPayment > 0) {
+        if (initial) {
+          await tx.payment.update({ where: { id: initial.id }, data: { amount: downPayment } });
+        } else {
+          await tx.payment.create({
+            data: {
+              code: await nextCode("payment", "PAG"),
+              clientId: before.clientId,
+              creditId: id,
+              amount: downPayment,
+              method: "CASH",
+              type: "DOWN_PAYMENT",
+              notes: "Pago inicial al entregar el producto",
+              createdById: actorId,
+            },
+          });
+        }
+      } else if (initial) {
+        await tx.payment.delete({ where: { id: initial.id } });
+      }
+
+      return tx.credit.update({
+        where: { id },
+        data: {
+          weeklyQuota,
+          weeks,
+          downPayment,
+          frequency,
+          startDate,
+          balance: financed,
+          notes: input.notes,
+        },
+        include: creditInclude,
+      });
+    });
+
+    await writeAudit({
+      userId: actorId,
+      action: "UPDATE",
+      entity: "Credit",
+      entityId: id,
+      before: { weeks: before.weeks, downPayment: money(before.downPayment) },
+      after: { weeks: credit.weeks, downPayment: money(credit.downPayment) },
+      ip,
+    });
     return credit;
   }
 }

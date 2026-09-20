@@ -246,3 +246,21 @@ export function formatProductName(value: string): string {
 export function firstError(errors: Array<string | null | undefined>): string | null {
   return errors.find((item): item is string => Boolean(item)) ?? null;
 }
+
+export function formatUrlInput(value: string): string {
+  return String(value ?? "").replace(/\s/g, "").slice(0, 500);
+}
+
+export function locationUrlError(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return "El link debe empezar con http o https";
+    }
+    return null;
+  } catch {
+    return "Pega un link válido de Google Maps o ubicación";
+  }
+}

@@ -45,8 +45,11 @@ export type InstallmentStatus = (typeof INSTALLMENT_STATUSES)[number];
 export const PAYMENT_METHODS = ["CASH", "TRANSFER", "DEPOSIT"] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
-export const PAYMENT_TYPES = ["AFFILIATION", "INSTALLMENT", "ADVANCE"] as const;
+export const PAYMENT_TYPES = ["AFFILIATION", "INSTALLMENT", "ADVANCE", "DOWN_PAYMENT"] as const;
 export type PaymentType = (typeof PAYMENT_TYPES)[number];
+
+export const PAYMENT_FREQUENCIES = ["WEEKLY", "BIWEEKLY", "MONTHLY"] as const;
+export type PaymentFrequency = (typeof PAYMENT_FREQUENCIES)[number];
 
 export const INVENTORY_MOVEMENT_TYPES = ["IN", "OUT", "ADJUSTMENT"] as const;
 export type InventoryMovementType = (typeof INVENTORY_MOVEMENT_TYPES)[number];
@@ -147,6 +150,54 @@ export function catalogAccessLabel(level: ClientLevel): string {
     .join(", ");
 }
 
+export function requiredLevelForTier(tier: CatalogTier): ClientLevel {
+  switch (tier) {
+    case "A":
+      return "INICIAL";
+    case "B":
+      return "BRONCE";
+    case "C":
+      return "PLATA";
+    default: {
+      const _exhaustive: never = tier;
+      return _exhaustive;
+    }
+  }
+}
+
+export function productRequestAccess(
+  level: ClientLevel,
+  tier: CatalogTier,
+  catalogApproved: boolean,
+): { canRequest: boolean; lockReason: string | null } {
+  if (!catalogsForLevel(level).includes(tier)) {
+    const need = requiredLevelForTier(tier);
+    return {
+      canRequest: false,
+      lockReason: `No puedes solicitarlo hasta subir a ${LEVEL_LABELS[need]}`,
+    };
+  }
+  if (tier === "C" && !catalogApproved) {
+    return {
+      canRequest: false,
+      lockReason: "No puedes solicitarlo hasta que aprueben tu categoría Oro",
+    };
+  }
+  return { canRequest: true, lockReason: null };
+}
+
+export const REQUEST_STATUSES = ["PENDING", "APPROVED", "REJECTED"] as const;
+export type RequestStatus = (typeof REQUEST_STATUSES)[number];
+
+export const REQUEST_STATUS_LABELS: Record<RequestStatus, string> = {
+  PENDING: "Pendiente",
+  APPROVED: "Aprobada",
+  REJECTED: "Rechazada",
+};
+
+export const NOTIFICATION_TYPES = ["PRODUCT_REQUEST", "COLLECT_ME"] as const;
+export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
+
 export function catalogTierLabel(tier: CatalogTier | string): string {
   return CATALOG_TIER_LABELS[tier as CatalogTier] ?? tier;
 }
@@ -211,7 +262,68 @@ export const PAYMENT_TYPE_LABELS: Record<PaymentType, string> = {
   AFFILIATION: "Afiliación",
   INSTALLMENT: "Cuota",
   ADVANCE: "Adelanto",
+  DOWN_PAYMENT: "Pago inicial",
 };
+
+export const PAYMENT_FREQUENCY_LABELS: Record<PaymentFrequency, string> = {
+  WEEKLY: "Semanal",
+  BIWEEKLY: "Quincenal",
+  MONTHLY: "Mensual",
+};
+
+export const PAYMENT_FREQUENCY_UNIT: Record<PaymentFrequency, string> = {
+  WEEKLY: "semanas",
+  BIWEEKLY: "quincenas",
+  MONTHLY: "meses",
+};
+
+export function roundMoney2(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+export function financedAmount(price: number, downPayment: number): number {
+  return roundMoney2(Math.max(0, price - Math.max(0, downPayment)));
+}
+
+export function quotaFromInstallments(price: number, downPayment: number, installments: number): number {
+  const financed = financedAmount(price, downPayment);
+  if (installments < 1) return 0;
+  return roundMoney2(financed / installments);
+}
+
+export function installmentsFromQuota(price: number, downPayment: number, quota: number): number {
+  const financed = financedAmount(price, downPayment);
+  if (quota <= 0) return 1;
+  return Math.max(1, Math.min(104, Math.ceil(financed / quota - 1e-9)));
+}
+
+export function installmentAmounts(price: number, downPayment: number, installments: number): number[] {
+  const count = Math.max(1, installments);
+  const financed = financedAmount(price, downPayment);
+  const quota = roundMoney2(financed / count);
+  return Array.from({ length: count }, (_, index) =>
+    index === count - 1 ? roundMoney2(financed - quota * (count - 1)) : quota,
+  );
+}
+
+export function addByFrequency(date: Date, frequency: PaymentFrequency, index: number): Date {
+  const next = new Date(date);
+  switch (frequency) {
+    case "WEEKLY":
+      next.setDate(next.getDate() + index * 7);
+      return next;
+    case "BIWEEKLY":
+      next.setDate(next.getDate() + index * 14);
+      return next;
+    case "MONTHLY":
+      next.setMonth(next.getMonth() + index);
+      return next;
+    default: {
+      const _exhaustive: never = frequency;
+      return _exhaustive;
+    }
+  }
+}
 
 export const INVENTORY_MOVEMENT_LABELS: Record<InventoryMovementType, string> = {
   IN: "Entrada",

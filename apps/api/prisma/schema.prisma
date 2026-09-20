@@ -72,6 +72,13 @@ enum PaymentType {
   AFFILIATION
   INSTALLMENT
   ADVANCE
+  DOWN_PAYMENT
+}
+
+enum PaymentFrequency {
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
 }
 
 enum InventoryMovementType {
@@ -119,6 +126,7 @@ model User {
   collectionNotes    CollectionNote[]
   expenses           Expense[]
   auditLogs          AuditLog[]
+  notifications      InboxNotification[]
 
   @@index([role, active])
 }
@@ -142,6 +150,8 @@ model Client {
   affiliationAt   DateTime?
   referredById    String?
   notes           String?      @db.Text
+  locationUrl     String?      @db.Text
+  routeId         String?
   createdById     String
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
@@ -149,14 +159,17 @@ model Client {
   referredBy     Client?           @relation("ClientReferrals", fields: [referredById], references: [id])
   referrals      Client[]          @relation("ClientReferrals")
   createdBy      User              @relation("ClientCreatedBy", fields: [createdById], references: [id])
+  route          CollectionRoute?  @relation(fields: [routeId], references: [id])
   credits        Credit[]
   payments       Payment[]
   pointsLedger   PointsLedger[]
   collectionNotes CollectionNote[]
+  productRequests ProductRequest[]
 
   @@index([status, level])
   @@index([phone])
   @@index([lastName, firstName])
+  @@index([routeId])
 }
 
 model Product {
@@ -177,6 +190,7 @@ model Product {
 
   credits            Credit[]
   inventoryMovements InventoryMovement[]
+  productRequests    ProductRequest[]
 
   @@index([category, catalogTier, status])
 }
@@ -207,9 +221,11 @@ model Credit {
   productId      String
   price          Decimal      @db.Decimal(12, 2)
   cost           Decimal      @db.Decimal(12, 2)
-  weeklyQuota    Decimal      @db.Decimal(12, 2)
+  weeklyQuota    Decimal          @db.Decimal(12, 2)
   weeks          Int
-  balance        Decimal      @db.Decimal(12, 2)
+  downPayment    Decimal          @db.Decimal(12, 2) @default(0)
+  frequency      PaymentFrequency @default(WEEKLY)
+  balance        Decimal          @db.Decimal(12, 2)
   affiliationFee Decimal      @db.Decimal(12, 2) @default(0)
   status         CreditStatus @default(ACTIVE)
   startDate      DateTime
@@ -364,4 +380,62 @@ model Setting {
 model Sequence {
   name  String @id
   value Int    @default(0)
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum NotificationType {
+  PRODUCT_REQUEST
+  COLLECT_ME
+}
+
+model CollectionRoute {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  area      String?
+  notes     String?  @db.Text
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  clients   Client[]
+
+  @@index([active, name])
+}
+
+model ProductRequest {
+  id        String        @id @default(cuid())
+  clientId  String
+  productId String
+  status    RequestStatus @default(PENDING)
+  note      String?       @db.Text
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  client  Client  @relation(fields: [clientId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([status, createdAt])
+  @@index([clientId, productId, status])
+}
+
+model InboxNotification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String           @db.Text
+  clientId  String?
+  productId String?
+  requestId String?
+  readAt    DateTime?
+  emailSent Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, readAt, createdAt])
 }

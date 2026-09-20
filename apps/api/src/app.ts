@@ -22,6 +22,9 @@ import { settingsRouter } from "./modules/settings/settings.routes";
 import { portalRouter } from "./modules/portal/portal.routes";
 import { searchRouter } from "./modules/search/search.routes";
 import { jobsRouter } from "./jobs/jobs.routes";
+import { notificationsRouter } from "./modules/notifications/notifications.routes";
+import { requestsRouter } from "./modules/requests/requests.routes";
+import { routesRouter } from "./modules/routes/routes.routes";
 import { getLastSlaRun } from "./shared/sla";
 
 fs.mkdirSync(config.uploadDir, { recursive: true });
@@ -64,6 +67,9 @@ export function createApp() {
   app.use("/api/portal", portalRouter);
   app.use("/api/search", searchRouter);
   app.use("/api/jobs", jobsRouter);
+  app.use("/api/notifications", notificationsRouter);
+  app.use("/api/requests", requestsRouter);
+  app.use("/api/routes", routesRouter);
 
   const webDist = [
     path.resolve(process.cwd(), "apps/web/dist"),

@@ -1,13 +1,34 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { api, money } from "../lib/api";
+import { api, formatDate, money } from "../lib/api";
 import { Field, FormattedInput, fieldHint } from "../components/Form";
 import { PageHeader } from "../components/PageHeader";
 import { DataTable } from "../components/DataTable";
-import { ArrowLeft, FileText, Plus } from "lucide-react";
-import { catalogsForLevel, CATALOG_TIER_LABELS, catalogAccessLabel, firstError, integerError, LEVEL_LABELS, moneyError, parseInteger, parseMoney, type CatalogTier, type ClientLevel, type CreditStatus, type InstallmentStatus } from "@hogarplus/shared";
+import { ArrowLeft, FileText, Pencil, Plus } from "lucide-react";
+import {
+  catalogsForLevel,
+  CATALOG_TIER_LABELS,
+  catalogAccessLabel,
+  financedAmount,
+  firstError,
+  integerError,
+  LEVEL_LABELS,
+  moneyError,
+  parseInteger,
+  parseMoney,
+  PAYMENT_FREQUENCIES,
+  PAYMENT_FREQUENCY_LABELS,
+  PAYMENT_FREQUENCY_UNIT,
+  quotaFromInstallments,
+  installmentsFromQuota,
+  type CatalogTier,
+  type ClientLevel,
+  type CreditStatus,
+  type InstallmentStatus,
+  type PaymentFrequency,
+} from "@hogarplus/shared";
 import { CreditBadge, InstallmentBadge } from "../components/Badges";
 
 type Credit = {
@@ -19,6 +40,9 @@ type Credit = {
   balance: number;
   weeklyQuota: number;
   weeks: number;
+  downPayment: number;
+  frequency: PaymentFrequency;
+  startDate: string;
   client: { firstName: string; lastName: string; code: string };
   product: { name: string };
 };
@@ -35,7 +59,7 @@ export function CreditsPage() {
     <div className="space-y-4">
       <PageHeader
         title="Créditos"
-        description="Entrega de producto, saldo y estado de cada cuota"
+        description="Pago inicial, frecuencia y saldo de cada entrega"
         icon={FileText}
         searchPlaceholder="Buscar código, cliente o cédula"
         searchValue={search}
@@ -50,21 +74,115 @@ export function CreditsPage() {
         emptyTitle="Sin créditos"
         emptyDescription="Entrega el primer producto a crédito para abrir cartera."
         emptyAction={<a className="btn-gold" href="/creditos/nuevo">Nuevo crédito</a>}
-        headers={["Código", "Cliente", "Producto", "Precio", "Saldo", "Cuota", "Estado"]}
+        headers={["Código", "Cliente", "Producto", "Inicial", "Cuota", "Saldo", "Estado"]}
       >
         {rows.map((c) => (
           <tr key={c.id} className="border-t">
             <td className="px-5 py-3.5"><Link className="font-semibold" to={`/creditos/${c.id}`}>{c.code}</Link></td>
             <td className="px-5 py-3.5">{c.client.firstName} {c.client.lastName}</td>
             <td className="px-5 py-3.5">{c.product.name}</td>
-            <td className="px-5 py-3.5">{money(c.price)}</td>
+            <td className="px-5 py-3.5">{money(c.downPayment ?? 0)}</td>
+            <td className="px-5 py-3.5">
+              {money(c.weeklyQuota)}
+              <div className="text-xs text-slate-500">{PAYMENT_FREQUENCY_LABELS[c.frequency ?? "WEEKLY"]} · {c.weeks}</div>
+            </td>
             <td className="px-5 py-3.5">{money(c.balance)}</td>
-            <td className="px-5 py-3.5">{money(c.weeklyQuota)}</td>
             <td className="px-5 py-3.5"><CreditBadge status={c.status} /></td>
           </tr>
         ))}
       </DataTable>
     </div>
+  );
+}
+
+function CreditPlanFields({
+  price,
+  frequency,
+  setFrequency,
+  downPayment,
+  setDownPayment,
+  weeklyQuota,
+  setWeeklyQuota,
+  weeks,
+  setWeeks,
+  errors,
+}: {
+  price: number;
+  frequency: PaymentFrequency;
+  setFrequency: (value: PaymentFrequency) => void;
+  downPayment: string;
+  setDownPayment: (value: string) => void;
+  weeklyQuota: string;
+  setWeeklyQuota: (value: string) => void;
+  weeks: string;
+  setWeeks: (value: string) => void;
+  errors: Record<string, string>;
+}) {
+  const down = parseMoney(downPayment) || 0;
+  const financed = price > 0 ? financedAmount(price, down) : 0;
+
+  return (
+    <>
+      <Field label="Frecuencia de cuota">
+        <select className="input" value={frequency} onChange={(e) => setFrequency(e.target.value as PaymentFrequency)}>
+          {PAYMENT_FREQUENCIES.map((item) => (
+            <option key={item} value={item}>{PAYMENT_FREQUENCY_LABELS[item]}</option>
+          ))}
+        </select>
+      </Field>
+      <Field label="Pago inicial" hint={fieldHint("money")} error={errors.downPayment}>
+        <FormattedInput
+          kind="money"
+          value={downPayment}
+          error={Boolean(errors.downPayment)}
+          onValue={(value) => {
+            setDownPayment(value);
+            const nextDown = parseMoney(value) || 0;
+            const count = parseInteger(weeks);
+            if (price > 0 && Number.isInteger(count) && count > 0) {
+              setWeeklyQuota(String(quotaFromInstallments(price, nextDown, count)));
+            }
+          }}
+        />
+      </Field>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label={`Cantidad (${PAYMENT_FREQUENCY_UNIT[frequency]})`} hint="Al cambiar, se calcula la cuota" error={errors.weeks}>
+          <FormattedInput
+            kind="integer"
+            required
+            value={weeks}
+            error={Boolean(errors.weeks)}
+            onValue={(value) => {
+              setWeeks(value);
+              const count = parseInteger(value);
+              if (price > 0 && Number.isInteger(count) && count > 0) {
+                setWeeklyQuota(String(quotaFromInstallments(price, down, count)));
+              }
+            }}
+          />
+        </Field>
+        <Field label="Monto de cada cuota" hint="Al cambiar, se calculan las cuotas" error={errors.weeklyQuota}>
+          <FormattedInput
+            kind="money"
+            required
+            value={weeklyQuota}
+            error={Boolean(errors.weeklyQuota)}
+            onValue={(value) => {
+              setWeeklyQuota(value);
+              const quota = parseMoney(value);
+              if (price > 0 && quota > 0) {
+                setWeeks(String(installmentsFromQuota(price, down, quota)));
+              }
+            }}
+          />
+        </Field>
+      </div>
+      {price > 0 && (
+        <p className="rounded-xl bg-gold-50 p-3 text-sm">
+          Precio {money(price)} · Inicial {money(down)} · A financiar {money(financed)} · {parseInteger(weeks) || 0} {PAYMENT_FREQUENCY_UNIT[frequency]} · cuota {money(parseMoney(weeklyQuota) || 0)}
+        </p>
+      )}
+    </>
   );
 }
 
@@ -89,6 +207,8 @@ export function NewCreditPage() {
   });
   const [clientId, setClientId] = useState(params.get("clientId") ?? "");
   const [productId, setProductId] = useState("");
+  const [frequency, setFrequency] = useState<PaymentFrequency>("WEEKLY");
+  const [downPayment, setDownPayment] = useState("0");
   const [weeklyQuota, setWeeklyQuota] = useState("");
   const [weeks, setWeeks] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -104,6 +224,7 @@ export function NewCreditPage() {
   const visibleProducts = (products.data?.data ?? []).filter((p) =>
     selectedClient ? allowedTiers.includes(p.catalogTier) : true,
   );
+  const product = (products.data?.data ?? []).find((p) => p.id === productId);
 
   useEffect(() => {
     if (!productId || !selectedClient) return;
@@ -112,6 +233,14 @@ export function NewCreditPage() {
     );
     if (!stillAllowed) setProductId("");
   }, [clientId, productId, products.data, selectedClient]);
+
+  useEffect(() => {
+    if (!product) return;
+    const count = parseInteger(weeks) || settings.data?.data.defaultWeeks || 10;
+    const down = parseMoney(downPayment) || 0;
+    setWeeks(String(count));
+    setWeeklyQuota(String(quotaFromInstallments(product.price, down, count)));
+  }, [productId]);
 
   const create = useMutation({
     mutationFn: () =>
@@ -122,6 +251,8 @@ export function NewCreditPage() {
           productId,
           weeklyQuota: parseMoney(weeklyQuota),
           weeks: parseInteger(weeks),
+          downPayment: parseMoney(downPayment) || 0,
+          frequency,
         }),
       }),
     onSuccess: (res) => {
@@ -132,13 +263,11 @@ export function NewCreditPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const product = (products.data?.data ?? []).find((p) => p.id === productId);
-
   return (
     <div className="panel max-w-2xl p-6">
       <PageHeader
         title="Nuevo crédito / entrega"
-        description="El producto se filtra por el nivel del cliente (Bronce, Plata u Oro)"
+        description="Elige frecuencia, pago inicial y las cuotas se calculan solas"
         icon={FileText}
         actions={[{ label: "Volver", icon: ArrowLeft, variant: "ghost", onClick: () => navigate("/creditos") }]}
       />
@@ -150,8 +279,9 @@ export function NewCreditPage() {
           const next = {
             clientId: clientId ? "" : "Selecciona un cliente",
             productId: productId ? "" : "Selecciona un producto",
-            weeklyQuota: moneyError(weeklyQuota, { label: "cuota semanal" }) ?? "",
-            weeks: integerError(weeks, { min: 1, max: 104, label: "cantidad de semanas" }) ?? "",
+            weeklyQuota: moneyError(weeklyQuota, { label: "cuota" }) ?? "",
+            weeks: integerError(weeks, { min: 1, max: 104, label: "cantidad de cuotas" }) ?? "",
+            downPayment: moneyError(downPayment, { allowZero: true, label: "pago inicial" }) ?? "",
           };
           setErrors(next);
           const message = firstError(Object.values(next));
@@ -185,19 +315,18 @@ export function NewCreditPage() {
             Nivel {LEVEL_LABELS[selectedClient.level]}: puede tomar {catalogAccessLabel(selectedClient.level)}.
           </p>
         )}
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Cuota semanal" hint={fieldHint("money")} error={errors.weeklyQuota}>
-            <FormattedInput kind="money" required value={weeklyQuota} error={Boolean(errors.weeklyQuota)} onValue={setWeeklyQuota} />
-          </Field>
-          <Field label="Semanas" hint="Entre 1 y 104" error={errors.weeks}>
-            <FormattedInput kind="integer" required value={weeks} error={Boolean(errors.weeks)} onValue={setWeeks} />
-          </Field>
-        </div>
-        {product && (
-          <p className="rounded-xl bg-gold-50 p-3 text-sm">
-            Precio {money(product.price)} · Plan {money((parseMoney(weeklyQuota) || 0) * (parseInteger(weeks) || 0))}
-          </p>
-        )}
+        <CreditPlanFields
+          price={product?.price ?? 0}
+          frequency={frequency}
+          setFrequency={setFrequency}
+          downPayment={downPayment}
+          setDownPayment={setDownPayment}
+          weeklyQuota={weeklyQuota}
+          setWeeklyQuota={setWeeklyQuota}
+          weeks={weeks}
+          setWeeks={setWeeks}
+          errors={errors}
+        />
         <button className="btn-primary">Crear y entregar</button>
       </form>
     </div>
@@ -207,6 +336,8 @@ export function NewCreditPage() {
 export function CreditDetailPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
+  const qc = useQueryClient();
+  const [editing, setEditing] = useState(false);
   const q = useQuery({
     queryKey: ["credit", id],
     queryFn: () =>
@@ -216,32 +347,130 @@ export function CreditDetailPage() {
         cost: number;
         balance: number;
         weeklyQuota: number;
+        weeks: number;
+        downPayment: number;
+        frequency: PaymentFrequency;
+        startDate: string;
         status: CreditStatus;
         client: { firstName: string; lastName: string; id: string };
         product: { name: string };
         installments: Array<{ id: string; number: number; dueDate: string; amount: number; paidAmount: number; status: InstallmentStatus }>;
+        payments: Array<{ id: string; type: string; amount: number }>;
       }>(`/api/credits/${id}`),
   });
   const c = q.data?.data;
+  const [frequency, setFrequency] = useState<PaymentFrequency>("WEEKLY");
+  const [downPayment, setDownPayment] = useState("0");
+  const [weeklyQuota, setWeeklyQuota] = useState("");
+  const [weeks, setWeeks] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (!c) return;
+    setFrequency(c.frequency ?? "WEEKLY");
+    setDownPayment(String(c.downPayment ?? 0));
+    setWeeklyQuota(String(c.weeklyQuota));
+    setWeeks(String(c.weeks));
+  }, [c]);
+
+  const update = useMutation({
+    mutationFn: () =>
+      api(`/api/credits/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          weeklyQuota: parseMoney(weeklyQuota),
+          weeks: parseInteger(weeks),
+          downPayment: parseMoney(downPayment) || 0,
+          frequency,
+        }),
+      }),
+    onSuccess: () => {
+      toast.success("Crédito actualizado");
+      qc.invalidateQueries({ queryKey: ["credit", id] });
+      setEditing(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   if (!c) return <p>Cargando...</p>;
+  const nextOpen = c.installments.find((item) => item.status !== "PAID");
+  const canEditPlan = c.installments.every((item) => Number(item.paidAmount) === 0);
+  const initialPaid = (c.payments ?? []).find((item) => item.type === "DOWN_PAYMENT");
 
   return (
     <div className="space-y-4">
       <PageHeader
         title={c.product.name}
-        description={`${c.code} · ${c.client.firstName} ${c.client.lastName} · Precio ${money(c.price)} · Costo ${money(c.cost)}`}
+        description={`${c.code} · ${c.client.firstName} ${c.client.lastName}`}
         icon={FileText}
         actions={[
           { label: "Volver", icon: ArrowLeft, variant: "ghost", onClick: () => navigate("/creditos") },
+          ...(canEditPlan ? [{ label: "Editar plan", icon: Pencil, variant: "ghost" as const, onClick: () => setEditing((v) => !v) }] : []),
           { label: "Registrar pago", href: `/pagos?creditId=${id}&clientId=${c.client.id}` },
         ]}
       />
-      <div className="panel p-5">
-        <div className="flex items-center justify-between">
-          <CreditBadge status={c.status} />
-          <p className="font-display text-2xl">Saldo {money(c.balance)}</p>
+      <div className="grid gap-4 md:grid-cols-4">
+        <div className="panel p-5">
+          <p className="text-xs uppercase tracking-widest text-slate-500">Empezó</p>
+          <p className="mt-2 font-semibold">{formatDate(c.startDate)}</p>
+          <div className="mt-2"><CreditBadge status={c.status} /></div>
+        </div>
+        <div className="panel p-5">
+          <p className="text-xs uppercase tracking-widest text-slate-500">Pago inicial</p>
+          <p className="mt-2 font-semibold">{money(c.downPayment ?? 0)}</p>
+          <p className="mt-1 text-sm text-slate-500">{initialPaid ? "Registrado en pagos" : "Sin inicial"}</p>
+        </div>
+        <div className="panel p-5">
+          <p className="text-xs uppercase tracking-widest text-slate-500">Cuota {PAYMENT_FREQUENCY_LABELS[c.frequency ?? "WEEKLY"].toLowerCase()}</p>
+          <p className="mt-2 font-semibold">{money(c.weeklyQuota)}</p>
+          <p className="mt-1 text-sm text-slate-500">{c.weeks} {PAYMENT_FREQUENCY_UNIT[c.frequency ?? "WEEKLY"]}</p>
+        </div>
+        <div className="panel p-5">
+          <p className="text-xs uppercase tracking-widest text-slate-500">Saldo</p>
+          <p className="mt-2 font-display text-2xl">{money(c.balance)}</p>
+          <p className="mt-1 text-sm text-slate-500">
+            {nextOpen ? `Próxima ${formatDate(nextOpen.dueDate)}` : "Sin cuotas pendientes"}
+          </p>
         </div>
       </div>
+      {editing && canEditPlan && (
+        <form
+          className="panel grid max-w-2xl gap-3 p-5"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const next = {
+              weeklyQuota: moneyError(weeklyQuota, { label: "cuota" }) ?? "",
+              weeks: integerError(weeks, { min: 1, max: 104, label: "cantidad de cuotas" }) ?? "",
+              downPayment: moneyError(downPayment, { allowZero: true, label: "pago inicial" }) ?? "",
+            };
+            setErrors(next);
+            const message = firstError(Object.values(next));
+            if (message) {
+              toast.error(message);
+              return;
+            }
+            update.mutate();
+          }}
+        >
+          <h3 className="font-display text-xl">Corregir plan</h3>
+          <CreditPlanFields
+            price={c.price}
+            frequency={frequency}
+            setFrequency={setFrequency}
+            downPayment={downPayment}
+            setDownPayment={setDownPayment}
+            weeklyQuota={weeklyQuota}
+            setWeeklyQuota={setWeeklyQuota}
+            weeks={weeks}
+            setWeeks={setWeeks}
+            errors={errors}
+          />
+          <div className="flex gap-2">
+            <button type="button" className="btn-ghost" onClick={() => setEditing(false)}>Cancelar</button>
+            <button className="btn-primary">Guardar plan</button>
+          </div>
+        </form>
+      )}
       <div className="panel overflow-auto">
         <table className="w-full text-sm">
           <thead className="bg-navy-900 text-xs uppercase text-gold-300">
@@ -255,7 +484,7 @@ export function CreditDetailPage() {
             {c.installments.map((i) => (
               <tr key={i.id} className="border-t">
                 <td className="px-5 py-3.5">{i.number}</td>
-                <td className="px-5 py-3.5">{new Date(i.dueDate).toLocaleDateString("es-DO")}</td>
+                <td className="px-5 py-3.5">{formatDate(i.dueDate)}</td>
                 <td className="px-5 py-3.5">{money(i.amount)}</td>
                 <td className="px-5 py-3.5">{money(i.paidAmount)}</td>
                 <td className="px-5 py-3.5"><InstallmentBadge status={i.status} dueDate={i.dueDate} /></td>

@@ -12,6 +12,8 @@ import {
   Receipt,
   Settings,
   Shield,
+  MapPinned,
+  Inbox,
 } from "lucide-react";
 
 export type NavItem = {
@@ -105,6 +107,24 @@ export const NAV_GROUPS: { id: string; label: string; items: NavItem[] }[] = [
         icon: Bell,
         roles: ["DIRECCION", "COBRANZA", "ADMINISTRACION"],
         keywords: ["mora", "vencido", "seguimiento"],
+      },
+      {
+        id: "rutas",
+        to: "/rutas",
+        label: "Rutas",
+        description: "Zonas de cobro y clientes de cada ruta",
+        icon: MapPinned,
+        roles: ["DIRECCION", "COBRANZA", "VENTAS", "ADMINISTRACION"],
+        keywords: ["ruta", "zona", "villamella", "barrio"],
+      },
+      {
+        id: "solicitudes",
+        to: "/solicitudes",
+        label: "Solicitudes",
+        description: "Pedidos del portal de clientes",
+        icon: Inbox,
+        roles: ["DIRECCION", "VENTAS", "COBRANZA", "ADMINISTRACION"],
+        keywords: ["solicitud", "pedido", "portal"],
       },
     ],
   },

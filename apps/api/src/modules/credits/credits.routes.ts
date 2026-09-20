@@ -13,3 +13,8 @@ creditsRouter.post(
   authorize("VENTAS", "ADMINISTRACION"),
   asyncHandler((req, res) => creditsController.create(req, res)),
 );
+creditsRouter.patch(
+  "/:id",
+  authorize("VENTAS", "ADMINISTRACION"),
+  asyncHandler((req, res) => creditsController.update(req, res)),
+);

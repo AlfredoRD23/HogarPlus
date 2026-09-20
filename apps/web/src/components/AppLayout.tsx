@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Logo } from "./Logo";
 import { CommandPalette } from "./CommandPalette";
+import { NotificationCenter } from "./NotificationCenter";
 import { useAuth } from "../auth/AuthContext";
 import { ROLE_LABELS } from "@hogarplus/shared";
 import { NAV_GROUPS, flatNav } from "../lib/navigation";
@@ -71,6 +72,7 @@ export function AppLayout() {
             <span className="hidden sm:inline">Buscar</span>
             <kbd className="hidden rounded bg-navy-800 px-1.5 py-0.5 text-[10px] lg:inline">Ctrl K</kbd>
           </button>
+          <NotificationCenter />
           <div className="hidden items-center gap-2 rounded-xl bg-navy-800 px-3 py-1.5 md:flex">
             <div>
               <p className="text-sm font-semibold leading-none">{user?.name}</p>

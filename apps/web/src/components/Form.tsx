@@ -12,6 +12,7 @@ import {
   formatPhoneRD,
   formatProductName,
   formatReference,
+  formatUrlInput,
 } from "@hogarplus/shared";
 
 export function Modal({
@@ -95,7 +96,8 @@ export type InputKind =
   | "text"
   | "productName"
   | "reference"
-  | "note";
+  | "note"
+  | "url";
 
 function formatByKind(kind: InputKind, value: string): string {
   switch (kind) {
@@ -127,6 +129,8 @@ function formatByKind(kind: InputKind, value: string): string {
       return formatReference(value);
     case "note":
       return formatNote(value);
+    case "url":
+      return formatUrlInput(value);
     default: {
       const _exhaustive: never = kind;
       return _exhaustive;
@@ -164,6 +168,8 @@ function kindMeta(kind: InputKind) {
       return { placeholder: "REF-0001", inputMode: "text" as const, maxLength: 30, autoComplete: "off", hint: "Solo letras, números y guion" };
     case "note":
       return { placeholder: "Escribe el detalle", inputMode: "text" as const, maxLength: 400, autoComplete: "off", hint: "Mínimo 3 caracteres" };
+    case "url":
+      return { placeholder: "https://maps.google.com/...", inputMode: "url" as const, maxLength: 500, autoComplete: "url", hint: "Pega el link de Google Maps" };
     default: {
       const _exhaustive: never = kind;
       return _exhaustive;
@@ -187,7 +193,7 @@ export function FormattedInput({
   ...rest
 }: FormattedInputProps) {
   const meta = kindMeta(kind);
-  const type = kind === "password" ? "password" : kind === "email" ? "email" : kind === "date" ? "date" : "text";
+  const type = kind === "password" ? "password" : kind === "email" ? "email" : kind === "date" ? "date" : kind === "url" ? "url" : "text";
   return (
     <input
       {...rest}

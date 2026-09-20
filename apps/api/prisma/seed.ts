@@ -62,20 +62,25 @@ const people: SeedClient[] = [
 ];
 
 async function main() {
-  await prisma.paymentAllocation.deleteMany();
-  await prisma.pointsLedger.deleteMany();
-  await prisma.collectionNote.deleteMany();
-  await prisma.payment.deleteMany();
-  await prisma.installment.deleteMany();
-  await prisma.inventoryMovement.deleteMany();
-  await prisma.credit.deleteMany();
-  await prisma.expense.deleteMany();
-  await prisma.auditLog.deleteMany();
-  await prisma.client.deleteMany();
-  await prisma.product.deleteMany();
-  await prisma.user.deleteMany();
-  await prisma.setting.deleteMany();
-  await prisma.sequence.deleteMany();
+  await prisma.$transaction(async (tx) => {
+    await tx.$executeRawUnsafe("SET FOREIGN_KEY_CHECKS = 0");
+    await tx.client.updateMany({ data: { referredById: null } });
+    await tx.paymentAllocation.deleteMany();
+    await tx.pointsLedger.deleteMany();
+    await tx.collectionNote.deleteMany();
+    await tx.payment.deleteMany();
+    await tx.installment.deleteMany();
+    await tx.inventoryMovement.deleteMany();
+    await tx.credit.deleteMany();
+    await tx.expense.deleteMany();
+    await tx.auditLog.deleteMany();
+    await tx.client.deleteMany();
+    await tx.product.deleteMany();
+    await tx.user.deleteMany();
+    await tx.setting.deleteMany();
+    await tx.sequence.deleteMany();
+    await tx.$executeRawUnsafe("SET FOREIGN_KEY_CHECKS = 1");
+  }, { timeout: 120000, maxWait: 20000 });
 
   const passwordHash = await bcrypt.hash("Admin123!", 10);
   const today = atNoon(new Date());

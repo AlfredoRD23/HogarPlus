@@ -15,6 +15,8 @@ import { ExpensesPage } from "./pages/ExpensesPage";
 import { UsersPage } from "./pages/UsersPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { PortalPage } from "./pages/PortalPage";
+import { RoutesPage } from "./pages/RoutesPage";
+import { RequestsPage } from "./pages/RequestsPage";
 import type { ReactNode } from "react";
 
 function Guard({ children }: { children: ReactNode }) {
@@ -49,6 +51,8 @@ export default function App() {
         <Route path="/creditos/:id" element={<CreditDetailPage />} />
         <Route path="/pagos" element={<PaymentsPage />} />
         <Route path="/cobranza" element={<CollectionsPage />} />
+        <Route path="/rutas" element={<RoutesPage />} />
+        <Route path="/solicitudes" element={<RequestsPage />} />
         <Route path="/reportes" element={<ReportsPage />} />
         <Route path="/gastos" element={<ExpensesPage />} />
         <Route path="/usuarios" element={<UsersPage />} />

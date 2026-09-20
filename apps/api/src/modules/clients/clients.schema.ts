@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CLIENT_STATUSES, digitsOnly, isValidCedula, isValidEmail, isValidPhoneRD, personNameError } from "@hogarplus/shared";
+import { CLIENT_STATUSES, digitsOnly, isValidCedula, isValidEmail, isValidPhoneRD, locationUrlError, personNameError } from "@hogarplus/shared";
 
 export const createClientSchema = z.object({
   firstName: z
@@ -29,6 +29,14 @@ export const createClientSchema = z.object({
   province: z.string().trim().max(50).optional(),
   referredById: z.string().optional(),
   notes: z.string().max(400).optional(),
+  locationUrl: z
+    .string()
+    .max(500)
+    .optional()
+    .or(z.literal(""))
+    .transform((value) => (value ? value.trim() : undefined))
+    .refine((value) => !value || !locationUrlError(value), { message: "Pega un link válido de Google Maps o ubicación" }),
+  routeId: z.string().min(1).optional().or(z.literal("")).transform((value) => value || undefined),
   payAffiliation: z.boolean().optional(),
   affiliationMethod: z.enum(["CASH", "TRANSFER", "DEPOSIT"]).optional(),
   productId: z.string().min(1).optional().or(z.literal("")).transform((value) => value || undefined),
@@ -70,4 +78,25 @@ export const updateClientSchema = z.object({
   status: z.enum(CLIENT_STATUSES).optional(),
   catalogApproved: z.boolean().optional(),
   notes: z.string().max(400).optional(),
+  locationUrl: z
+    .string()
+    .max(500)
+    .optional()
+    .or(z.literal(""))
+    .transform((value) => {
+      if (value === undefined) return undefined;
+      const trimmed = value.trim();
+      return trimmed || null;
+    })
+    .refine((value) => value === undefined || value === null || !locationUrlError(value), {
+      message: "Pega un link válido de Google Maps o ubicación",
+    }),
+  routeId: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .transform((value) => {
+      if (value === undefined) return undefined;
+      return value.trim() || null;
+    }),
 });

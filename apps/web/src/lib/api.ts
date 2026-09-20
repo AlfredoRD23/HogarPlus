@@ -3,7 +3,7 @@ const TOKEN_KEY = "hogarplus.token";
 export type ApiEnvelope<T> = {
   success: boolean;
   data: T;
-  meta?: { page?: number; pageSize?: number; total?: number };
+  meta?: { page?: number; pageSize?: number; total?: number; unread?: number };
   error?: { code: string; message: string };
 };
 

@@ -23,4 +23,9 @@ export const config = {
     "mysql://hogarplus:hogarplus@localhost:3306/hogarplus",
   ),
   cronSecret: process.env.CRON_SECRET ?? "",
+  smtpHost: process.env.SMTP_HOST ?? "",
+  smtpPort: Number(process.env.SMTP_PORT ?? 587),
+  smtpUser: process.env.SMTP_USER ?? process.env.EMAIL_USER ?? "",
+  smtpPass: process.env.SMTP_PASS ?? process.env.EMAIL_PASS ?? "",
+  emailFrom: process.env.EMAIL_FROM ?? process.env.EMAIL_USER ?? "HogarPlus <noreply@hogarplus.do>",
 };

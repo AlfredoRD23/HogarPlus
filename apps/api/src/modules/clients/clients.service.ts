@@ -27,8 +27,11 @@ const clientSelect = {
   affiliationAt: true,
   referredById: true,
   notes: true,
+  locationUrl: true,
+  routeId: true,
   createdAt: true,
   referredBy: { select: { id: true, code: true, firstName: true, lastName: true } },
+  route: { select: { id: true, name: true, area: true } },
 } satisfies Prisma.ClientSelect;
 
 export class ClientsService {
@@ -62,6 +65,27 @@ export class ClientsService {
         select: {
           ...clientSelect,
           _count: { select: { credits: true } },
+          credits: {
+            where: { status: "ACTIVE" },
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            select: {
+              id: true,
+              startDate: true,
+              balance: true,
+              weeklyQuota: true,
+              weeks: true,
+              frequency: true,
+              downPayment: true,
+              product: { select: { name: true } },
+              installments: {
+                where: { status: { not: "PAID" } },
+                orderBy: { dueDate: "asc" },
+                take: 1,
+                select: { dueDate: true, amount: true, number: true, status: true },
+              },
+            },
+          },
         },
       }),
       prisma.client.count({ where }),
@@ -107,6 +131,8 @@ export class ClientsService {
           province: input.province ?? "República Dominicana",
           referredById: input.referredById,
           notes: input.notes,
+          locationUrl: input.locationUrl,
+          routeId: input.routeId,
           createdById: actorId,
         },
       });
@@ -139,6 +165,8 @@ export class ClientsService {
         status: input.status,
         catalogApproved: input.catalogApproved,
         notes: input.notes,
+        locationUrl: input.locationUrl === undefined ? undefined : input.locationUrl,
+        routeId: input.routeId === undefined ? undefined : input.routeId || null,
       },
       select: clientSelect,
     });

@@ -7,7 +7,7 @@ import { Field, FormattedInput, fieldHint } from "../components/Form";
 import { PageHeader } from "../components/PageHeader";
 import { DataTable } from "../components/DataTable";
 import { Wallet } from "lucide-react";
-import { PAYMENT_METHOD_LABELS, PAYMENT_TYPE_LABELS, firstError, moneyError, parseMoney, referenceError, type PaymentMethod, type PaymentType } from "@hogarplus/shared";
+import { PAYMENT_TYPE_LABELS, firstError, moneyError, parseMoney, referenceError, type PaymentMethod, type PaymentType } from "@hogarplus/shared";
 
 type Payment = {
   id: string;
@@ -18,7 +18,7 @@ type Payment = {
   createdAt: string;
   voidedAt?: string | null;
   client: { firstName: string; lastName: string };
-  credit?: { code: string } | null;
+  credit?: { code: string; balance: number; downPayment?: number; price?: number } | null;
 };
 
 export function PaymentsPage() {
@@ -146,15 +146,25 @@ export function PaymentsPage() {
         rows={rows.length}
         emptyTitle="Sin pagos"
         emptyDescription="Los cobros aparecerán aquí al registrar la primera cuota."
-        headers={["Código", "Cliente", "Monto", "Método", "Tipo", "Fecha"]}
+        headers={["Código", "Cliente", "Tipo", "Monto", "Inicial / Resta", "Fecha"]}
       >
         {rows.map((p) => (
           <tr key={p.id} className={`border-t ${p.voidedAt ? "opacity-40" : ""}`}>
             <td className="px-5 py-3.5">{p.code}</td>
-            <td className="px-5 py-3.5">{p.client.firstName} {p.client.lastName}</td>
-            <td className="px-5 py-3.5 font-semibold">{money(p.amount)}</td>
-            <td className="px-5 py-3.5">{PAYMENT_METHOD_LABELS[p.method]}</td>
+            <td className="px-5 py-3.5">
+              {p.client.firstName} {p.client.lastName}
+              {p.credit?.code ? <div className="text-xs text-slate-500">{p.credit.code}</div> : null}
+            </td>
             <td className="px-5 py-3.5">{PAYMENT_TYPE_LABELS[p.type]}</td>
+            <td className="px-5 py-3.5 font-semibold">{money(p.amount)}</td>
+            <td className="px-5 py-3.5">
+              {p.credit ? (
+                <>
+                  Inicial {money(p.credit.downPayment ?? 0)}
+                  <div className="text-xs text-slate-500">Resta {money(p.credit.balance)}</div>
+                </>
+              ) : "—"}
+            </td>
             <td className="px-5 py-3.5">{formatDate(p.createdAt)}</td>
           </tr>
         ))}

@@ -23,7 +23,7 @@ export class PaymentsService {
         orderBy: { createdAt: "desc" },
         include: {
           client: { select: { code: true, firstName: true, lastName: true } },
-          credit: { select: { code: true, balance: true } },
+          credit: { select: { code: true, balance: true, downPayment: true, price: true } },
           createdBy: { select: { name: true } },
           allocations: true,
         },

@@ -26,7 +26,7 @@ fs.mkdirSync(config.uploadDir, { recursive: true });
 
 export function createApp() {
   const app = express();
-  app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
+  app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" }, contentSecurityPolicy: false }));
   app.use(cors({ origin: config.clientOrigin, credentials: true }));
   app.use(express.json({ limit: "2mb" }));
   app.set("json replacer", (_key: string, value: unknown) => {
@@ -54,6 +54,24 @@ export function createApp() {
   app.use("/api/settings", settingsRouter);
   app.use("/api/portal", portalRouter);
   app.use("/api/search", searchRouter);
+
+  const webDist = [
+    path.resolve(process.cwd(), "apps/web/dist"),
+    path.resolve(__dirname, "../../../web/dist"),
+  ].find((dir) => fs.existsSync(path.join(dir, "index.html")));
+
+  if (webDist) {
+    app.use(express.static(webDist));
+    app.get(/^(?!\/api\/|\/uploads\/).*/, (req, res, next) => {
+      if (req.method !== "GET") {
+        next();
+        return;
+      }
+      res.sendFile(path.join(webDist, "index.html"), (err) => {
+        if (err) next(err);
+      });
+    });
+  }
 
   app.use(notFound);
   app.use(errorHandler);

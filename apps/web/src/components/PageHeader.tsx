@@ -39,9 +39,9 @@ export function PageHeader({
           <p className="mt-1 text-sm text-slate-500 sm:text-base">{description}</p>
         </div>
       </div>
-      <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+      <div className="flex w-full min-w-0 flex-col gap-2 lg:w-auto lg:flex-row lg:items-center">
         {onSearchChange && (
-          <div className="relative w-full min-w-0 sm:w-72">
+          <div className="relative w-full min-w-0 lg:w-[32rem]">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
               className="search-input"

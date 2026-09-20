@@ -4,6 +4,7 @@ import { prisma } from "../../lib/prisma";
 import { AppError, money, nextCode, pagination, startOfDay } from "../../shared/utils";
 import { writeAudit } from "../../middleware/auth";
 import { clientsService } from "../clients/clients.service";
+import { settingsService } from "../settings/settings.service";
 import type { z } from "zod";
 import type { createPaymentSchema } from "./payments.schema";
 
@@ -46,6 +47,38 @@ export class PaymentsService {
     });
     if (!payment) throw new AppError(404, "NOT_FOUND", "Pago no encontrado");
     return payment;
+  }
+
+  async invoice(id: string, clientId?: string) {
+    const payment = await prisma.payment.findUnique({
+      where: { id },
+      include: {
+        client: { select: { id: true, code: true, firstName: true, lastName: true, documentId: true, phone: true, city: true } },
+        credit: { select: { code: true, product: { select: { name: true } } } },
+      },
+    });
+    if (!payment || payment.voidedAt) throw new AppError(404, "NOT_FOUND", "Factura no encontrada");
+    if (clientId && payment.clientId !== clientId) {
+      throw new AppError(403, "FORBIDDEN", "Esta factura no pertenece a tu cuenta");
+    }
+    const settings = await settingsService.getAll();
+    return {
+      number: payment.code,
+      issuedAt: payment.createdAt,
+      companyName: settings.companyName,
+      companyCity: settings.companyCity,
+      clientName: `${payment.client.firstName} ${payment.client.lastName}`,
+      clientCode: payment.client.code,
+      documentId: payment.client.documentId,
+      phone: payment.client.phone,
+      city: payment.client.city,
+      productName: payment.credit?.product.name ?? "Afiliación / contrato",
+      creditCode: payment.credit?.code ?? null,
+      amount: money(payment.amount),
+      method: payment.method,
+      type: payment.type,
+      reference: payment.reference,
+    };
   }
 
   async create(input: z.infer<typeof createPaymentSchema>, actorId: string, ip?: string) {

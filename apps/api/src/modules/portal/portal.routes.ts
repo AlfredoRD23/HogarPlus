@@ -10,6 +10,7 @@ import { notifyStaff } from "../notifications/notifications.service";
 import { createReferralSchema } from "../referrals/referrals.schema";
 import { referralsService } from "../referrals/referrals.service";
 import { paymentClaimsService } from "../payment-claims/payment-claims.service";
+import { paymentsService } from "../payments/payments.service";
 import { asUploadError, claimImageUpload } from "../../lib/upload";
 
 export const portalRouter = Router();
@@ -62,7 +63,12 @@ portalRouter.post(
           where: { status: "PENDING" },
           select: { id: true, creditId: true, amount: true, method: true, createdAt: true },
         },
-        payments: { where: { voidedAt: null }, orderBy: { createdAt: "desc" }, take: 12 },
+        payments: {
+          where: { voidedAt: null },
+          orderBy: { createdAt: "desc" },
+          take: 12,
+          include: { credit: { select: { code: true, product: { select: { name: true } } } } },
+        },
         pointsLedger: { orderBy: { createdAt: "desc" }, take: 12 },
         productRequests: { where: { status: "PENDING" }, select: { productId: true } },
         referralsMade: { orderBy: { createdAt: "desc" }, take: 12 },
@@ -223,7 +229,7 @@ portalRouter.post(
       .object({
         creditId: z.string().min(1, "Selecciona el producto a pagar"),
         amount: z.coerce.number().positive("El monto debe ser mayor que 0"),
-        method: z.enum(["CASH", "TRANSFER"]),
+        method: z.enum(["CASH", "TRANSFER", "DEPOSIT"]),
         notes: z.string().max(400).optional(),
       })
       .parse(req.body);
@@ -237,6 +243,16 @@ portalRouter.post(
       file: req.file,
     });
     res.status(201).json({ success: true, data: { id: data.id, status: data.status } });
+  }),
+);
+
+portalRouter.post(
+  "/invoice",
+  asyncHandler(async (req, res) => {
+    const identity = identitySchema.extend({ paymentId: z.string().min(1) }).parse(req.body);
+    const client = await findPortalClient(identity.documentId, identity.phone);
+    const data = await paymentsService.invoice(identity.paymentId, client.id);
+    res.json({ success: true, data });
   }),
 );
 

@@ -33,7 +33,7 @@ export function Logo({
         <div>
           <p className={`text-xl font-semibold leading-none ${light ? "text-navy-900" : "text-gold-100"}`}>{name}</p>
           <p className={`mt-1 text-[11px] ${light ? "text-navy-700" : "text-gold-300"}`}>
-            {city || "Tu hogar, nuestro compromiso"}
+            {city ?? "Tu hogar, nuestro compromiso"}
           </p>
         </div>
       )}

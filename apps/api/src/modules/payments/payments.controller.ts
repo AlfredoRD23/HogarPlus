@@ -19,6 +19,11 @@ export class PaymentsController {
     res.json({ success: true, data });
   }
 
+  async invoice(req: Request, res: Response) {
+    const data = await paymentsService.invoice(req.params.id);
+    res.json({ success: true, data });
+  }
+
   async create(req: Request, res: Response) {
     const body = createPaymentSchema.parse(req.body);
     const data = await paymentsService.create(body, (req as AuthedRequest).user.id, req.ip);

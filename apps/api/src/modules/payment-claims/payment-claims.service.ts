@@ -49,8 +49,8 @@ export class PaymentClaimsService {
     if (input.amount > Number(credit.balance) + 0.05) {
       throw new AppError(400, "OVERPAY", `El aviso no puede pasar el saldo de ${money(credit.balance)}`);
     }
-    if (input.method === "TRANSFER" && !input.file) {
-      throw new AppError(400, "NO_FILE", "La transferencia necesita la foto del comprobante");
+    if ((input.method === "TRANSFER" || input.method === "DEPOSIT") && !input.file) {
+      throw new AppError(400, "NO_FILE", "Sube la foto del comprobante");
     }
 
     const pending = await prisma.paymentClaim.findFirst({
@@ -79,7 +79,7 @@ export class PaymentClaimsService {
     const methodLabel = PAYMENT_METHOD_LABELS[input.method];
     await notifyStaff({
       type: "PAYMENT_CLAIM",
-      title: input.method === "CASH" ? "Cliente avisa pago en efectivo" : "Comprobante de transferencia",
+      title: input.method === "CASH" ? "Cliente avisa pago en efectivo" : "Comprobante de pago",
       message: `${credit.client.firstName} ${credit.client.lastName} (${credit.client.code}) avisa ${methodLabel} de ${money(input.amount)} en ${credit.product.name} (${credit.code}). Tel. ${credit.client.phone}.`,
       clientId: input.clientId,
       requestId: created.id,

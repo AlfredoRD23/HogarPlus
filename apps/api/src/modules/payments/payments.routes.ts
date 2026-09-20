@@ -7,6 +7,7 @@ export const paymentsRouter = Router();
 
 paymentsRouter.use(authenticate, authorize("VENTAS", "COBRANZA"));
 paymentsRouter.get("/", asyncHandler((req, res) => paymentsController.list(req, res)));
+paymentsRouter.get("/:id/invoice", asyncHandler((req, res) => paymentsController.invoice(req, res)));
 paymentsRouter.get("/:id", asyncHandler((req, res) => paymentsController.get(req, res)));
 paymentsRouter.post(
   "/",

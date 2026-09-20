@@ -9,8 +9,9 @@ import { PageHeader } from "../components/PageHeader";
 import { DataTable } from "../components/DataTable";
 import { WaitLabel } from "../components/Loader";
 import { RowActions } from "../components/RowActions";
+import { openInvoice, type InvoiceData } from "../lib/invoice";
 import { TableCard } from "../components/TableCard";
-import { Wallet } from "lucide-react";
+import { FileText, Wallet } from "lucide-react";
 import { PAYMENT_TYPE_LABELS, firstError, moneyError, parseMoney, referenceError, type PaymentMethod, type PaymentType } from "@hogarplus/shared";
 
 type Payment = {
@@ -93,6 +94,15 @@ export function PaymentsPage() {
   });
 
   const rows = q.data?.data ?? [];
+
+  async function downloadInvoice(id: string) {
+    try {
+      const res = await api<InvoiceData>(`/api/payments/${id}/invoice`);
+      openInvoice(res.data);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo abrir la factura");
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -181,9 +191,11 @@ export function PaymentsPage() {
               { label: "Fecha", value: formatDate(p.createdAt) },
             ]}
             actions={
-              !p.voidedAt && p.type !== "AFFILIATION" ? (
-                <RowActions onDeactivate={() => setVoiding(p)} deactivateLabel="Anular" />
-              ) : undefined
+              <RowActions
+                extra={[{ label: "Descargar factura", icon: FileText, onClick: () => void downloadInvoice(p.id) }]}
+                onDeactivate={!p.voidedAt && p.type !== "AFFILIATION" ? () => setVoiding(p) : undefined}
+                deactivateLabel="Anular"
+              />
             }
           />
         ))}
@@ -207,11 +219,11 @@ export function PaymentsPage() {
             </td>
             <td className="px-5 py-3.5">{formatDate(p.createdAt)}</td>
             <td className="px-5 py-3.5">
-              {!p.voidedAt && p.type !== "AFFILIATION" ? (
-                <RowActions onDeactivate={() => setVoiding(p)} deactivateLabel="Anular" />
-              ) : p.voidedAt ? (
-                <span className="text-xs font-medium text-rose-700">Anulado</span>
-              ) : "—"}
+              <RowActions
+                extra={[{ label: "Descargar factura", icon: FileText, onClick: () => void downloadInvoice(p.id) }]}
+                onDeactivate={!p.voidedAt && p.type !== "AFFILIATION" ? () => setVoiding(p) : undefined}
+                deactivateLabel="Anular"
+              />
             </td>
           </tr>
         ))}

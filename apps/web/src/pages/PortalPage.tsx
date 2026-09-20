@@ -19,6 +19,7 @@ import {
   firstError,
   formatPhoneRD,
   LEVEL_LABELS,
+  PRODUCT_CATEGORIES,
   PAYMENT_FREQUENCY_LABELS,
   PAYMENT_METHOD_LABELS,
   PAYMENT_TYPE_LABELS,
@@ -95,7 +96,14 @@ type CatalogProduct = {
 };
 
 type PortalData = {
-  client: { code: string; name: string; points: number; level: ClientLevel; affiliationPaid: boolean };
+  client: {
+    code: string;
+    name: string;
+    points: number;
+    level: ClientLevel;
+    affiliationPaid: boolean;
+    photoUrl?: string | null;
+  };
   credits: PortalCredit[];
   paymentClaims?: PortalClaim[];
   payments: PortalPayment[];
@@ -194,13 +202,16 @@ export function PortalPage() {
     .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())[0];
   const progress = progressToNextLevel(data.client.points);
   const selected = data.credits.find((credit) => credit.id === activeCreditId) ?? data.credits[0] ?? null;
-  const selectedNext = selected?.installments.find((item) => item.status !== "PAID");
+  const availableByCategory = PRODUCT_CATEGORIES.map((category) => ({
+    category,
+    items: data.catalog.filter((product) => product.canRequest && product.category === category),
+  })).filter((group) => group.items.length > 0);
 
   return (
-    <div className="min-h-screen bg-[#F3EFE6] text-navy-900">
+    <div className="min-h-screen bg-slate-100 text-navy-900">
       <header className="bg-navy-900 text-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4 sm:px-6">
-          <Logo compact />
+        <div className="flex items-center justify-between px-4 py-4 sm:px-8">
+          <Logo />
           <div className="flex items-center gap-3 text-sm">
             <a className="hidden text-gold-100 sm:inline" href="/">Inicio</a>
             <button
@@ -216,79 +227,78 @@ export function PortalPage() {
             </button>
           </div>
         </div>
-        <div className="mx-auto max-w-5xl px-4 pb-6 sm:px-6">
-          <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex flex-col gap-5 px-4 pb-8 sm:flex-row sm:items-end sm:justify-between sm:px-8">
+          <div className="flex items-center gap-4">
+            <ProfilePhoto name={data.client.name} photoUrl={data.client.photoUrl} />
             <div>
-              <p className="text-sm text-gold-300">Hola</p>
               <h1 className="font-display text-3xl capitalize tracking-tight">{data.client.name.toLowerCase()}</h1>
               <p className="mt-1 text-sm text-slate-300">
                 {data.client.code} · {catalogAccessLabel(data.client.level)}
               </p>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
+              <div className="mt-2 flex flex-wrap items-center gap-2">
                 <LevelBadge level={data.client.level} />
                 <span className="rounded-full bg-navy-800 px-3 py-1 text-xs text-gold-100">
                   {data.client.points} pts
                   {progress.next ? ` · ${progress.remaining} para ${LEVEL_LABELS[progress.next]}` : ""}
                 </span>
               </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                className="btn-gold"
-                disabled={payableCredits.length === 0}
-                onClick={() => setPayCredit(selected && Number(selected.balance) > 0 ? selected : payableCredits[0] ?? null)}
-              >
-                <Wallet size={16} /> Enviar pago
-              </button>
-              <button
-                type="button"
-                className="btn-ghost border-white/15 bg-transparent text-white hover:bg-navy-800"
-                disabled={busy === "collect"}
-                onClick={async () => {
-                  setBusy("collect");
-                  try {
-                    await api("/api/portal/collect-me", { method: "POST", body: JSON.stringify(identity()) });
-                    toast.success("Avisamos al cobrador");
-                  } catch (err) {
-                    toast.error(err instanceof Error ? err.message : "No se pudo avisar");
-                  } finally {
-                    setBusy("");
-                  }
-                }}
-              >
-                <Bell size={16} /> Ven a cobrarme
-              </button>
-              <button
-                type="button"
-                className="btn-ghost border-white/15 bg-transparent text-white hover:bg-navy-800"
-                onClick={() => {
-                  setReferError(undefined);
-                  setReferOpen(true);
-                }}
-              >
-                <UserPlus size={16} /> Referir
-              </button>
+              <p className="mt-3 text-sm text-slate-200">
+                Saldo {money(totalBalance)}
+                {nextDue ? ` · Próxima ${money(nextDue.amount)} · ${formatDate(nextDue.dueDate)}` : " · Al día"}
+              </p>
             </div>
           </div>
-          <p className="mt-5 text-sm text-slate-300">
-            Saldo {money(totalBalance)}
-            {nextDue ? ` · Próxima ${money(nextDue.amount)} · ${formatDate(nextDue.dueDate)}` : " · Al día"}
-          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="btn-gold"
+              disabled={payableCredits.length === 0}
+              onClick={() => setPayCredit(selected && Number(selected.balance) > 0 ? selected : payableCredits[0] ?? null)}
+            >
+              <Wallet size={16} /> Enviar pago
+            </button>
+            <button
+              type="button"
+              className="btn-ghost border-white/15 bg-transparent text-white hover:bg-navy-800"
+              disabled={busy === "collect"}
+              onClick={async () => {
+                setBusy("collect");
+                try {
+                  await api("/api/portal/collect-me", { method: "POST", body: JSON.stringify(identity()) });
+                  toast.success("Avisamos al cobrador");
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : "No se pudo avisar");
+                } finally {
+                  setBusy("");
+                }
+              }}
+            >
+              <Bell size={16} /> Ven a cobrarme
+            </button>
+            <button
+              type="button"
+              className="btn-ghost border-white/15 bg-transparent text-white hover:bg-navy-800"
+              onClick={() => {
+                setReferError(undefined);
+                setReferOpen(true);
+              }}
+            >
+              <UserPlus size={16} /> Referir
+            </button>
+          </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl space-y-8 px-4 py-8 sm:px-6">
+      <main className="space-y-8 px-4 py-8 sm:px-8">
         <section>
-          <SectionHead
-            title="Tus productos"
-            hint={selected ? `${selected.product.name} · ${selected.code}` : "Aún no hay entregas"}
-          />
           {data.credits.length === 0 ? (
-            <EmptyStrip text="Cuando te entreguen un artículo, sale aquí." />
+            <>
+              <SectionHead title="Tus productos" hint="Aún no hay entregas" />
+              <EmptyStrip text="Cuando te entreguen un artículo, sale aquí." />
+            </>
           ) : (
             <>
-              <Carousel>
+              <Carousel title="Tus productos" hint="Toca uno para ver su plan de cuotas">
                 {data.credits.map((credit) => (
                   <CreditSlide
                     key={credit.id}
@@ -300,72 +310,47 @@ export function PortalPage() {
                   />
                 ))}
               </Carousel>
-              {selected ? (
-                <div className="mt-4">
-                  <p className="mb-2 text-sm text-slate-500">
-                    {selectedNext
-                      ? `Cuotas de ${selected.product.name}`
-                      : `${selected.product.name} ya está saldado`}
-                  </p>
-                  <Carousel>
-                    {selected.installments.map((item) => {
-                      const status = effectiveInstallmentStatus(item.status, item.dueDate);
-                      const isNext = selectedNext?.id === item.id;
-                      return (
-                        <div
-                          key={item.id}
-                          className={`carousel-item w-36 rounded-2xl border p-3 ${installmentTone(status, isNext)}`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-navy-900">{item.number}</span>
-                            <InstallmentBadge status={item.status} dueDate={item.dueDate} />
-                          </div>
-                          <p className="mt-3 text-sm font-semibold">{money(item.amount)}</p>
-                          <p className="text-xs text-slate-500">{formatDate(item.dueDate)}</p>
-                        </div>
-                      );
-                    })}
-                  </Carousel>
-                </div>
-              ) : null}
+              {selected ? <InstallmentPlan credit={selected} /> : null}
             </>
           )}
         </section>
 
-        <section>
-          <SectionHead title="Catálogo" hint="Desliza. Solo pides lo de tu categoría." />
-          {data.catalog.length === 0 ? (
-            <EmptyStrip text="No hay productos en catálogo." />
+        <section className="space-y-6">
+          <SectionHead title="Disponibles para ti" hint="Solo lo que puedes pedir, por categoría." />
+          {availableByCategory.length === 0 ? (
+            <EmptyStrip text="Ahora mismo no hay productos disponibles para tu nivel." />
           ) : (
-            <Carousel>
-              {data.catalog.map((product) => (
-                <CatalogSlide
-                  key={product.id}
-                  product={product}
-                  busy={busy === product.id}
-                  onRequest={async () => {
-                    setBusy(product.id);
-                    try {
-                      await api("/api/portal/request", {
-                        method: "POST",
-                        body: JSON.stringify({ ...identity(), productId: product.id }),
-                      });
-                      toast.success("Solicitud enviada");
-                      await lookup();
-                    } catch (err) {
-                      if (isDebtError(err)) {
-                        setDebtModal(creditsFromDebtError(err)[0] ?? data.debt?.[0] ?? null);
-                      } else {
-                        toast.error(err instanceof Error ? err.message : "No se pudo solicitar");
+            availableByCategory.map((group) => (
+              <Carousel key={group.category} title={CATEGORY_LABELS[group.category]} hint={`${group.items.length} disponible${group.items.length === 1 ? "" : "s"}`}>
+                {group.items.map((product) => (
+                  <CatalogSlide
+                    key={product.id}
+                    product={product}
+                    busy={busy === product.id}
+                    onRequest={async () => {
+                      setBusy(product.id);
+                      try {
+                        await api("/api/portal/request", {
+                          method: "POST",
+                          body: JSON.stringify({ ...identity(), productId: product.id }),
+                        });
+                        toast.success("Solicitud enviada");
+                        await lookup();
+                      } catch (err) {
+                        if (isDebtError(err)) {
+                          setDebtModal(creditsFromDebtError(err)[0] ?? data.debt?.[0] ?? null);
+                        } else {
+                          toast.error(err instanceof Error ? err.message : "No se pudo solicitar");
+                        }
+                      } finally {
+                        setBusy("");
                       }
-                    } finally {
-                      setBusy("");
-                    }
-                  }}
-                  onDebt={() => setDebtModal(data.debt?.[0] ?? null)}
-                />
-              ))}
-            </Carousel>
+                    }}
+                    onDebt={() => setDebtModal(data.debt?.[0] ?? null)}
+                  />
+                ))}
+              </Carousel>
+            ))
           )}
         </section>
 
@@ -546,6 +531,17 @@ function activityPanel(
   }
 }
 
+function ProfilePhoto({ name, photoUrl }: { name: string; photoUrl?: string | null }) {
+  const initial = name.trim().slice(0, 1).toUpperCase() || "C";
+  return photoUrl ? (
+    <img src={mediaUrl(photoUrl)} alt={name} className="h-20 w-20 rounded-full object-cover ring-2 ring-gold-500/40" />
+  ) : (
+    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-navy-800 text-2xl font-semibold text-gold-300 ring-2 ring-gold-500/40">
+      {initial}
+    </div>
+  );
+}
+
 function SectionHead({ title, hint }: { title: string; hint: string }) {
   return (
     <div className="mb-3">
@@ -557,40 +553,94 @@ function SectionHead({ title, hint }: { title: string; hint: string }) {
 
 function EmptyStrip({ text }: { text: string }) {
   return (
-    <div className="panel px-5 py-8 text-center text-sm text-slate-500">{text}</div>
+    <div className="panel px-5 py-8 text-sm text-slate-500">{text}</div>
   );
 }
 
-function Carousel({ children }: { children: ReactNode }) {
+function Carousel({ title, hint, children }: { title: string; hint: string; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
 
   function move(direction: number) {
     const node = ref.current;
     if (!node) return;
-    node.scrollBy({ left: direction * Math.min(node.clientWidth * 0.8, 340), behavior: "smooth" });
+    node.scrollBy({ left: direction * Math.min(node.clientWidth * 0.75, 300), behavior: "smooth" });
   }
 
   return (
-    <div className="relative">
-      <button
-        type="button"
-        aria-label="Anterior"
-        className="absolute -left-2 top-1/2 z-10 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white text-navy-900 shadow-sm sm:flex"
-        onClick={() => move(-1)}
-      >
-        <ChevronLeft size={18} />
-      </button>
-      <div ref={ref} className="carousel px-1">
+    <div>
+      <div className="mb-3 flex items-end justify-between gap-3">
+        <SectionHead title={title} hint={hint} />
+        <div className="mb-3 hidden shrink-0 gap-2 sm:flex">
+          <button
+            type="button"
+            aria-label="Anterior"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-navy-900"
+            onClick={() => move(-1)}
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <button
+            type="button"
+            aria-label="Siguiente"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-navy-900"
+            onClick={() => move(1)}
+          >
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      </div>
+      <div ref={ref} className="carousel items-stretch">
         {children}
       </div>
-      <button
-        type="button"
-        aria-label="Siguiente"
-        className="absolute -right-2 top-1/2 z-10 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white text-navy-900 shadow-sm sm:flex"
-        onClick={() => move(1)}
-      >
-        <ChevronRight size={18} />
-      </button>
+    </div>
+  );
+}
+
+function InstallmentPlan({ credit }: { credit: PortalCredit }) {
+  const pending = credit.installments.filter((item) => item.status !== "PAID");
+  const next = pending[0];
+  const paidCount = credit.installments.length - pending.length;
+  const percent = credit.installments.length === 0 ? 0 : Math.round((paidCount / credit.installments.length) * 100);
+
+  return (
+    <div className="panel mt-4 overflow-hidden">
+      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-slate-100 px-5 py-4">
+        <div>
+          <p className="text-sm text-slate-500">Plan de cuotas</p>
+          <h3 className="font-display text-xl">{credit.product.name}</h3>
+        </div>
+        <p className="text-sm text-slate-500">
+          {paidCount} de {credit.installments.length} pagadas
+        </p>
+      </div>
+      <div className="px-5 pt-4">
+        <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+          <div className="h-full rounded-full bg-gold-500" style={{ width: `${percent}%` }} />
+        </div>
+      </div>
+      <ul className="divide-y divide-slate-100">
+        {credit.installments.map((item) => {
+          const status = effectiveInstallmentStatus(item.status, item.dueDate);
+          const isNext = next?.id === item.id;
+          return (
+            <li
+              key={item.id}
+              className={`flex items-center gap-3 px-5 py-3.5 ${isNext ? "bg-gold-50" : ""}`}
+            >
+              <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                status === "PAID" ? "bg-emerald-100 text-emerald-800" : isNext ? "bg-gold-500 text-navy-950" : "bg-slate-100 text-navy-900"
+              }`}>
+                {item.number}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="font-medium">{money(item.amount)}</p>
+                <p className="text-xs text-slate-500">{formatDate(item.dueDate)}</p>
+              </div>
+              <InstallmentBadge status={item.status} dueDate={item.dueDate} />
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
@@ -614,7 +664,7 @@ function CreditSlide({
 
   return (
     <article
-      className={`carousel-item w-[min(78vw,280px)] overflow-hidden rounded-2xl border bg-white ${
+      className={`carousel-item flex h-full w-64 flex-col overflow-hidden rounded-2xl border bg-white ${
         active ? "border-gold-500 shadow-card" : "border-slate-200"
       }`}
     >
@@ -670,7 +720,7 @@ function CatalogSlide({
   onDebt: () => void;
 }) {
   return (
-    <article className="carousel-item flex w-[min(78vw,260px)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white">
+    <article className="carousel-item flex h-full w-64 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white">
       <div className="relative h-36 bg-slate-100">
         {product.imageUrl ? (
           <img src={mediaUrl(product.imageUrl)} alt={product.name} className="h-full w-full object-cover" />
@@ -734,7 +784,7 @@ function PortalGate({
         </div>
         <p className="text-sm text-slate-300">Entra con tu cédula y el teléfono registrado.</p>
       </section>
-      <section className="flex items-center justify-center bg-[#F3EFE6] p-6">
+      <section className="flex items-center justify-center bg-slate-100 p-6">
         <form
           className="panel w-full max-w-md p-8"
           noValidate
@@ -773,25 +823,6 @@ function PortalGate({
       </section>
     </div>
   );
-}
-
-function installmentTone(status: InstallmentStatus, isNext: boolean): string {
-  switch (status) {
-    case "PAID":
-      return "border-emerald-200 bg-emerald-50";
-    case "OVERDUE":
-      return "border-rose-200 bg-rose-50";
-    case "PARTIAL":
-      return "border-amber-200 bg-amber-50";
-    case "PREPAID":
-      return "border-sky-200 bg-sky-50";
-    case "PENDING":
-      return isNext ? "border-gold-500 bg-gold-50" : "border-slate-200 bg-white";
-    default: {
-      const _exhaustive: never = status;
-      return _exhaustive;
-    }
-  }
 }
 
 function PayClaimForm({

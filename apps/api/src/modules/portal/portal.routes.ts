@@ -55,6 +55,7 @@ portalRouter.post(
         ],
       },
       include: {
+        images: { take: 1, orderBy: { createdAt: "asc" }, select: { path: true } },
         credits: {
           include: { product: { select: { name: true, imageUrl: true, images: { take: 1, orderBy: { createdAt: "asc" }, select: { path: true } } } }, installments: { orderBy: { number: "asc" } } },
           orderBy: { createdAt: "desc" },
@@ -125,6 +126,7 @@ portalRouter.post(
           level: client.level,
           affiliationPaid: client.affiliationPaid,
           catalogApproved: client.catalogApproved,
+          photoUrl: client.images[0]?.path ?? null,
         },
         credits: client.credits.map((credit) => ({
           ...credit,

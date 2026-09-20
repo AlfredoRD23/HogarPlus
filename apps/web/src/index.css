@@ -32,6 +32,7 @@ body {
   .carousel {
     @apply flex snap-x snap-mandatory gap-4 overflow-x-auto pb-1;
     scrollbar-width: none;
+    scroll-padding-left: 0.25rem;
   }
 
   .carousel::-webkit-scrollbar {

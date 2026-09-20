@@ -1,0 +1,367 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  DIRECCION
+  VENTAS
+  COBRANZA
+  INVENTARIO
+  ADMINISTRACION
+  TECNOLOGIA
+}
+
+enum ClientStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+}
+
+enum ClientLevel {
+  INICIAL
+  BRONCE
+  PLATA
+  ORO
+}
+
+enum CatalogTier {
+  A
+  B
+  C
+}
+
+enum ProductCategory {
+  SALUD_BIENESTAR
+  BELLEZA
+  HOGAR
+}
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum CreditStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  DEFAULTED
+  CANCELLED
+}
+
+enum InstallmentStatus {
+  PENDING
+  PAID
+  PARTIAL
+  OVERDUE
+  PREPAID
+}
+
+enum PaymentMethod {
+  CASH
+  TRANSFER
+  DEPOSIT
+}
+
+enum PaymentType {
+  AFFILIATION
+  INSTALLMENT
+  ADVANCE
+}
+
+enum InventoryMovementType {
+  IN
+  OUT
+  ADJUSTMENT
+}
+
+enum PointsAction {
+  WEEKLY_ON_TIME
+  ADVANCE
+  AFFILIATION
+  REFERRAL
+  PRODUCT_COMPLETED
+  LATE_PAYMENT
+}
+
+enum ExpenseCategory {
+  PAYROLL
+  TRANSPORT
+  MARKETING
+  PROCESSING
+  WARRANTY
+  TAX
+  OPERATIONS
+  OTHER
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  phone        String?
+  role         Role
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  createdClients     Client[]            @relation("ClientCreatedBy")
+  createdCredits     Credit[]            @relation("CreditCreatedBy")
+  createdPayments    Payment[]           @relation("PaymentCreatedBy")
+  voidedPayments     Payment[]           @relation("PaymentVoidedBy")
+  inventoryMoves     InventoryMovement[]
+  collectionNotes    CollectionNote[]
+  expenses           Expense[]
+  auditLogs          AuditLog[]
+
+  @@index([role, active])
+}
+
+model Client {
+  id              String       @id @default(cuid())
+  code            String       @unique
+  firstName       String
+  lastName        String
+  documentId      String       @unique
+  phone           String
+  email           String?
+  address         String?      @db.Text
+  city            String?
+  province        String?
+  status          ClientStatus @default(ACTIVE)
+  points          Int          @default(0)
+  level           ClientLevel  @default(INICIAL)
+  catalogApproved Boolean      @default(false)
+  affiliationPaid Boolean      @default(false)
+  affiliationAt   DateTime?
+  referredById    String?
+  notes           String?      @db.Text
+  createdById     String
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  referredBy     Client?           @relation("ClientReferrals", fields: [referredById], references: [id])
+  referrals      Client[]          @relation("ClientReferrals")
+  createdBy      User              @relation("ClientCreatedBy", fields: [createdById], references: [id])
+  credits        Credit[]
+  payments       Payment[]
+  pointsLedger   PointsLedger[]
+  collectionNotes CollectionNote[]
+
+  @@index([status, level])
+  @@index([phone])
+  @@index([lastName, firstName])
+}
+
+model Product {
+  id          String          @id @default(cuid())
+  sku         String          @unique
+  name        String
+  description String?         @db.Text
+  category    ProductCategory
+  catalogTier CatalogTier
+  cost        Decimal         @db.Decimal(12, 2)
+  price       Decimal         @db.Decimal(12, 2)
+  stock       Int             @default(0)
+  minStock    Int             @default(2)
+  status      ProductStatus   @default(ACTIVE)
+  imageUrl    String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  credits            Credit[]
+  inventoryMovements InventoryMovement[]
+
+  @@index([category, catalogTier, status])
+}
+
+model InventoryMovement {
+  id        String                 @id @default(cuid())
+  productId String
+  type      InventoryMovementType
+  quantity  Int
+  unitCost  Decimal                @db.Decimal(12, 2)
+  reason    String?
+  creditId  String?
+  userId    String
+  createdAt DateTime               @default(now())
+
+  product Product @relation(fields: [productId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+  credit  Credit? @relation(fields: [creditId], references: [id])
+
+  @@index([productId, createdAt])
+  @@index([type, createdAt])
+}
+
+model Credit {
+  id             String       @id @default(cuid())
+  code           String       @unique
+  clientId       String
+  productId      String
+  price          Decimal      @db.Decimal(12, 2)
+  cost           Decimal      @db.Decimal(12, 2)
+  weeklyQuota    Decimal      @db.Decimal(12, 2)
+  weeks          Int
+  balance        Decimal      @db.Decimal(12, 2)
+  affiliationFee Decimal      @db.Decimal(12, 2) @default(0)
+  status         CreditStatus @default(ACTIVE)
+  startDate      DateTime
+  deliveredAt    DateTime?
+  completedAt    DateTime?
+  notes          String?      @db.Text
+  createdById    String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  client      Client               @relation(fields: [clientId], references: [id])
+  product     Product              @relation(fields: [productId], references: [id])
+  createdBy   User                 @relation("CreditCreatedBy", fields: [createdById], references: [id])
+  installments Installment[]
+  payments    Payment[]
+  inventoryMoves InventoryMovement[]
+  collectionNotes CollectionNote[]
+  pointsLedger PointsLedger[]
+
+  @@index([status, startDate])
+  @@index([clientId, status])
+}
+
+model Installment {
+  id         String             @id @default(cuid())
+  creditId   String
+  number     Int
+  dueDate    DateTime
+  amount     Decimal            @db.Decimal(12, 2)
+  paidAmount Decimal            @db.Decimal(12, 2) @default(0)
+  status     InstallmentStatus  @default(PENDING)
+
+  credit      Credit              @relation(fields: [creditId], references: [id], onDelete: Cascade)
+  allocations PaymentAllocation[]
+
+  @@unique([creditId, number])
+  @@index([dueDate, status])
+}
+
+model Payment {
+  id               String        @id @default(cuid())
+  code             String        @unique
+  clientId         String
+  creditId         String?
+  amount           Decimal       @db.Decimal(12, 2)
+  method           PaymentMethod
+  type             PaymentType
+  reference        String?
+  receiptPath      String?
+  notes            String?       @db.Text
+  createdById      String
+  createdAt        DateTime      @default(now())
+  voidedAt         DateTime?
+  voidedById       String?
+  voidReason       String?
+
+  client      Client              @relation(fields: [clientId], references: [id])
+  credit      Credit?             @relation(fields: [creditId], references: [id])
+  createdBy   User                @relation("PaymentCreatedBy", fields: [createdById], references: [id])
+  voidedBy    User?               @relation("PaymentVoidedBy", fields: [voidedById], references: [id])
+  allocations PaymentAllocation[]
+  pointsLedger PointsLedger[]
+
+  @@index([createdAt])
+  @@index([clientId, createdAt])
+  @@index([voidedAt])
+}
+
+model PaymentAllocation {
+  id            String  @id @default(cuid())
+  paymentId     String
+  installmentId String?
+  amount        Decimal @db.Decimal(12, 2)
+
+  payment     Payment      @relation(fields: [paymentId], references: [id])
+  installment Installment? @relation(fields: [installmentId], references: [id])
+
+  @@index([paymentId])
+}
+
+model PointsLedger {
+  id        String       @id @default(cuid())
+  clientId  String
+  action    PointsAction
+  points    Int
+  creditId  String?
+  paymentId String?
+  note      String?
+  createdAt DateTime     @default(now())
+
+  client  Client   @relation(fields: [clientId], references: [id])
+  credit  Credit?  @relation(fields: [creditId], references: [id])
+  payment Payment? @relation(fields: [paymentId], references: [id])
+
+  @@index([clientId, createdAt])
+}
+
+model CollectionNote {
+  id        String   @id @default(cuid())
+  clientId  String
+  creditId  String?
+  channel   String
+  note      String   @db.Text
+  nextFollowUp DateTime?
+  userId    String
+  createdAt DateTime @default(now())
+
+  client Client  @relation(fields: [clientId], references: [id])
+  credit Credit? @relation(fields: [creditId], references: [id])
+  user   User    @relation(fields: [userId], references: [id])
+
+  @@index([clientId, createdAt])
+}
+
+model Expense {
+  id          String          @id @default(cuid())
+  category    ExpenseCategory
+  amount      Decimal         @db.Decimal(12, 2)
+  description String
+  incurredOn  DateTime
+  userId      String
+  createdAt   DateTime        @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([incurredOn, category])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  before    Json?
+  after     Json?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
+
+model Setting {
+  key       String   @id
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+}
+
+model Sequence {
+  name  String @id
+  value Int    @default(0)
+}

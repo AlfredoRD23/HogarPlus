@@ -1,0 +1,29 @@
+{
+  "name": "hogarplus",
+  "private": true,
+  "version": "1.0.0",
+  "description": "HogarPlus — plataforma de venta por catálogo a crédito",
+  "workspaces": [
+    "apps/api",
+    "apps/web",
+    "packages/shared"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,magenta \"npm run dev -w @hogarplus/api\" \"npm run dev -w @hogarplus/web\"",
+    "dev:api": "npm run dev -w @hogarplus/api",
+    "dev:web": "npm run dev -w @hogarplus/web",
+    "build": "npm run build -w @hogarplus/shared && npm run build -w @hogarplus/api && npm run build -w @hogarplus/web",
+    "db:up": "docker compose up -d mysql",
+    "db:down": "docker compose down",
+    "db:migrate": "npm run prisma:migrate -w @hogarplus/api",
+    "db:seed": "npm run prisma:seed -w @hogarplus/api",
+    "db:studio": "npm run prisma:studio -w @hogarplus/api",
+    "db:reset": "npm run prisma:reset -w @hogarplus/api"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

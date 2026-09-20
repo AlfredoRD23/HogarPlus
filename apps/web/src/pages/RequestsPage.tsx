@@ -26,8 +26,16 @@ type RequestRow = {
   status: RequestStatus;
   createdAt: string;
   client: { id: string; code: string; firstName: string; lastName: string; phone: string; level: ClientLevel };
-  product: { id: string; name: string; catalogTier: CatalogTier; price: number };
+  product: { id: string; name: string; catalogTier: CatalogTier; price: number; imageUrl?: string | null };
 };
+
+function ReceiptPhoto({ path }: { path: string }) {
+  return (
+    <a href={mediaUrl(path)} target="_blank" rel="noreferrer" className="block">
+      <img src={mediaUrl(path)} alt="Comprobante" className="h-16 w-16 rounded-xl object-cover" />
+    </a>
+  );
+}
 
 type ClaimRow = {
   id: string;
@@ -99,6 +107,7 @@ function ProductRequestsTable() {
             key={row.id}
             title={<Link to={`/clientes/${row.client.id}`}>{row.client.firstName} {row.client.lastName}</Link>}
             subtitle={row.client.code}
+            photo={row.product.imageUrl ? mediaUrl(row.product.imageUrl) : null}
             initials={row.client.firstName}
             badge={<LevelBadge level={row.client.level} />}
             fields={[
@@ -130,10 +139,17 @@ function ProductRequestsTable() {
               <div className="mt-1"><LevelBadge level={row.client.level} /></div>
             </td>
             <td className="px-5 py-3.5">
-              {row.product.name}
-              <div className="mt-1 flex items-center gap-2">
-                <CatalogBadge tier={row.product.catalogTier} />
-                <span className="text-xs text-slate-500">{money(row.product.price)}</span>
+              <div className="flex items-center gap-3">
+                {row.product.imageUrl ? (
+                  <img src={mediaUrl(row.product.imageUrl)} alt="" className="h-12 w-12 rounded-lg object-cover" />
+                ) : null}
+                <div>
+                  <p>{row.product.name}</p>
+                  <div className="mt-1 flex items-center gap-2">
+                    <CatalogBadge tier={row.product.catalogTier} />
+                    <span className="text-xs text-slate-500">{money(row.product.price)}</span>
+                  </div>
+                </div>
               </div>
             </td>
             <td className="px-5 py-3.5">{REQUEST_STATUS_LABELS[row.status]}</td>
@@ -218,16 +234,14 @@ function PaymentClaimsTable() {
             key={row.id}
             title={<Link to={`/clientes/${row.client.id}`}>{row.client.firstName} {row.client.lastName}</Link>}
             subtitle={row.client.phone}
-            photo={row.credit.product.imageUrl ? mediaUrl(row.credit.product.imageUrl) : null}
+            photo={row.receiptPath ? mediaUrl(row.receiptPath) : row.credit.product.imageUrl ? mediaUrl(row.credit.product.imageUrl) : null}
             initials={row.client.firstName}
             fields={[
               { label: "Producto", value: row.credit.product.name, hint: `${row.credit.code} · ${formatDate(row.createdAt)}` },
               { label: "Monto", value: money(row.amount), hint: PAYMENT_METHOD_LABELS[row.method] },
               {
                 label: "Comprobante",
-                value: row.receiptPath ? (
-                  <a className="font-semibold text-navy-800" href={mediaUrl(row.receiptPath)} target="_blank" rel="noreferrer">Ver foto</a>
-                ) : "Sin foto",
+                value: row.receiptPath ? <ReceiptPhoto path={row.receiptPath} /> : "Sin foto",
               },
               { label: "Estado", value: PAYMENT_CLAIM_STATUS_LABELS[row.status] },
             ]}
@@ -270,13 +284,7 @@ function PaymentClaimsTable() {
               <div className="text-xs text-slate-500">{PAYMENT_METHOD_LABELS[row.method]}</div>
             </td>
             <td className="px-5 py-3.5">
-              {row.receiptPath ? (
-                <a className="font-semibold text-navy-800" href={mediaUrl(row.receiptPath)} target="_blank" rel="noreferrer">
-                  Ver foto
-                </a>
-              ) : (
-                <span className="text-xs text-slate-400">Sin foto</span>
-              )}
+              {row.receiptPath ? <ReceiptPhoto path={row.receiptPath} /> : <span className="text-xs text-slate-400">Sin foto</span>}
             </td>
             <td className="px-5 py-3.5">{PAYMENT_CLAIM_STATUS_LABELS[row.status]}</td>
             <td className="px-5 py-3.5">

@@ -21,13 +21,38 @@ export class PaymentClaimsService {
         orderBy: { createdAt: "desc" },
         include: {
           client: { select: { id: true, code: true, firstName: true, lastName: true, phone: true } },
-          credit: { select: { id: true, code: true, balance: true, product: { select: { name: true, imageUrl: true } } } },
+          credit: {
+            select: {
+              id: true,
+              code: true,
+              balance: true,
+              product: {
+                select: {
+                  name: true,
+                  imageUrl: true,
+                  images: { take: 1, orderBy: { createdAt: "asc" }, select: { path: true } },
+                },
+              },
+            },
+          },
           payment: { select: { id: true, code: true } },
         },
       }),
       prisma.paymentClaim.count({ where }),
     ]);
-    return { items, meta: { page, pageSize, total } };
+    return {
+      items: items.map((item) => ({
+        ...item,
+        credit: {
+          ...item.credit,
+          product: {
+            name: item.credit.product.name,
+            imageUrl: item.credit.product.imageUrl || item.credit.product.images[0]?.path || null,
+          },
+        },
+      })),
+      meta: { page, pageSize, total },
+    };
   }
 
   async createFromPortal(input: {

@@ -23,12 +23,31 @@ requestsRouter.get(
         orderBy: { createdAt: "desc" },
         include: {
           client: { select: { id: true, code: true, firstName: true, lastName: true, phone: true, level: true } },
-          product: { select: { id: true, name: true, catalogTier: true, price: true } },
+          product: {
+            select: {
+              id: true,
+              name: true,
+              catalogTier: true,
+              price: true,
+              imageUrl: true,
+              images: { take: 1, orderBy: { createdAt: "asc" }, select: { path: true } },
+            },
+          },
         },
       }),
       prisma.productRequest.count({ where }),
     ]);
-    res.json({ success: true, data: items, meta: { page, pageSize, total } });
+    res.json({
+      success: true,
+      data: items.map((item) => ({
+        ...item,
+        product: {
+          ...item.product,
+          imageUrl: item.product.imageUrl || item.product.images[0]?.path || null,
+        },
+      })),
+      meta: { page, pageSize, total },
+    });
   }),
 );
 

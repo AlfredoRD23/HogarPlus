@@ -175,6 +175,7 @@ model Client {
 
   @@index([status, level])
   @@index([phone])
+  @@index([email])
   @@index([lastName, firstName])
   @@index([routeId])
 }

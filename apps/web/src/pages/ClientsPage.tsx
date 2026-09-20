@@ -25,6 +25,7 @@ import {
   locationUrlError,
   personNameError,
   phoneError,
+  emailError,
   LEVEL_LABELS,
   PAYMENT_FREQUENCY_LABELS,
   POINTS_ACTION_LABELS,
@@ -65,6 +66,7 @@ type Client = {
   lastName: string;
   documentId: string;
   phone: string;
+  email?: string | null;
   city?: string;
   address?: string | null;
   locationUrl?: string | null;
@@ -161,7 +163,7 @@ export function ClientsPage() {
         title="Clientes"
         description="Ficha completa: inicio, próxima cuota, saldo y ubicación"
         icon={Users}
-        searchPlaceholder="Buscar por nombre, cédula o código"
+        searchPlaceholder="Buscar por nombre, cédula, código o correo"
         searchValue={search}
         onSearchChange={setSearch}
         actions={[{ label: "Nuevo cliente", icon: Plus, onClick: () => setOpen(true) }]}
@@ -204,7 +206,8 @@ export function ClientsPage() {
                 <div>
                   <dt className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Contacto</dt>
                   <dd className="mt-0.5">{formatPhoneRD(c.phone)}</dd>
-                  <dd className="text-xs text-slate-500">{c.city || "—"}</dd>
+                  <dd className="truncate text-xs text-slate-500">{c.email || c.city || "—"}</dd>
+                  {c.email && c.city ? <dd className="text-xs text-slate-500">{c.city}</dd> : null}
                 </div>
                 <div>
                   <dt className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Referencia</dt>
@@ -263,6 +266,7 @@ export function ClientsPage() {
               </td>
               <td className="px-5 py-3.5">
                 {formatPhoneRD(c.phone)}
+                {c.email ? <div className="truncate text-xs text-slate-500">{c.email}</div> : null}
                 <div className="text-xs text-slate-500">{c.city}</div>
               </td>
               <td className="px-5 py-3.5">
@@ -363,6 +367,7 @@ function ClientForm({
     lastName: initial?.lastName ?? "",
     documentId: initial?.documentId ?? "",
     phone: initial?.phone ?? "",
+    email: initial?.email ?? "",
     city: initial?.city ?? "",
     address: initial?.address ?? "",
     locationUrl: initial?.locationUrl ?? "",
@@ -425,6 +430,7 @@ function ClientForm({
             lastName: personNameError(form.lastName, "apellido") ?? "",
             documentId: editing ? "" : cedulaError(form.documentId) ?? "",
             phone: phoneError(form.phone) ?? "",
+            email: emailError(form.email, false) ?? "",
             city: cityError(form.city) ?? "",
             locationUrl: locationUrlError(form.locationUrl) ?? "",
             referenceName: form.referenceName || form.referencePhone ? personNameError(form.referenceName, "nombre de la referencia") ?? "" : "",
@@ -437,6 +443,7 @@ function ClientForm({
             firstName: form.firstName.trim(),
             lastName: form.lastName.trim(),
             phone: digitsOnly(form.phone),
+            email: form.email.trim(),
             city: form.city.trim(),
             address: form.address.trim() || undefined,
             locationUrl: form.locationUrl.trim(),
@@ -471,6 +478,9 @@ function ClientForm({
         )}
         <Field label="Teléfono" hint={fieldHint("phone")} error={errors.phone} required>
           <FormattedInput kind="phone" required value={form.phone} error={Boolean(errors.phone)} onValue={(v) => set("phone", v)} />
+        </Field>
+        <Field label="Correo" hint="Para avisos de pedido, cuotas y plantillas" error={errors.email}>
+          <FormattedInput kind="email" value={form.email} error={Boolean(errors.email)} onValue={(v) => set("email", v)} placeholder="correo@dominio.com" />
         </Field>
         <Field label="Ciudad" hint={fieldHint("city")} error={errors.city} required>
           <FormattedInput kind="city" required value={form.city} error={Boolean(errors.city)} onValue={(v) => set("city", v)} />
@@ -691,6 +701,7 @@ export function ClientDetailPage() {
     lastName: string;
     code: string;
     phone: string;
+    email?: string | null;
     documentId: string;
     city?: string;
     address?: string | null;
@@ -757,7 +768,7 @@ export function ClientDetailPage() {
     <div className="space-y-4">
       <PageHeader
         title={`${c.firstName} ${c.lastName}`}
-        description={`${c.code} · ${formatCedula(c.documentId)} · ${formatPhoneRD(c.phone)}`}
+        description={`${c.code} · ${formatCedula(c.documentId)} · ${formatPhoneRD(c.phone)}${c.email ? ` · ${c.email}` : ""}`}
         icon={Users}
         actions={[
           { label: "Volver", icon: ArrowLeft, variant: "ghost", onClick: () => navigate("/clientes") },
@@ -796,6 +807,7 @@ export function ClientDetailPage() {
         <div className="panel p-5">
           <p className="text-xs uppercase tracking-widest text-slate-500">Contacto y ubicación</p>
           <p className="mt-2 text-sm">{formatPhoneRD(c.phone)}</p>
+          <p className="text-sm text-slate-600">{c.email || "Sin correo. Edita el cliente para agregarlo."}</p>
           <p className="text-sm text-slate-600">{[c.address, c.city].filter(Boolean).join(" · ") || "Sin dirección"}</p>
           {c.locationUrl ? (
             <a className="mt-2 inline-flex items-center gap-1 font-semibold text-navy-800" href={c.locationUrl} target="_blank" rel="noreferrer">

@@ -10,7 +10,7 @@
   ],
   "scripts": {
     "dev": "npm run build -w @hogarplus/shared && concurrently -n api,web -c blue,magenta \"npm run dev -w @hogarplus/api\" \"npm run dev -w @hogarplus/web\"",
-    "start": "node apps/api/dist/src/main.js",
+    "start": "npx prisma db push --schema=apps/api/prisma/schema.prisma --skip-generate && node apps/api/dist/src/main.js",
     "build:railway": "npm run build -w @hogarplus/shared && npx prisma generate --schema=apps/api/prisma/schema.prisma && npm run build -w @hogarplus/api && npm run build -w @hogarplus/web",
     "dev:api": "npm run dev -w @hogarplus/api",
     "dev:web": "npm run dev -w @hogarplus/web",

@@ -96,8 +96,12 @@ export const updateClientSchema = z.object({
     .string()
     .optional()
     .or(z.literal(""))
-    .transform((value) => (value ? value.trim().toLowerCase() : undefined))
-    .refine((value) => !value || isValidEmail(value), { message: "Correo inválido" }),
+    .transform((value) => {
+      if (value === undefined) return undefined;
+      const trimmed = value.trim().toLowerCase();
+      return trimmed || null;
+    })
+    .refine((value) => value === undefined || value === null || isValidEmail(value), { message: "Correo inválido" }),
   address: z.string().max(160).optional(),
   city: z.string().trim().max(50).optional(),
   province: z.string().trim().max(50).optional(),

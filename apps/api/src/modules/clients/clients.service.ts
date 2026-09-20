@@ -54,6 +54,7 @@ export class ClientsService {
               { firstName: { contains: search } },
               { lastName: { contains: search } },
               { code: { contains: search } },
+              { email: { contains: search } },
               ...(digits.length >= 3
                 ? [{ documentId: { contains: digits } }, { phone: { contains: digits } }]
                 : [{ documentId: { contains: search } }, { phone: { contains: search } }]),
@@ -204,7 +205,7 @@ export class ClientsService {
         firstName: input.firstName,
         lastName: input.lastName,
         phone: input.phone,
-        email: input.email || undefined,
+        email: input.email === undefined ? undefined : input.email,
         address: input.address,
         city: input.city,
         province: input.province,

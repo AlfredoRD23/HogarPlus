@@ -3,12 +3,12 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { useMutation, useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { api, money } from "../lib/api";
-import { CreditBadge, InstallmentBadge } from "../components/Badges";
 import { Field, FormattedInput, fieldHint } from "../components/Form";
 import { PageHeader } from "../components/PageHeader";
 import { DataTable } from "../components/DataTable";
 import { ArrowLeft, FileText, Plus } from "lucide-react";
-import { firstError, integerError, moneyError, parseInteger, parseMoney, type CreditStatus, type InstallmentStatus } from "@hogarplus/shared";
+import { catalogsForLevel, CATALOG_TIER_LABELS, catalogAccessLabel, firstError, integerError, LEVEL_LABELS, moneyError, parseInteger, parseMoney, type CatalogTier, type ClientLevel, type CreditStatus, type InstallmentStatus } from "@hogarplus/shared";
+import { CreditBadge, InstallmentBadge } from "../components/Badges";
 
 type Credit = {
   id: string;
@@ -35,7 +35,7 @@ export function CreditsPage() {
     <div className="space-y-4">
       <PageHeader
         title="Créditos"
-        description="Precio, saldo, cuota y costo de cada entrega"
+        description="Entrega de producto, saldo y estado de cada cuota"
         icon={FileText}
         searchPlaceholder="Buscar código, cliente o cédula"
         searchValue={search}
@@ -54,13 +54,13 @@ export function CreditsPage() {
       >
         {rows.map((c) => (
           <tr key={c.id} className="border-t">
-            <td className="px-4 py-3"><Link className="font-semibold" to={`/creditos/${c.id}`}>{c.code}</Link></td>
-            <td className="px-4 py-3">{c.client.firstName} {c.client.lastName}</td>
-            <td className="px-4 py-3">{c.product.name}</td>
-            <td className="px-4 py-3">{money(c.price)}</td>
-            <td className="px-4 py-3">{money(c.balance)}</td>
-            <td className="px-4 py-3">{money(c.weeklyQuota)}</td>
-            <td className="px-4 py-3"><CreditBadge status={c.status} /></td>
+            <td className="px-5 py-3.5"><Link className="font-semibold" to={`/creditos/${c.id}`}>{c.code}</Link></td>
+            <td className="px-5 py-3.5">{c.client.firstName} {c.client.lastName}</td>
+            <td className="px-5 py-3.5">{c.product.name}</td>
+            <td className="px-5 py-3.5">{money(c.price)}</td>
+            <td className="px-5 py-3.5">{money(c.balance)}</td>
+            <td className="px-5 py-3.5">{money(c.weeklyQuota)}</td>
+            <td className="px-5 py-3.5"><CreditBadge status={c.status} /></td>
           </tr>
         ))}
       </DataTable>
@@ -71,8 +71,18 @@ export function CreditsPage() {
 export function NewCreditPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
-  const clients = useQuery({ queryKey: ["clients"], queryFn: () => api<Array<{ id: string; firstName: string; lastName: string; affiliationPaid: boolean }>>("/api/clients?pageSize=100") });
-  const products = useQuery({ queryKey: ["products"], queryFn: () => api<Array<{ id: string; name: string; price: number; catalogTier: string }>>("/api/products?pageSize=100") });
+  const clients = useQuery({
+    queryKey: ["clients"],
+    queryFn: () =>
+      api<Array<{ id: string; firstName: string; lastName: string; affiliationPaid: boolean; level: ClientLevel }>>(
+        "/api/clients?pageSize=100",
+      ),
+  });
+  const products = useQuery({
+    queryKey: ["products"],
+    queryFn: () =>
+      api<Array<{ id: string; name: string; price: number; catalogTier: CatalogTier }>>("/api/products?pageSize=100"),
+  });
   const settings = useQuery({
     queryKey: ["settings"],
     queryFn: () => api<{ weeklyQuota: number; defaultWeeks: number }>("/api/settings"),
@@ -88,6 +98,20 @@ export function NewCreditPage() {
     setWeeklyQuota((q) => (q === "" ? String(settings.data.data.weeklyQuota) : q));
     setWeeks((w) => (w === "" ? String(settings.data.data.defaultWeeks) : w));
   }, [settings.data]);
+
+  const selectedClient = (clients.data?.data ?? []).find((c) => c.id === clientId);
+  const allowedTiers = selectedClient ? catalogsForLevel(selectedClient.level) : [];
+  const visibleProducts = (products.data?.data ?? []).filter((p) =>
+    selectedClient ? allowedTiers.includes(p.catalogTier) : true,
+  );
+
+  useEffect(() => {
+    if (!productId || !selectedClient) return;
+    const stillAllowed = (products.data?.data ?? []).some(
+      (p) => p.id === productId && catalogsForLevel(selectedClient.level).includes(p.catalogTier),
+    );
+    if (!stillAllowed) setProductId("");
+  }, [clientId, productId, products.data, selectedClient]);
 
   const create = useMutation({
     mutationFn: () =>
@@ -114,7 +138,7 @@ export function NewCreditPage() {
     <div className="panel max-w-2xl p-6">
       <PageHeader
         title="Nuevo crédito / entrega"
-        description="Se descuenta inventario y se genera el calendario de cuotas"
+        description="El producto se filtra por el nivel del cliente (Bronce, Plata u Oro)"
         icon={FileText}
         actions={[{ label: "Volver", icon: ArrowLeft, variant: "ghost", onClick: () => navigate("/creditos") }]}
       />
@@ -143,19 +167,24 @@ export function NewCreditPage() {
             <option value="">Seleccione</option>
             {(clients.data?.data ?? []).map((c) => (
               <option key={c.id} value={c.id}>
-                {c.firstName} {c.lastName} {c.affiliationPaid ? "" : "(sin afiliación)"}
+                {c.firstName} {c.lastName} · {LEVEL_LABELS[c.level]} {c.affiliationPaid ? "" : "(sin afiliación)"}
               </option>
             ))}
           </select>
         </Field>
         <Field label="Producto" error={errors.productId}>
-          <select className={`input ${errors.productId ? "input-error" : ""}`} required value={productId} onChange={(e) => setProductId(e.target.value)}>
-            <option value="">Seleccione</option>
-            {(products.data?.data ?? []).map((p) => (
-              <option key={p.id} value={p.id}>{p.name} · Cat {p.catalogTier} · {money(p.price)}</option>
+          <select className={`input ${errors.productId ? "input-error" : ""}`} required value={productId} onChange={(e) => setProductId(e.target.value)} disabled={!clientId}>
+            <option value="">{clientId ? "Seleccione" : "Primero elige un cliente"}</option>
+            {visibleProducts.map((p) => (
+              <option key={p.id} value={p.id}>{p.name} · {CATALOG_TIER_LABELS[p.catalogTier]} · {money(p.price)}</option>
             ))}
           </select>
         </Field>
+        {selectedClient && (
+          <p className="text-sm text-slate-500">
+            Nivel {LEVEL_LABELS[selectedClient.level]}: puede tomar {catalogAccessLabel(selectedClient.level)}.
+          </p>
+        )}
         <div className="grid grid-cols-2 gap-3">
           <Field label="Cuota semanal" hint={fieldHint("money")} error={errors.weeklyQuota}>
             <FormattedInput kind="money" required value={weeklyQuota} error={Boolean(errors.weeklyQuota)} onValue={setWeeklyQuota} />
@@ -218,18 +247,18 @@ export function CreditDetailPage() {
           <thead className="bg-navy-900 text-xs uppercase text-gold-300">
             <tr>
               {["#", "Vence", "Cuota", "Pagado", "Estado"].map((h) => (
-                <th key={h} className="px-4 py-3 text-left">{h}</th>
+                <th key={h} className="px-5 py-3.5 text-left">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {c.installments.map((i) => (
               <tr key={i.id} className="border-t">
-                <td className="px-4 py-3">{i.number}</td>
-                <td className="px-4 py-3">{new Date(i.dueDate).toLocaleDateString("es-DO")}</td>
-                <td className="px-4 py-3">{money(i.amount)}</td>
-                <td className="px-4 py-3">{money(i.paidAmount)}</td>
-                <td className="px-4 py-3"><InstallmentBadge status={i.status} /></td>
+                <td className="px-5 py-3.5">{i.number}</td>
+                <td className="px-5 py-3.5">{new Date(i.dueDate).toLocaleDateString("es-DO")}</td>
+                <td className="px-5 py-3.5">{money(i.amount)}</td>
+                <td className="px-5 py-3.5">{money(i.paidAmount)}</td>
+                <td className="px-5 py-3.5"><InstallmentBadge status={i.status} dueDate={i.dueDate} /></td>
               </tr>
             ))}
           </tbody>

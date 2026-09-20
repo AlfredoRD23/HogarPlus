@@ -5,12 +5,12 @@ import { api, money, formatDate } from "../lib/api";
 import { Field, FormattedInput, Modal, fieldHint } from "../components/Form";
 import { PageHeader } from "../components/PageHeader";
 import { Plus, Warehouse } from "lucide-react";
-import { firstError, integerError, noteError, parseInteger } from "@hogarplus/shared";
+import { firstError, INVENTORY_MOVEMENT_LABELS, integerError, noteError, parseInteger, type InventoryMovementType } from "@hogarplus/shared";
 
 type InventoryPayload = {
   movements: Array<{
     id: string;
-    type: string;
+    type: InventoryMovementType;
     quantity: number;
     reason?: string;
     createdAt: string;
@@ -52,35 +52,35 @@ export function InventoryPage() {
         <table className="w-full text-sm">
           <thead className="bg-navy-900 text-xs uppercase text-gold-300">
             <tr>
-              <th className="px-4 py-3 text-left">Producto</th>
-              <th className="px-4 py-3">Stock</th>
-              <th className="px-4 py-3">Mínimo</th>
-              <th className="px-4 py-3">Valor costo</th>
+              <th className="px-5 py-3.5 text-left">Producto</th>
+              <th className="px-5 py-3.5">Stock</th>
+              <th className="px-5 py-3.5">Mínimo</th>
+              <th className="px-5 py-3.5">Valor costo</th>
             </tr>
           </thead>
           <tbody>
             {(data?.summary ?? []).map((p) => (
               <tr key={p.id} className="border-t">
-                <td className="px-4 py-3">{p.name} <span className="text-slate-400">{p.sku}</span></td>
-                <td className="px-4 py-3 text-center">{p.stock}</td>
-                <td className="px-4 py-3 text-center">{p.minStock}</td>
-                <td className="px-4 py-3 text-center">{money(Number(p.cost) * p.stock)}</td>
+                <td className="px-5 py-3.5">{p.name} <span className="text-slate-400">{p.sku}</span></td>
+                <td className="px-5 py-3.5 text-center">{p.stock}</td>
+                <td className="px-5 py-3.5 text-center">{p.minStock}</td>
+                <td className="px-5 py-3.5 text-center">{money(Number(p.cost) * p.stock)}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       <div className="panel overflow-auto">
-        <div className="border-b px-4 py-3 font-display text-lg">Kardex reciente</div>
+        <div className="border-b px-5 py-3.5 font-display text-lg">Kardex reciente</div>
         <table className="w-full text-sm">
           <tbody>
             {(data?.movements ?? []).map((m) => (
               <tr key={m.id} className="border-t">
-                <td className="px-4 py-3">{formatDate(m.createdAt)}</td>
-                <td className="px-4 py-3">{m.product.name}</td>
-                <td className="px-4 py-3">{m.type}</td>
-                <td className="px-4 py-3">{m.quantity}</td>
-                <td className="px-4 py-3 text-slate-500">{m.reason}</td>
+                <td className="px-5 py-3.5">{formatDate(m.createdAt)}</td>
+                <td className="px-5 py-3.5">{m.product.name}</td>
+                <td className="px-5 py-3.5">{INVENTORY_MOVEMENT_LABELS[m.type]}</td>
+                <td className="px-5 py-3.5">{m.quantity}</td>
+                <td className="px-5 py-3.5 text-slate-500">{m.reason}</td>
               </tr>
             ))}
           </tbody>

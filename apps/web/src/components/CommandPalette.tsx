@@ -51,10 +51,10 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
     <div className="fixed inset-0 z-[70] bg-navy-950/50 p-4" onClick={onClose}>
       <div className="mx-auto mt-[10vh] max-w-xl overflow-hidden rounded-2xl bg-white shadow-card" onClick={(e) => e.stopPropagation()}>
         <div className="relative border-b">
-          <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
             autoFocus
-            className="w-full px-11 py-4 text-sm outline-none"
+            className="w-full py-4 pl-12 pr-4 text-sm outline-none placeholder:text-slate-400"
             placeholder="Buscar clientes, productos, créditos o ir a una página"
             value={q}
             onChange={(e) => setQ(e.target.value)}

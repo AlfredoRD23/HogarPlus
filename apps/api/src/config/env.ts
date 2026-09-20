@@ -22,4 +22,5 @@ export const config = {
     "DATABASE_URL",
     "mysql://hogarplus:hogarplus@localhost:3306/hogarplus",
   ),
+  cronSecret: process.env.CRON_SECRET ?? "",
 };

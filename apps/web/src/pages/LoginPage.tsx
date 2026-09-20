@@ -83,7 +83,7 @@ export function LoginPage() {
       <p className="mt-4 text-center text-xs text-slate-500">
             <a className="text-navy-700 underline" href="/">Inicio</a>
             {" · "}
-            <a className="text-navy-700 underline" href="/portal">Portal del cliente</a>
+            <a className="text-navy-700 underline" href="/portal">Soy cliente</a>
           </p>
         </form>
       </section>

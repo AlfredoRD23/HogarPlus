@@ -3,6 +3,7 @@ import { z } from "zod";
 import { catalogsForLevel, digitsOnly, formatCedula, formatPhoneRD, isValidPhoneRD } from "@hogarplus/shared";
 import { prisma } from "../../lib/prisma";
 import { asyncHandler } from "../../shared/http";
+import { markOverdueInstallments } from "../../shared/sla";
 import { AppError } from "../../shared/utils";
 
 export const portalRouter = Router();
@@ -22,6 +23,7 @@ portalRouter.post(
   "/lookup",
   asyncHandler(async (req, res) => {
     const body = lookupSchema.parse(req.body);
+    await markOverdueInstallments();
     const client = await prisma.client.findFirst({
       where: {
         AND: [

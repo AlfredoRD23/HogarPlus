@@ -59,10 +59,10 @@ export function ExpensesPage() {
       >
         {rows.map((e) => (
           <tr key={e.id} className="border-t">
-            <td className="px-4 py-3">{formatDate(e.incurredOn)}</td>
-            <td className="px-4 py-3">{e.category}</td>
-            <td className="px-4 py-3">{e.description}</td>
-            <td className="px-4 py-3 text-right font-semibold">{money(e.amount)}</td>
+            <td className="px-5 py-3.5">{formatDate(e.incurredOn)}</td>
+            <td className="px-5 py-3.5">{CATEGORIES.find(([key]) => key === e.category)?.[1] ?? e.category}</td>
+            <td className="px-5 py-3.5">{e.description}</td>
+            <td className="px-5 py-3.5 text-right font-semibold">{money(e.amount)}</td>
           </tr>
         ))}
       </DataTable>

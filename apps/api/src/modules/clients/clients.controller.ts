@@ -2,7 +2,9 @@ import type { Request, Response } from "express";
 import { z } from "zod";
 import type { AuthedRequest } from "../../middleware/auth";
 import { clientsService } from "./clients.service";
+import { creditsService } from "../credits/credits.service";
 import { createClientSchema, updateClientSchema } from "./clients.schema";
+import { AppError } from "../../shared/utils";
 
 export class ClientsController {
   async list(req: Request, res: Response) {
@@ -24,7 +26,24 @@ export class ClientsController {
   async create(req: Request, res: Response) {
     const body = createClientSchema.parse(req.body);
     const actor = (req as AuthedRequest).user;
-    const data = await clientsService.create(body, actor.id, req.ip);
+    const { productId, ...clientInput } = body;
+    const data = await clientsService.create(clientInput, actor.id, req.ip);
+    if (productId) {
+      try {
+        const credit = await creditsService.create({ clientId: data.id, productId }, actor.id, req.ip);
+        res.status(201).json({ success: true, data: { ...data, credit } });
+        return;
+      } catch (error) {
+        if (error instanceof AppError) {
+          throw new AppError(
+            error.status,
+            error.code,
+            `${error.message}. El cliente sí quedó creado.`,
+          );
+        }
+        throw error;
+      }
+    }
     res.status(201).json({ success: true, data });
   }
 

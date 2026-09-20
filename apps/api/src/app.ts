@@ -21,6 +21,8 @@ import { expensesRouter } from "./modules/expenses/expenses.routes";
 import { settingsRouter } from "./modules/settings/settings.routes";
 import { portalRouter } from "./modules/portal/portal.routes";
 import { searchRouter } from "./modules/search/search.routes";
+import { jobsRouter } from "./jobs/jobs.routes";
+import { getLastSlaRun } from "./shared/sla";
 
 fs.mkdirSync(config.uploadDir, { recursive: true });
 
@@ -37,7 +39,14 @@ export function createApp() {
   app.use("/uploads", express.static(path.resolve(config.uploadDir)));
 
   app.get("/api/health", (_req, res) => {
-    res.json({ success: true, data: { status: "ok", service: "hogarplus-api" } });
+    res.json({
+      success: true,
+      data: {
+        status: "ok",
+        service: "hogarplus-api",
+        sla: getLastSlaRun(),
+      },
+    });
   });
 
   app.use("/api/auth", authRouter);
@@ -54,6 +63,7 @@ export function createApp() {
   app.use("/api/settings", settingsRouter);
   app.use("/api/portal", portalRouter);
   app.use("/api/search", searchRouter);
+  app.use("/api/jobs", jobsRouter);
 
   const webDist = [
     path.resolve(process.cwd(), "apps/web/dist"),

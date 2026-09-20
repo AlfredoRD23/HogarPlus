@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { levelFromPoints, POINTS_RULES, digitsOnly } from "@hogarplus/shared";
 import { settingsService } from "../settings/settings.service";
 import { prisma } from "../../lib/prisma";
+import { markOverdueInstallments } from "../../shared/sla";
 import { AppError, nextCode, pagination } from "../../shared/utils";
 import { writeAudit } from "../../middleware/auth";
 import type { z } from "zod";
@@ -70,6 +71,7 @@ export class ClientsService {
   }
 
   async get(id: string) {
+    await markOverdueInstallments();
     const client = await prisma.client.findUnique({
       where: { id },
       select: {

@@ -31,6 +31,15 @@ export const createClientSchema = z.object({
   notes: z.string().max(400).optional(),
   payAffiliation: z.boolean().optional(),
   affiliationMethod: z.enum(["CASH", "TRANSFER", "DEPOSIT"]).optional(),
+  productId: z.string().min(1).optional().or(z.literal("")).transform((value) => value || undefined),
+}).superRefine((data, ctx) => {
+  if (data.productId && data.payAffiliation === false) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["payAffiliation"],
+      message: "Para entregar un producto hay que cobrar la afiliación",
+    });
+  }
 });
 
 export const updateClientSchema = z.object({

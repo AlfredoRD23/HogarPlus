@@ -1,14 +1,65 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { DEFAULTS, levelFromPoints, POINTS_RULES, withCedulaCheckDigit } from "@hogarplus/shared";
+import { applySla } from "../src/shared/sla";
 
 const prisma = new PrismaClient();
 
-function addWeeks(date: Date, weeks: number) {
+function atNoon(date: Date) {
   const d = new Date(date);
-  d.setDate(d.getDate() + weeks * 7);
+  d.setHours(12, 0, 0, 0);
   return d;
 }
+
+function addDays(date: Date, days: number) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return atNoon(d);
+}
+
+function addWeeks(date: Date, weeks: number) {
+  return addDays(date, weeks * 7);
+}
+
+type SeedClient = {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  city: string;
+  address: string;
+  cedulaBase: string;
+  sku: string;
+  paidWeeks: number;
+  extraPoints: number;
+  startOffsetDays: number;
+  prepaidFuture: number;
+  catalogApproved?: boolean;
+  collectionNote?: string;
+  payToday?: boolean;
+};
+
+const people: SeedClient[] = [
+  { firstName: "Ana", lastName: "Pérez", phone: "8095550101", city: "Santo Domingo", address: "Calle El Conde 42, Gazcue", cedulaBase: "0011482201", sku: "HP-H-001", paidWeeks: 6, extraPoints: 0, startOffsetDays: -38, prepaidFuture: 0, payToday: true },
+  { firstName: "José", lastName: "Gómez", phone: "8295550102", city: "Santiago", address: "Av. Estrella Sadhalá 120", cedulaBase: "0312251182", sku: "HP-S-001", paidWeeks: 5, extraPoints: 40, startOffsetDays: -32, prepaidFuture: 0 },
+  { firstName: "Luisa", lastName: "Martínez", phone: "8495550103", city: "La Vega", address: "Calle Restauración 18", cedulaBase: "0471023341", sku: "HP-B-001", paidWeeks: 7, extraPoints: 90, startOffsetDays: -45, prepaidFuture: 0 },
+  { firstName: "Pedro", lastName: "Santos", phone: "8095550104", city: "San Cristóbal", address: "Calle Padre Ayala 9", cedulaBase: "0021184403", sku: "HP-H-002", paidWeeks: 4, extraPoints: 0, startOffsetDays: -28, prepaidFuture: 0 },
+  { firstName: "Carmen", lastName: "Díaz", phone: "8295550105", city: "Puerto Plata", address: "Malecón 55, centro", cedulaBase: "0182035514", sku: "HP-S-001", paidWeeks: 3, extraPoints: 20, startOffsetDays: -21, prepaidFuture: 0 },
+  { firstName: "Miguel", lastName: "Reyes", phone: "8495550106", city: "Santo Domingo Este", address: "Av. Las Américas km 7", cedulaBase: "0013096625", sku: "HP-B-001", paidWeeks: 5, extraPoints: 0, startOffsetDays: -35, prepaidFuture: 0 },
+  { firstName: "Rosa", lastName: "Castillo", phone: "8095550107", city: "San Pedro de Macorís", address: "Calle Ramón Santana 14", cedulaBase: "0231147736", sku: "HP-H-001", paidWeeks: 4, extraPoints: 30, startOffsetDays: -42, prepaidFuture: 0, collectionNote: "No contestó WhatsApp el lunes. Quedó en pasar mañana a la oficina." },
+  { firstName: "Juan", lastName: "Vargas", phone: "8295550108", city: "La Romana", address: "Villa Verde, casa 22", cedulaBase: "0262088847", sku: "HP-H-003", paidWeeks: 3, extraPoints: 80, startOffsetDays: -42, prepaidFuture: 0, collectionNote: "Prometió transferir la cuota de la semana pasada." },
+  { firstName: "Elena", lastName: "Núñez", phone: "8495550109", city: "Moca", address: "Calle Duarte 88", cedulaBase: "0561129958", sku: "HP-S-002", paidWeeks: 4, extraPoints: 70, startOffsetDays: -49, prepaidFuture: 0, collectionNote: "Una semana de atraso. Visita programada." },
+  { firstName: "Carlos", lastName: "Fernández", phone: "8095550110", city: "Bonao", address: "Res. Los Ríos, apto 3B", cedulaBase: "0282011069", sku: "HP-B-002", paidWeeks: 2, extraPoints: 90, startOffsetDays: -42, prepaidFuture: 0, collectionNote: "Dos semanas sin pagar. Pedir abono mínimo." },
+  { firstName: "Patricia", lastName: "López", phone: "8295550111", city: "Azua", address: "Calle Proyecto 4, no. 11", cedulaBase: "0024132170", sku: "HP-H-002", paidWeeks: 3, extraPoints: 0, startOffsetDays: -56, prepaidFuture: 0, collectionNote: "Tres semanas. Dejar nota en la casa si no abre." },
+  { firstName: "Rafael", lastName: "Cruz", phone: "8495550112", city: "San Francisco de Macorís", address: "Av. Presidente Antonio Guzmán 210", cedulaBase: "0563243281", sku: "HP-H-003", paidWeeks: 1, extraPoints: 80, startOffsetDays: -49, prepaidFuture: 0, collectionNote: "Mora grave. Coordinar con cobranza." },
+  { firstName: "Yolanda", lastName: "Mejía", phone: "8095550113", city: "Higüey", address: "Calle Agricultores 7", cedulaBase: "0284354392", sku: "HP-B-001", paidWeeks: 5, extraPoints: 40, startOffsetDays: -42, prepaidFuture: 2 },
+  { firstName: "Ramón", lastName: "Tejada", phone: "8295550114", city: "Baní", address: "Calle Sánchez 31", cedulaBase: "0025465403", sku: "HP-S-001", paidWeeks: 6, extraPoints: 20, startOffsetDays: -35, prepaidFuture: 2 },
+  { firstName: "Marisol", lastName: "Pimentel", phone: "8495550115", city: "Santo Domingo", address: "Ensanche Naco, calle Fantino 16", cedulaBase: "0016576514", sku: "HP-H-004", paidWeeks: 8, extraPoints: 420, startOffsetDays: -52, prepaidFuture: 1, catalogApproved: true },
+  { firstName: "David", lastName: "Almonte", phone: "8095550116", city: "Santiago", address: "Los Jardines Metropolitanos", cedulaBase: "0317687625", sku: "HP-S-002", paidWeeks: 6, extraPoints: 160, startOffsetDays: -40, prepaidFuture: 0 },
+  { firstName: "Keila", lastName: "Rosario", phone: "8295550117", city: "La Vega", address: "Villa Olga, calle 3", cedulaBase: "0478798736", sku: "HP-B-002", paidWeeks: 4, extraPoints: 120, startOffsetDays: -28, prepaidFuture: 0, payToday: true },
+  { firstName: "Héctor", lastName: "Báez", phone: "8495550118", city: "San Cristóbal", address: "Madderlake, manzana D", cedulaBase: "0029809847", sku: "HP-H-001", paidWeeks: 5, extraPoints: 0, startOffsetDays: -31, prepaidFuture: 0 },
+  { firstName: "Noelia", lastName: "Guzmán", phone: "8095550119", city: "Puerto Plata", address: "Costambar, villa 8", cedulaBase: "0180910958", sku: "HP-H-002", paidWeeks: 3, extraPoints: 20, startOffsetDays: -42, prepaidFuture: 0, collectionNote: "Atraso de una semana. Prefiere pago en efectivo." },
+  { firstName: "Óscar", lastName: "Taveras", phone: "8295550120", city: "Moca", address: "Calle Independencia 102", cedulaBase: "0561021069", sku: "HP-S-001", paidWeeks: 2, extraPoints: 10, startOffsetDays: -35, prepaidFuture: 0, collectionNote: "Dos cuotas vencidas. Llamar después de las 6 pm." },
+];
 
 async function main() {
   await prisma.paymentAllocation.deleteMany();
@@ -27,6 +78,7 @@ async function main() {
   await prisma.sequence.deleteMany();
 
   const passwordHash = await bcrypt.hash("Admin123!", 10);
+  const today = atNoon(new Date());
 
   const admin = await prisma.user.create({
     data: {
@@ -38,10 +90,13 @@ async function main() {
     },
   });
 
+  const cobrador = await prisma.user.create({
+    data: { email: "cobranza@hogarplus.do", name: "Luis Cobranza", phone: "8095550003", role: "COBRANZA", passwordHash },
+  });
+
   await prisma.user.createMany({
     data: [
       { email: "ventas@hogarplus.do", name: "Carla Ventas", phone: "8095550002", role: "VENTAS", passwordHash },
-      { email: "cobranza@hogarplus.do", name: "Luis Cobranza", phone: "8095550003", role: "COBRANZA", passwordHash },
       { email: "inventario@hogarplus.do", name: "María Inventario", phone: "8095550004", role: "INVENTARIO", passwordHash },
     ],
   });
@@ -57,22 +112,21 @@ async function main() {
     ],
   });
 
-  const productsData: Prisma.ProductCreateManyInput[] = [
-    { sku: "HP-S-001", name: "Kit vitaminas y bienestar", description: "Suplementos de uso frecuente", category: "SALUD_BIENESTAR", catalogTier: "A", cost: 900, price: 2800, stock: 40, minStock: 5 },
-    { sku: "HP-S-002", name: "Tensiómetro digital", description: "Monitoreo de presión arterial", category: "SALUD_BIENESTAR", catalogTier: "B", cost: 1200, price: 4500, stock: 18, minStock: 3 },
-    { sku: "HP-B-001", name: "Set skincare esencial", description: "Cuidado facial diario", category: "BELLEZA", catalogTier: "A", cost: 800, price: 2600, stock: 35, minStock: 5 },
-    { sku: "HP-B-002", name: "Plancha de cabello profesional", description: "Cuidado capilar", category: "BELLEZA", catalogTier: "B", cost: 1100, price: 5200, stock: 12, minStock: 3 },
-    { sku: "HP-H-001", name: "Licuadora 2 velocidades", description: "Electrodoméstico de uso diario", category: "HOGAR", catalogTier: "A", cost: 1000, price: 3000, stock: 28, minStock: 4 },
-    { sku: "HP-H-002", name: "Olla arrocera 1.8L", description: "Utensilio práctico para el hogar", category: "HOGAR", catalogTier: "A", cost: 950, price: 3200, stock: 22, minStock: 4 },
-    { sku: "HP-H-003", name: "Freidora de aire compacta", description: "Tecnología para el hogar", category: "HOGAR", catalogTier: "B", cost: 1800, price: 6800, stock: 10, minStock: 2 },
-    { sku: "HP-H-004", name: "Licuadora premium + kit", description: "Línea premium catálogo C", category: "HOGAR", catalogTier: "C", cost: 2500, price: 9800, stock: 6, minStock: 2 },
-  ];
+  await prisma.product.createMany({
+    data: [
+      { sku: "HP-S-001", name: "Kit vitaminas y bienestar", description: "Suplementos de uso frecuente", category: "SALUD_BIENESTAR", catalogTier: "A", cost: 900, price: 2800, stock: 40, minStock: 5 },
+      { sku: "HP-S-002", name: "Tensiómetro digital", description: "Monitoreo de presión arterial", category: "SALUD_BIENESTAR", catalogTier: "B", cost: 1200, price: 4500, stock: 18, minStock: 3 },
+      { sku: "HP-B-001", name: "Set skincare esencial", description: "Cuidado facial diario", category: "BELLEZA", catalogTier: "A", cost: 800, price: 2600, stock: 35, minStock: 5 },
+      { sku: "HP-B-002", name: "Plancha de cabello profesional", description: "Cuidado capilar", category: "BELLEZA", catalogTier: "B", cost: 1100, price: 5200, stock: 12, minStock: 3 },
+      { sku: "HP-H-001", name: "Licuadora 2 velocidades", description: "Electrodoméstico de uso diario", category: "HOGAR", catalogTier: "A", cost: 1000, price: 3000, stock: 28, minStock: 4 },
+      { sku: "HP-H-002", name: "Olla arrocera 1.8L", description: "Utensilio práctico para el hogar", category: "HOGAR", catalogTier: "A", cost: 950, price: 3200, stock: 22, minStock: 4 },
+      { sku: "HP-H-003", name: "Freidora de aire compacta", description: "Tecnología para el hogar", category: "HOGAR", catalogTier: "B", cost: 1800, price: 6800, stock: 10, minStock: 2 },
+      { sku: "HP-H-004", name: "Licuadora premium + kit", description: "Línea premium catálogo Oro", category: "HOGAR", catalogTier: "C", cost: 2500, price: 9800, stock: 6, minStock: 2 },
+    ],
+  });
 
-  await prisma.product.createMany({ data: productsData });
   const products = await prisma.product.findMany();
-  const blender = products.find((p) => p.sku === "HP-H-001")!;
-  const vitamins = products.find((p) => p.sku === "HP-S-001")!;
-  const skincare = products.find((p) => p.sku === "HP-B-001")!;
+  const productBySku = Object.fromEntries(products.map((p) => [p.sku, p]));
 
   for (const p of products) {
     await prisma.inventoryMovement.create({
@@ -87,51 +141,47 @@ async function main() {
     });
   }
 
-  const names = [
-    ["Ana", "Pérez", withCedulaCheckDigit("0010000001"), "8091110001", "Santo Domingo"],
-    ["José", "Gómez", withCedulaCheckDigit("0010000002"), "8091110002", "Santiago"],
-    ["Luisa", "Martínez", withCedulaCheckDigit("0010000003"), "8091110003", "La Vega"],
-    ["Pedro", "Santos", withCedulaCheckDigit("0010000004"), "8091110004", "San Cristóbal"],
-    ["Carmen", "Díaz", withCedulaCheckDigit("0010000005"), "8091110005", "Puerto Plata"],
-    ["Miguel", "Reyes", withCedulaCheckDigit("0010000006"), "8091110006", "Santo Domingo"],
-    ["Rosa", "Castillo", withCedulaCheckDigit("0010000007"), "8091110007", "San Pedro"],
-    ["Juan", "Vargas", withCedulaCheckDigit("0010000008"), "8091110008", "La Romana"],
-    ["Elena", "Núñez", withCedulaCheckDigit("0010000009"), "8091110009", "Moca"],
-    ["Carlos", "Fernández", withCedulaCheckDigit("0010000010"), "8091110010", "Santo Domingo"],
-    ["Patricia", "López", withCedulaCheckDigit("0010000011"), "8091110011", "Bonao"],
-    ["Rafael", "Cruz", withCedulaCheckDigit("0010000012"), "8091110012", "Azua"],
-  ];
+  let paymentSeq = 1;
+  let creditSeq = 1;
+  const weeks = 10;
+  const weeklyQuota = new Prisma.Decimal(DEFAULTS.weeklyQuota);
 
-  const clients = [];
-  for (let i = 0; i < names.length; i++) {
-    const [firstName, lastName, documentId, phone, city] = names[i];
+  for (let i = 0; i < people.length; i += 1) {
+    const row = people[i];
+    const documentId = withCedulaCheckDigit(row.cedulaBase);
+    const product = productBySku[row.sku];
+    if (!product) throw new Error(`Producto no encontrado ${row.sku}`);
+
+    const affiliatedAt = addWeeks(today, -8);
     const client = await prisma.client.create({
       data: {
         code: `CLI${String(i + 1).padStart(6, "0")}`,
-        firstName,
-        lastName,
+        firstName: row.firstName,
+        lastName: row.lastName,
         documentId,
-        phone,
-        city,
+        phone: row.phone,
+        email: `${row.firstName.toLowerCase()}.${row.lastName.toLowerCase()}@correo.do`.normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
+        city: row.city,
+        address: row.address,
         province: "República Dominicana",
         affiliationPaid: true,
-        affiliationAt: addWeeks(new Date(), -8),
+        affiliationAt: affiliatedAt,
         createdById: admin.id,
-        catalogApproved: i > 8,
+        catalogApproved: Boolean(row.catalogApproved),
+        notes: row.collectionNote,
       },
     });
-    clients.push(client);
 
     await prisma.payment.create({
       data: {
-        code: `PAG${String(i + 1).padStart(6, "0")}`,
+        code: `PAG${String(paymentSeq++).padStart(6, "0")}`,
         clientId: client.id,
         amount: DEFAULTS.affiliationFee,
         method: i % 2 === 0 ? "CASH" : "TRANSFER",
         type: "AFFILIATION",
         notes: "Afiliación / contrato",
         createdById: admin.id,
-        createdAt: addWeeks(new Date(), -8),
+        createdAt: affiliatedAt,
       },
     });
     await prisma.pointsLedger.create({
@@ -140,35 +190,24 @@ async function main() {
         action: "AFFILIATION",
         points: POINTS_RULES.AFFILIATION,
         note: "Completar afiliación/contrato",
+        createdAt: affiliatedAt,
       },
     });
-  }
 
-  const productCycle = [blender, vitamins, skincare];
-  let paymentSeq = names.length + 1;
-  let creditSeq = 1;
-
-  for (let i = 0; i < clients.length; i++) {
-    const client = clients[i];
-    const product = productCycle[i % productCycle.length];
-    const startDate = addWeeks(new Date(), -6);
-    const weeks = 10;
-    const weeklyQuota = new Prisma.Decimal(300);
-    const price = product.price;
-    const paidWeeks = i < 4 ? 6 : i < 8 ? 3 : 1;
-    const paid = weeklyQuota.times(paidWeeks);
-    const balance = new Prisma.Decimal(price).minus(paid);
+    const startDate = addDays(today, row.startOffsetDays);
+    const paid = weeklyQuota.times(row.paidWeeks + row.prepaidFuture);
+    const balance = new Prisma.Decimal(product.price).minus(paid);
 
     const credit = await prisma.credit.create({
       data: {
         code: `CRD${String(creditSeq++).padStart(6, "0")}`,
         clientId: client.id,
         productId: product.id,
-        price,
+        price: product.price,
         cost: product.cost,
         weeklyQuota,
         weeks,
-        balance,
+        balance: balance.lessThan(0) ? 0 : balance,
         status: "ACTIVE",
         startDate,
         deliveredAt: startDate,
@@ -186,26 +225,33 @@ async function main() {
         reason: `Entrega ${credit.code}`,
         creditId: credit.id,
         userId: admin.id,
+        createdAt: startDate,
       },
     });
 
     let points = POINTS_RULES.AFFILIATION;
-    for (let w = 0; w < weeks; w++) {
+    let prepaidLeft = row.prepaidFuture;
+
+    for (let w = 0; w < weeks; w += 1) {
       const dueDate = addWeeks(startDate, w);
-      const isPaid = w < paidWeeks;
-      const late = i >= 8 && w === 0;
+      const isPaidWeek = w < row.paidWeeks;
+      const isFuture = dueDate.getTime() > today.getTime();
+      const isPrepaid = !isPaidWeek && isFuture && prepaidLeft > 0;
+      if (isPrepaid) prepaidLeft -= 1;
+
       await prisma.installment.create({
         data: {
           creditId: credit.id,
           number: w + 1,
           dueDate,
           amount: weeklyQuota,
-          paidAmount: isPaid ? weeklyQuota : 0,
-          status: isPaid ? (late ? "PAID" : "PAID") : dueDate < new Date() ? "OVERDUE" : "PENDING",
+          paidAmount: isPaidWeek || isPrepaid ? weeklyQuota : 0,
+          status: isPaidWeek ? "PAID" : isPrepaid ? "PREPAID" : "PENDING",
         },
       });
 
-      if (isPaid) {
+      if (isPaidWeek || isPrepaid) {
+        const createdAt = row.payToday && w === row.paidWeeks - 1 ? today : dueDate;
         await prisma.payment.create({
           data: {
             code: `PAG${String(paymentSeq++).padStart(6, "0")}`,
@@ -213,52 +259,83 @@ async function main() {
             creditId: credit.id,
             amount: weeklyQuota,
             method: w % 3 === 0 ? "TRANSFER" : "CASH",
-            type: "INSTALLMENT",
+            type: isPrepaid ? "ADVANCE" : "INSTALLMENT",
             createdById: admin.id,
-            createdAt: dueDate,
+            createdAt,
           },
         });
-        const add = late ? 0 : POINTS_RULES.WEEKLY_ON_TIME;
+        const add = isPrepaid ? POINTS_RULES.ADVANCE : POINTS_RULES.WEEKLY_ON_TIME;
         points += add;
         await prisma.pointsLedger.create({
           data: {
             clientId: client.id,
-            action: late ? "LATE_PAYMENT" : "WEEKLY_ON_TIME",
+            action: isPrepaid ? "ADVANCE" : "WEEKLY_ON_TIME",
             points: add,
             creditId: credit.id,
-            note: late ? "Pago atrasado" : "Pago semanal a tiempo",
+            note: isPrepaid ? "Cuota adelantada" : "Pago semanal a tiempo",
+            createdAt,
           },
         });
       }
+    }
+
+    points += row.extraPoints;
+    if (row.extraPoints > 0) {
+      await prisma.pointsLedger.create({
+        data: {
+          clientId: client.id,
+          action: "PRODUCT_COMPLETED",
+          points: row.extraPoints,
+          note: "Historial de pagos y referidos",
+        },
+      });
     }
 
     await prisma.client.update({
       where: { id: client.id },
       data: { points, level: levelFromPoints(points) },
     });
+
+    if (row.collectionNote) {
+      await prisma.collectionNote.create({
+        data: {
+          clientId: client.id,
+          creditId: credit.id,
+          channel: "WHATSAPP",
+          note: row.collectionNote,
+          userId: cobrador.id,
+          createdAt: addDays(today, -1),
+        },
+      });
+    }
   }
 
   await prisma.expense.createMany({
     data: [
-      { category: "TRANSPORT", amount: 4500, description: "Entregas zona norte", incurredOn: addWeeks(new Date(), -1), userId: admin.id },
-      { category: "MARKETING", amount: 8000, description: "Volantes y redes", incurredOn: addWeeks(new Date(), -2), userId: admin.id },
-      { category: "OPERATIONS", amount: 12000, description: "Alquiler depósito semanal prorrateado", incurredOn: new Date(), userId: admin.id },
+      { category: "TRANSPORT", amount: 4500, description: "Combustible y entregas zona norte", incurredOn: addDays(today, -3), userId: admin.id },
+      { category: "MARKETING", amount: 8000, description: "Volantes y pauta en redes", incurredOn: addDays(today, -10), userId: admin.id },
+      { category: "OPERATIONS", amount: 12000, description: "Alquiler de depósito", incurredOn: today, userId: admin.id },
+      { category: "PAYROLL", amount: 18000, description: "Semana de cobranza y ventas", incurredOn: addDays(today, -2), userId: admin.id },
     ],
   });
 
+  const sla = await applySla();
+
   await prisma.sequence.createMany({
     data: [
-      { name: "client", value: clients.length },
-      { name: "product", value: 4 },
-      { name: "credit", value: clients.length },
+      { name: "client", value: people.length },
+      { name: "product", value: products.length },
+      { name: "credit", value: creditSeq - 1 },
       { name: "payment", value: paymentSeq - 1 },
     ],
   });
 
+  const first = people[0];
   console.log("Seed HogarPlus listo");
   console.log("Usuario:  admin@hogarplus.do");
   console.log("Clave:    Admin123!");
-  console.log(`Portal:   ${names[0][2]} / ${names[0][3]}`);
+  console.log(`Portal:   ${withCedulaCheckDigit(first.cedulaBase)} / ${first.phone}`);
+  console.log(`SLA:      ${sla.markedOverdue} cuotas marcadas atrasadas`);
 }
 
 main()

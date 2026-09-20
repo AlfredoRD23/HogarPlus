@@ -6,7 +6,8 @@ import { Field, FormattedInput, Modal, fieldHint } from "../components/Form";
 import { PageHeader } from "../components/PageHeader";
 import { DataTable } from "../components/DataTable";
 import { Package, Plus } from "lucide-react";
-import { CATEGORY_LABELS, firstError, integerError, moneyError, parseInteger, parseMoney, productNameError, type CatalogTier, type ProductCategory } from "@hogarplus/shared";
+import { CATEGORY_LABELS, CATALOG_TIER_LABELS, CATALOG_TIERS, firstError, integerError, moneyError, parseInteger, parseMoney, productNameError, type CatalogTier, type ProductCategory } from "@hogarplus/shared";
+import { CatalogBadge } from "../components/Badges";
 
 type Product = {
   id: string;
@@ -24,6 +25,7 @@ export function ProductsPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [tier, setTier] = useState<CatalogTier | "ALL">("ALL");
   const q = useQuery({
     queryKey: ["products", search],
     queryFn: () => api<Product[]>(`/api/products?pageSize=100&search=${encodeURIComponent(search)}`),
@@ -38,19 +40,27 @@ export function ProductsPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const rows = q.data?.data ?? [];
+  const rows = (q.data?.data ?? []).filter((p) => (tier === "ALL" ? true : p.catalogTier === tier));
 
   return (
     <div className="space-y-4">
       <PageHeader
         title="Catálogo"
-        description="Tres áreas y tres niveles: A, B y C"
+        description="Productos por nivel: Bronce, Plata y Oro. El cliente solo ve los de su categoría."
         icon={Package}
         searchPlaceholder="Buscar producto o SKU"
         searchValue={search}
         onSearchChange={setSearch}
         actions={[{ label: "Nuevo producto", icon: Plus, onClick: () => setOpen(true) }]}
       />
+      <div className="flex flex-wrap gap-2">
+        <button className={tier === "ALL" ? "btn-primary" : "btn-ghost"} onClick={() => setTier("ALL")}>Todos</button>
+        {CATALOG_TIERS.map((item) => (
+          <button key={item} className={tier === item ? "btn-primary" : "btn-ghost"} onClick={() => setTier(item)}>
+            {CATALOG_TIER_LABELS[item]}
+          </button>
+        ))}
+      </div>
       <DataTable
         title="Productos"
         count={q.data?.meta?.total ?? rows.length}
@@ -59,17 +69,17 @@ export function ProductsPage() {
         emptyTitle="Catálogo vacío"
         emptyDescription="Agrega el primer producto al catálogo."
         emptyAction={<button className="btn-gold" onClick={() => setOpen(true)}>Nuevo producto</button>}
-        headers={["SKU", "Producto", "Área", "Catálogo", "Costo", "Precio", "Stock"]}
+        headers={["SKU", "Producto", "Área", "Nivel", "Costo", "Precio", "Stock"]}
       >
         {rows.map((p) => (
           <tr key={p.id} className="border-t">
-            <td className="px-4 py-3">{p.sku}</td>
-            <td className="px-4 py-3 font-semibold">{p.name}</td>
-            <td className="px-4 py-3">{CATEGORY_LABELS[p.category]}</td>
-            <td className="px-4 py-3">{p.catalogTier}</td>
-            <td className="px-4 py-3">{money(p.cost)}</td>
-            <td className="px-4 py-3">{money(p.price)}</td>
-            <td className="px-4 py-3">{p.stock}</td>
+            <td className="px-5 py-3.5">{p.sku}</td>
+            <td className="px-5 py-3.5 font-semibold">{p.name}</td>
+            <td className="px-5 py-3.5">{CATEGORY_LABELS[p.category]}</td>
+            <td className="px-5 py-3.5"><CatalogBadge tier={p.catalogTier} /></td>
+            <td className="px-5 py-3.5">{money(p.cost)}</td>
+            <td className="px-5 py-3.5">{money(p.price)}</td>
+            <td className="px-5 py-3.5">{p.stock}</td>
           </tr>
         ))}
       </DataTable>
@@ -134,11 +144,11 @@ function ProductForm({ onSave, onCancel }: { onSave: (b: Record<string, unknown>
           <option value="HOGAR">Hogar</option>
         </select>
       </Field>
-      <Field label="Catálogo">
+      <Field label="Nivel del catálogo">
         <select className="input" value={f.catalogTier} onChange={(e) => set("catalogTier", e.target.value)}>
-          <option value="A">A</option>
-          <option value="B">B</option>
-          <option value="C">C</option>
+          <option value="A">Bronce</option>
+          <option value="B">Plata</option>
+          <option value="C">Oro</option>
         </select>
       </Field>
       <Field label="Costo" hint={fieldHint("money")} error={errors.cost}>

@@ -46,10 +46,10 @@ export function UsersPage() {
       >
         {rows.map((u) => (
           <tr key={u.id} className="border-t">
-            <td className="px-4 py-3 font-semibold">{u.name}</td>
-            <td className="px-4 py-3">{u.email}</td>
-            <td className="px-4 py-3">{ROLE_LABELS[u.role]}</td>
-            <td className="px-4 py-3">{u.active ? "Activo" : "Inactivo"}</td>
+            <td className="px-5 py-3.5 font-semibold">{u.name}</td>
+            <td className="px-5 py-3.5">{u.email}</td>
+            <td className="px-5 py-3.5">{ROLE_LABELS[u.role]}</td>
+            <td className="px-5 py-3.5">{u.active ? "Activo" : "Inactivo"}</td>
           </tr>
         ))}
       </DataTable>

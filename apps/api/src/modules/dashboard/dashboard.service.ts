@@ -1,8 +1,10 @@
 import { prisma } from "../../lib/prisma";
+import { markOverdueInstallments } from "../../shared/sla";
 import { addDays, money, startOfDay } from "../../shared/utils";
 
 export class DashboardService {
   async summary() {
+    await markOverdueInstallments();
     const today = startOfDay();
     const weekAgo = addDays(today, -7);
 

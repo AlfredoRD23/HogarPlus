@@ -102,6 +102,28 @@ export function levelFromPoints(points: number): ClientLevel {
   return "INICIAL";
 }
 
+export const CATALOG_TIER_LABELS: Record<CatalogTier, string> = {
+  A: "Bronce",
+  B: "Plata",
+  C: "Oro",
+};
+
+export const POINTS_ACTION_LABELS: Record<PointsAction, string> = {
+  WEEKLY_ON_TIME: "Cuota a tiempo",
+  ADVANCE: "Adelanto",
+  AFFILIATION: "Afiliación",
+  REFERRAL: "Referido",
+  PRODUCT_COMPLETED: "Producto completado",
+  LATE_PAYMENT: "Pago atrasado",
+};
+
+export function progressToNextLevel(points: number): { next: ClientLevel | null; remaining: number } {
+  if (points < 100) return { next: "BRONCE", remaining: 100 - points };
+  if (points < 250) return { next: "PLATA", remaining: 250 - points };
+  if (points < 500) return { next: "ORO", remaining: 500 - points };
+  return { next: null, remaining: 0 };
+}
+
 export function catalogsForLevel(level: ClientLevel): CatalogTier[] {
   switch (level) {
     case "INICIAL":
@@ -117,6 +139,44 @@ export function catalogsForLevel(level: ClientLevel): CatalogTier[] {
       return _exhaustive;
     }
   }
+}
+
+export function catalogAccessLabel(level: ClientLevel): string {
+  return catalogsForLevel(level)
+    .map((tier) => CATALOG_TIER_LABELS[tier])
+    .join(", ");
+}
+
+export function catalogTierLabel(tier: CatalogTier | string): string {
+  return CATALOG_TIER_LABELS[tier as CatalogTier] ?? tier;
+}
+
+export function effectiveInstallmentStatus(
+  status: InstallmentStatus,
+  dueDate: string | Date,
+  now = new Date(),
+): InstallmentStatus {
+  if (status === "PAID" || status === "PREPAID") return status;
+  if (calendarDaysLate(dueDate, now) > 0) return "OVERDUE";
+  return status;
+}
+
+export function calendarDaysLate(dueDate: string | Date, now = new Date()): number {
+  const due = new Date(dueDate);
+  due.setHours(0, 0, 0, 0);
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+  return Math.max(0, Math.round((today.getTime() - due.getTime()) / 86_400_000));
+}
+
+export function slaDelayLabel(days: number): string {
+  if (days <= 0) return "Al día";
+  if (days === 1) return "1 día";
+  if (days < 7) return `${days} días`;
+  const weeks = Math.floor(days / 7);
+  const rest = days % 7;
+  if (rest === 0) return weeks === 1 ? "1 semana" : `${weeks} semanas`;
+  return `${weeks} sem. y ${rest} d.`;
 }
 
 export const ROLE_LABELS: Record<Role, string> = {
@@ -145,6 +205,18 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   CASH: "Efectivo",
   TRANSFER: "Transferencia",
   DEPOSIT: "Depósito",
+};
+
+export const PAYMENT_TYPE_LABELS: Record<PaymentType, string> = {
+  AFFILIATION: "Afiliación",
+  INSTALLMENT: "Cuota",
+  ADVANCE: "Adelanto",
+};
+
+export const INVENTORY_MOVEMENT_LABELS: Record<InventoryMovementType, string> = {
+  IN: "Entrada",
+  OUT: "Salida",
+  ADJUSTMENT: "Ajuste",
 };
 
 export type ApiSuccess<T> = {

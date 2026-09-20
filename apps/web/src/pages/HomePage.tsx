@@ -32,7 +32,7 @@ export function HomePage() {
         <Logo />
         <nav className="flex items-center gap-2 text-sm">
           <Link className="hidden rounded-xl px-3 py-2 text-gold-100 sm:inline" to="/portal">
-            Portal
+            Soy cliente
           </Link>
           {user ? (
             <Link className="btn-gold" to="/dashboard">
@@ -62,7 +62,7 @@ export function HomePage() {
                 {pwa.installed ? "Ya está instalada" : "Descargar app"}
               </button>
               <Link className="btn-ghost border-white/20 bg-transparent text-white hover:bg-navy-800" to="/portal">
-                Consultar mi cuenta
+                Soy cliente
               </Link>
             </div>
             {pwa.ios && !pwa.installed && (
@@ -82,7 +82,7 @@ export function HomePage() {
         <section className="grid gap-4 rounded-3xl bg-navy-900 p-6 sm:grid-cols-3 sm:p-8">
           <Step n="1" title="Afiliación" text="Un pago de entrada y las condiciones claras desde el primer día." />
           <Step n="2" title="Cuota semanal" text="El cliente ve su saldo, las fechas de pago y cada cobro aplicado." />
-          <Step n="3" title="Puntos y niveles" text="El buen pago abre los catálogos A, B y C." />
+          <Step n="3" title="Puntos y niveles" text="El buen pago sube de Inicial a Bronce, Plata y Oro, y abre más productos." />
         </section>
 
         <section className="mt-10 grid gap-4 md:grid-cols-2">
@@ -99,7 +99,7 @@ export function HomePage() {
           <div className="rounded-3xl border border-gold-500/30 bg-navy-900 p-6">
             <h2 className="font-display text-2xl text-gold-100">Para el cliente</h2>
             <p className="mt-2 text-sm text-slate-300">
-              Consulta saldo, cuotas, puntos y el catálogo de tu nivel con cédula y teléfono. Instálala en el teléfono para tenerla a mano.
+              Consulta tu nivel, puntos, productos de tu categoría y si las cuotas están pendientes o atrasadas.
             </p>
             <button type="button" className="btn-gold mt-5" onClick={() => void handleInstall()}>
               <Download size={18} /> Instalar HogarPlus

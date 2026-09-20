@@ -7,14 +7,14 @@ import { Field, FormattedInput, fieldHint } from "../components/Form";
 import { PageHeader } from "../components/PageHeader";
 import { DataTable } from "../components/DataTable";
 import { Wallet } from "lucide-react";
-import { PAYMENT_METHOD_LABELS, firstError, moneyError, parseMoney, referenceError, type PaymentMethod } from "@hogarplus/shared";
+import { PAYMENT_METHOD_LABELS, PAYMENT_TYPE_LABELS, firstError, moneyError, parseMoney, referenceError, type PaymentMethod, type PaymentType } from "@hogarplus/shared";
 
 type Payment = {
   id: string;
   code: string;
   amount: number;
   method: PaymentMethod;
-  type: string;
+  type: PaymentType;
   createdAt: string;
   voidedAt?: string | null;
   client: { firstName: string; lastName: string };
@@ -150,12 +150,12 @@ export function PaymentsPage() {
       >
         {rows.map((p) => (
           <tr key={p.id} className={`border-t ${p.voidedAt ? "opacity-40" : ""}`}>
-            <td className="px-4 py-3">{p.code}</td>
-            <td className="px-4 py-3">{p.client.firstName} {p.client.lastName}</td>
-            <td className="px-4 py-3 font-semibold">{money(p.amount)}</td>
-            <td className="px-4 py-3">{PAYMENT_METHOD_LABELS[p.method]}</td>
-            <td className="px-4 py-3">{p.type}</td>
-            <td className="px-4 py-3">{formatDate(p.createdAt)}</td>
+            <td className="px-5 py-3.5">{p.code}</td>
+            <td className="px-5 py-3.5">{p.client.firstName} {p.client.lastName}</td>
+            <td className="px-5 py-3.5 font-semibold">{money(p.amount)}</td>
+            <td className="px-5 py-3.5">{PAYMENT_METHOD_LABELS[p.method]}</td>
+            <td className="px-5 py-3.5">{PAYMENT_TYPE_LABELS[p.type]}</td>
+            <td className="px-5 py-3.5">{formatDate(p.createdAt)}</td>
           </tr>
         ))}
       </DataTable>

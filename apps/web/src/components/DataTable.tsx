@@ -44,11 +44,11 @@ export function DataTable({
         </div>
       ) : (
         <div className="overflow-auto">
-          <table className="w-full min-w-[640px] text-sm">
-            <thead className="bg-navy-900 text-left text-xs uppercase tracking-wide text-gold-300">
+          <table className="data-table">
+            <thead className="bg-navy-900 text-xs uppercase tracking-wide text-gold-300">
               <tr>
                 {headers.map((h) => (
-                  <th key={h} className="px-4 py-3">
+                  <th key={h}>
                     {h}
                   </th>
                 ))}

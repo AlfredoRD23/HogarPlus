@@ -109,9 +109,9 @@ export function DashboardPage() {
               <tbody>
                 {(d?.recentPayments ?? []).map((p) => (
                   <tr key={p.id} className="border-t">
-                    <td className="px-5 py-3">{p.client}</td>
-                    <td className="px-5 py-3 text-slate-500">{p.code}</td>
-                    <td className="px-5 py-3 text-right font-semibold">{money(p.amount)}</td>
+                    <td className="px-5 py-3.5">{p.client}</td>
+                    <td className="px-5 py-3.5 text-slate-500">{p.code}</td>
+                    <td className="px-5 py-3.5 text-right font-semibold">{money(p.amount)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -127,9 +127,9 @@ export function DashboardPage() {
               <tbody>
                 {(d?.lowStock ?? []).map((p) => (
                   <tr key={p.sku} className="border-t">
-                    <td className="px-5 py-3">{p.name}</td>
-                    <td className="px-5 py-3 text-slate-500">{p.sku}</td>
-                    <td className="px-5 py-3 text-right font-semibold">{p.stock}</td>
+                    <td className="px-5 py-3.5">{p.name}</td>
+                    <td className="px-5 py-3.5 text-slate-500">{p.sku}</td>
+                    <td className="px-5 py-3.5 text-right font-semibold">{p.stock}</td>
                   </tr>
                 ))}
               </tbody>

@@ -1,7 +1,8 @@
 import { Prisma } from "@prisma/client";
-import { catalogsForLevel, digitsOnly } from "@hogarplus/shared";
+import { catalogsForLevel, CATALOG_TIER_LABELS, digitsOnly, LEVEL_LABELS } from "@hogarplus/shared";
 import { prisma } from "../../lib/prisma";
 import { settingsService } from "../settings/settings.service";
+import { markOverdueInstallments } from "../../shared/sla";
 import { addWeeks, AppError, money, nextCode, pagination } from "../../shared/utils";
 import { writeAudit } from "../../middleware/auth";
 import type { z } from "zod";
@@ -28,6 +29,7 @@ const creditInclude = {
 
 export class CreditsService {
   async list(query: { page?: unknown; pageSize?: unknown; search?: string; status?: string; clientId?: string }) {
+    await markOverdueInstallments();
     const { skip, take, page, pageSize } = pagination(query);
     const search = query.search?.trim();
     const digits = search ? digitsOnly(search) : "";
@@ -61,6 +63,7 @@ export class CreditsService {
   }
 
   async get(id: string) {
+    await markOverdueInstallments();
     const credit = await prisma.credit.findUnique({
       where: { id },
       include: {
@@ -91,11 +94,11 @@ export class CreditsService {
       throw new AppError(
         400,
         "CATALOG_LOCKED",
-        `El nivel ${client.level} no tiene acceso al catálogo ${product.catalogTier}`,
+        `El nivel ${LEVEL_LABELS[client.level]} no puede tomar productos ${CATALOG_TIER_LABELS[product.catalogTier]}`,
       );
     }
     if (product.catalogTier === "C" && !client.catalogApproved) {
-      throw new AppError(400, "NEEDS_EVALUATION", "El catálogo C requiere evaluación de capacidad de pago");
+      throw new AppError(400, "NEEDS_EVALUATION", "Los productos Oro requieren aprobación de capacidad de pago");
     }
 
     const active = await prisma.credit.count({ where: { clientId: client.id, status: "ACTIVE" } });

@@ -31,11 +31,11 @@ export function PageHeader({
   return (
     <div className="page-header">
       <div className="flex min-w-0 items-center gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-600">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-navy-900 text-gold-300">
           <Icon size={20} />
         </div>
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold leading-tight text-slate-900 sm:text-3xl">{title}</h1>
+          <h1 className="text-2xl font-semibold leading-tight text-navy-900 sm:text-3xl">{title}</h1>
           <p className="mt-1 text-sm text-slate-500 sm:text-base">{description}</p>
         </div>
       </div>
@@ -86,7 +86,7 @@ export function EmptyState({
 }) {
   return (
     <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-6 py-12 text-center">
-      <p className="text-xl font-semibold text-slate-900">{title}</p>
+      <p className="text-xl font-semibold text-navy-900">{title}</p>
       <p className="mt-2 text-sm text-slate-500">{description}</p>
       {action && <div className="mt-4">{action}</div>}
     </div>

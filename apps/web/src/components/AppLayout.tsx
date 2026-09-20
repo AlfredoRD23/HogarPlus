@@ -76,7 +76,7 @@ export function AppLayout() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <header className="fixed inset-x-0 top-0 z-50 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 text-slate-800">
+      <header className="fixed inset-x-0 top-0 z-50 flex h-16 items-center justify-between border-b border-navy-800 bg-navy-900 px-4 text-white">
         <button className="flex items-center gap-2" onClick={() => navigate(user ? homePathFor(user.role) : "/login")}>
           <Logo compact />
           <span className="hidden text-lg font-semibold sm:inline">HogarPlus</span>
@@ -85,16 +85,16 @@ export function AppLayout() {
           <button className="btn-search" onClick={() => setPalette(true)}>
             <Search size={16} />
             <span className="hidden sm:inline">Buscar</span>
-            <kbd className="hidden rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500 lg:inline">Ctrl K</kbd>
+            <kbd className="hidden rounded bg-navy-800 px-1.5 py-0.5 text-[10px] text-gold-300 lg:inline">Ctrl K</kbd>
           </button>
           <NotificationCenter />
-          <div className="hidden items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 md:flex">
+          <div className="hidden items-center gap-2 rounded-xl bg-navy-800 px-3 py-1.5 md:flex">
             <div>
               <p className="text-sm font-semibold leading-none">{user?.name}</p>
-              <p className="text-[11px] text-slate-500">{user ? ROLE_LABELS[user.role] : ""}</p>
+              <p className="text-[11px] text-gold-300">{user ? ROLE_LABELS[user.role] : ""}</p>
             </div>
             <button
-              className="text-slate-500"
+              className="text-slate-300"
               onClick={() => {
                 logout();
                 navigate("/login");
@@ -107,7 +107,7 @@ export function AppLayout() {
       </header>
 
       <aside
-        className={`fixed bottom-0 left-0 top-16 z-40 hidden flex-col border-r border-slate-200 bg-white text-slate-700 lg:flex ${
+        className={`fixed bottom-0 left-0 top-16 z-40 hidden flex-col border-r border-navy-800 bg-navy-900 text-white lg:flex ${
           collapsed ? "w-20" : "w-72"
         }`}
       >
@@ -115,7 +115,7 @@ export function AppLayout() {
           {groups.map((group) => (
             <div key={group.id}>
               {!collapsed && (
-                <p className="mb-1 px-2 text-[11px] font-medium text-slate-400">{group.label}</p>
+                <p className="mb-1 px-2 text-[11px] font-medium text-gold-300">{group.label}</p>
               )}
               <div className={collapsed ? "space-y-0.5" : "space-y-1"}>
                 {group.items.map((item) => {
@@ -130,7 +130,7 @@ export function AppLayout() {
                         `flex items-center gap-3 rounded-xl px-3 text-sm font-medium transition ${
                           collapsed ? "justify-center px-2 py-2" : "py-2.5"
                         } ${
-                          isActive ? "bg-slate-100 text-slate-900" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                          isActive ? "bg-gold-100 text-navy-900" : "text-slate-200 hover:bg-navy-800"
                         }`
                       }
                     >
@@ -144,7 +144,7 @@ export function AppLayout() {
           ))}
         </nav>
         <button
-          className="m-3 flex items-center justify-center rounded-xl border border-slate-200 py-2 text-slate-500"
+          className="m-3 flex items-center justify-center rounded-xl border border-navy-700 py-2 text-gold-300"
           onClick={() => setCollapsed((v) => !v)}
         >
           {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}

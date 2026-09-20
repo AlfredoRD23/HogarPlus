@@ -18,20 +18,20 @@ export function LoginPage() {
 
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
-      <section className="relative hidden overflow-hidden border-r border-slate-200 bg-slate-50 p-10 text-slate-800 lg:flex lg:flex-col lg:justify-between">
+      <section className="relative hidden overflow-hidden bg-navy-900 p-10 text-white lg:flex lg:flex-col lg:justify-between">
         <Logo />
         <div>
-          <p className="text-sm text-slate-500">Productos de calidad · Pago semanal · Más beneficios</p>
-          <h2 className="mt-4 text-4xl font-semibold leading-tight text-slate-900">Más que un catálogo, una oportunidad para tu hogar.</h2>
+          <p className="text-gold-300">Productos de calidad · Pago semanal · Más beneficios</p>
+          <h2 className="mt-4 text-4xl font-semibold leading-tight">Más que un catálogo, una oportunidad para tu hogar.</h2>
           <div className="mt-8 grid max-w-md grid-cols-3 gap-3 text-center text-sm">
             {["Salud", "Belleza", "Hogar"].map((item) => (
-              <div key={item} className="rounded-2xl border border-slate-200 bg-white py-4 text-slate-600">
+              <div key={item} className="rounded-2xl border border-gold-500/25 bg-navy-800 py-4">
                 {item}
               </div>
             ))}
           </div>
         </div>
-        <p className="text-sm text-slate-500">Cartera · Cobranza · Inventario</p>
+        <p className="text-sm text-slate-300">Cartera · Cobranza · Inventario</p>
       </section>
       <section className="flex items-center justify-center p-6">
         <form
@@ -59,9 +59,9 @@ export function LoginPage() {
           }}
         >
           <div className="lg:hidden">
-            <Logo />
+            <Logo light />
           </div>
-          <h1 className="mt-4 text-3xl font-semibold text-slate-900">Iniciar sesión</h1>
+          <h1 className="mt-4 text-3xl font-semibold text-navy-900">Iniciar sesión</h1>
           <p className="mt-2 text-sm text-slate-500">Ingresa con tu correo y contraseña.</p>
           <div className="mt-6">
             <Field label="Correo" hint={fieldHint("email")} required>

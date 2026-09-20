@@ -2,12 +2,12 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { api, formatDate, money } from "../lib/api";
+import { api, formatDate, mediaUrl, money } from "../lib/api";
 import { creditsFromDebtError, debtFacts, debtNotes, isDebtError } from "../lib/debt";
-import { Field, FormattedInput } from "../components/Form";
+import { Field, FormattedInput, FormattedTextarea, Modal } from "../components/Form";
 import { PageHeader } from "../components/PageHeader";
 import { DataTable } from "../components/DataTable";
-import { ArrowLeft, FileText, Pencil, Plus } from "lucide-react";
+import { ArrowLeft, FileText, Package, Pencil, Plus } from "lucide-react";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { InfoModal } from "../components/InfoModal";
 import { RowActions } from "../components/RowActions";
@@ -48,13 +48,24 @@ type Credit = {
   downPayment: number;
   frequency: PaymentFrequency;
   startDate: string;
+  notes?: string | null;
   client: { firstName: string; lastName: string; code: string };
-  product: { name: string };
+  product: { name: string; imageUrl?: string | null };
+  installments?: Array<{ paidAmount: number }>;
 };
+
+function canEditCreditPlan(credit: { installments?: Array<{ paidAmount: number }> }) {
+  return (credit.installments ?? []).every((item) => Number(item.paidAmount) === 0);
+}
+
+function isoDay(value: string) {
+  return value.slice(0, 10);
+}
 
 export function CreditsPage() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
+  const [editing, setEditing] = useState<Credit | null>(null);
   const [confirm, setConfirm] = useState<{ credit: Credit; activate: boolean } | null>(null);
   const q = useQuery({
     queryKey: ["credits", search],
@@ -67,6 +78,16 @@ export function CreditsPage() {
       toast.success(confirm?.activate ? "Crédito reactivado" : "Crédito desactivado");
       qc.invalidateQueries({ queryKey: ["credits"] });
       setConfirm(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const update = useMutation({
+    mutationFn: ({ id, body }: { id: string; body: Record<string, unknown> }) =>
+      api(`/api/credits/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      toast.success("Crédito actualizado");
+      qc.invalidateQueries({ queryKey: ["credits"] });
+      setEditing(null);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -108,6 +129,7 @@ export function CreditsPage() {
             <td className="px-5 py-3.5">
               <RowActions
                 active={c.status === "ACTIVE"}
+                onEdit={c.status === "ACTIVE" ? () => setEditing(c) : undefined}
                 onDeactivate={c.status === "ACTIVE" ? () => setConfirm({ credit: c, activate: false }) : undefined}
                 onActivate={c.status === "CANCELLED" ? () => setConfirm({ credit: c, activate: true }) : undefined}
               />
@@ -115,6 +137,17 @@ export function CreditsPage() {
           </tr>
         ))}
       </DataTable>
+      {editing && (
+        <Modal title={`Editar ${editing.code}`} onClose={() => setEditing(null)} size="lg">
+          <CreditEditForm
+            credit={editing}
+            locked={!canEditCreditPlan(editing)}
+            saving={update.isPending}
+            onCancel={() => setEditing(null)}
+            onSave={(body) => update.mutate({ id: editing.id, body })}
+          />
+        </Modal>
+      )}
       {confirm && (
         <ConfirmModal
           title={confirm.activate ? "Reactivar crédito" : "Desactivar crédito"}
@@ -197,14 +230,14 @@ function CreditPlanFields({
 
   return (
     <div className={`grid gap-3 ${locked ? "pointer-events-none opacity-50" : ""}`}>
-      <Field label="Frecuencia de cuota">
+      <Field label="Frecuencia de cuota" required>
         <select className="input" value={frequency} onChange={(e) => setFrequency(e.target.value as PaymentFrequency)}>
           {PAYMENT_FREQUENCIES.map((item) => (
             <option key={item} value={item}>{PAYMENT_FREQUENCY_LABELS[item]}</option>
           ))}
         </select>
       </Field>
-      <Field label="Pago inicial" hint="Se resta del precio y el resto se parte en cuotas" error={errors.downPayment}>
+      <Field label="Pago inicial" hint="Se resta del precio y el resto se parte en cuotas" error={errors.downPayment} required>
         <FormattedInput
           kind="money"
           value={downPayment}
@@ -213,7 +246,7 @@ function CreditPlanFields({
         />
       </Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label={`Cantidad (${PAYMENT_FREQUENCY_UNIT[frequency]})`} hint="Cambia esto y se calcula la cuota" error={errors.weeks}>
+        <Field label={`Cantidad (${PAYMENT_FREQUENCY_UNIT[frequency]})`} hint="Cambia esto y se calcula la cuota" error={errors.weeks} required>
           <FormattedInput
             kind="integer"
             required
@@ -222,7 +255,7 @@ function CreditPlanFields({
             onValue={(value) => applyFromWeeks(value)}
           />
         </Field>
-        <Field label="Monto de cada cuota" hint="Cambia esto y se calcula cuántas cuotas van" error={errors.weeklyQuota}>
+        <Field label="Monto de cada cuota" hint="Cambia esto y se calcula cuántas cuotas van" error={errors.weeklyQuota} required>
           <FormattedInput
             kind="money"
             required
@@ -248,6 +281,103 @@ function CreditPlanFields({
         </p>
       )}
     </div>
+  );
+}
+
+function CreditEditForm({
+  credit,
+  locked,
+  saving,
+  onCancel,
+  onSave,
+}: {
+  credit: {
+    price: number;
+    frequency: PaymentFrequency;
+    downPayment: number;
+    weeklyQuota: number;
+    weeks: number;
+    startDate: string;
+    notes?: string | null;
+    product: { name: string };
+  };
+  locked: boolean;
+  saving?: boolean;
+  onCancel: () => void;
+  onSave: (body: Record<string, unknown>) => void;
+}) {
+  const [frequency, setFrequency] = useState<PaymentFrequency>(credit.frequency ?? "WEEKLY");
+  const [downPayment, setDownPayment] = useState(String(credit.downPayment ?? 0));
+  const [weeklyQuota, setWeeklyQuota] = useState(String(credit.weeklyQuota));
+  const [weeks, setWeeks] = useState(String(credit.weeks));
+  const [startDate, setStartDate] = useState(isoDay(credit.startDate));
+  const [notes, setNotes] = useState(credit.notes ?? "");
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  return (
+    <form
+      className="grid gap-3"
+      noValidate
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (locked) {
+          onSave({ notes: notes.trim() || undefined });
+          return;
+        }
+        const next = {
+          weeklyQuota: moneyError(weeklyQuota, { label: "cuota" }) ?? "",
+          weeks: integerError(weeks, { min: 1, max: 104, label: "cantidad de cuotas" }) ?? "",
+          downPayment: moneyError(downPayment, { allowZero: true, label: "pago inicial" }) ?? "",
+          startDate: /^\d{4}-\d{2}-\d{2}$/.test(startDate) ? "" : "La fecha no es válida",
+        };
+        setErrors(next);
+        const message = firstError(Object.values(next));
+        if (message) {
+          toast.error(message);
+          return;
+        }
+        onSave({
+          weeklyQuota: parseMoney(weeklyQuota),
+          weeks: parseInteger(weeks),
+          downPayment: parseMoney(downPayment) || 0,
+          frequency,
+          startDate,
+          notes: notes.trim() || undefined,
+        });
+      }}
+    >
+      <p className="text-sm text-slate-500">Producto: <b>{credit.product.name}</b> · {money(credit.price)}</p>
+      {locked ? (
+        <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm">
+          Ya hay cuotas cobradas. El plan se queda; puedes actualizar la nota.
+        </p>
+      ) : (
+        <>
+          <CreditPlanFields
+            price={credit.price}
+            frequency={frequency}
+            setFrequency={setFrequency}
+            downPayment={downPayment}
+            setDownPayment={setDownPayment}
+            weeklyQuota={weeklyQuota}
+            setWeeklyQuota={setWeeklyQuota}
+            weeks={weeks}
+            setWeeks={setWeeks}
+            errors={errors}
+          />
+          <Field label="Fecha de inicio" required>
+            <FormattedInput kind="date" required value={startDate} error={Boolean(errors.startDate)} onValue={setStartDate} />
+          </Field>
+        </>
+      )}
+      <Field label="Nota">
+        <FormattedTextarea value={notes} onValue={setNotes} placeholder="Acuerdo, horario de cobro, etc." />
+      </Field>
+      <div className="flex justify-end gap-2">
+        <button type="button" className="btn-ghost" onClick={onCancel}>Cancelar</button>
+        <button className="btn-primary" disabled={saving}>{saving ? "Guardando..." : "Guardar cambios"}</button>
+      </div>
+    </form>
   );
 }
 
@@ -277,7 +407,7 @@ export function NewCreditPage() {
   const products = useQuery({
     queryKey: ["products"],
     queryFn: () =>
-      api<Array<{ id: string; name: string; price: number; catalogTier: CatalogTier }>>("/api/products?pageSize=100"),
+      api<Array<{ id: string; name: string; price: number; catalogTier: CatalogTier; imageUrl?: string | null; description?: string | null; status?: string }>>("/api/products?pageSize=100"),
   });
   const settings = useQuery({
     queryKey: ["settings"],
@@ -342,7 +472,7 @@ export function NewCreditPage() {
   }, [clientId, openDebt?.id]);
   const allowedTiers = selectedClient ? catalogsForLevel(selectedClient.level) : [];
   const visibleProducts = (products.data?.data ?? []).filter((p) =>
-    selectedClient ? allowedTiers.includes(p.catalogTier) : true,
+    p.status !== "INACTIVE" && (selectedClient ? allowedTiers.includes(p.catalogTier) : true),
   );
   const product = (products.data?.data ?? []).find((p) => p.id === productId);
 
@@ -393,7 +523,7 @@ export function NewCreditPage() {
   });
 
   return (
-    <div className="panel max-w-2xl p-6">
+    <div className="space-y-4">
       <PageHeader
         title="Nuevo crédito / entrega"
         description="Elige frecuencia, pago inicial y las cuotas se calculan solas"
@@ -401,16 +531,16 @@ export function NewCreditPage() {
         actions={[{ label: "Volver", icon: ArrowLeft, variant: "ghost", onClick: () => navigate("/creditos") }]}
       />
       <form
-        className="mt-4 grid gap-3"
+        className="panel grid max-w-2xl gap-3 p-6"
         noValidate
         onSubmit={(e) => {
           e.preventDefault();
           const next = {
             clientId: clientId ? "" : "Selecciona un cliente",
             productId: productId ? "" : "Selecciona un producto",
-            weeklyQuota: moneyError(weeklyQuota, { label: "cuota" }) ?? "",
-            weeks: integerError(weeks, { min: 1, max: 104, label: "cantidad de cuotas" }) ?? "",
-            downPayment: moneyError(downPayment, { allowZero: true, label: "pago inicial" }) ?? "",
+            weeklyQuota: productId ? moneyError(weeklyQuota, { label: "cuota" }) ?? "" : "",
+            weeks: productId ? integerError(weeks, { min: 1, max: 104, label: "cantidad de cuotas" }) ?? "" : "",
+            downPayment: productId ? moneyError(downPayment, { allowZero: true, label: "pago inicial" }) ?? "" : "",
           };
           setErrors(next);
           const message = firstError(Object.values(next));
@@ -425,7 +555,7 @@ export function NewCreditPage() {
           create.mutate();
         }}
       >
-        <Field label="Cliente" error={errors.clientId}>
+        <Field label="Cliente" error={errors.clientId} required>
           <select className={`input ${errors.clientId ? "input-error" : ""}`} required value={clientId} onChange={(e) => setClientId(e.target.value)}>
             <option value="">Seleccione</option>
             {(clients.data?.data ?? []).map((c) => (
@@ -435,13 +565,46 @@ export function NewCreditPage() {
             ))}
           </select>
         </Field>
-        <Field label="Producto" error={errors.productId}>
-          <select className={`input ${errors.productId ? "input-error" : ""}`} required value={productId} onChange={(e) => setProductId(e.target.value)} disabled={!clientId}>
-            <option value="">{clientId ? "Seleccione" : "Primero elige un cliente"}</option>
-            {visibleProducts.map((p) => (
-              <option key={p.id} value={p.id}>{p.name} · {CATALOG_TIER_LABELS[p.catalogTier]} · {money(p.price)}</option>
-            ))}
-          </select>
+        <Field label="Producto" error={errors.productId} required>
+          {!clientId ? (
+            <p className="rounded-xl border border-dashed border-slate-200 p-3 text-sm text-slate-500">Primero elige un cliente</p>
+          ) : openDebt ? (
+            <p className="rounded-xl border border-dashed border-slate-200 p-3 text-sm text-slate-500">Saldar el crédito anterior para elegir otro producto.</p>
+          ) : visibleProducts.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-slate-200 p-3 text-sm text-slate-500">No hay productos de su categoría.</p>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {visibleProducts.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => {
+                    setProductId(p.id);
+                    setErrors((current) => ({ ...current, productId: "" }));
+                  }}
+                  className={`overflow-hidden rounded-2xl border text-left transition ${
+                    productId === p.id ? "border-navy-900 ring-2 ring-gold-400" : errors.productId ? "border-rose-400" : "border-slate-200 hover:border-navy-300"
+                  }`}
+                >
+                  <div className="h-28 bg-slate-100">
+                    {p.imageUrl ? (
+                      <img src={mediaUrl(p.imageUrl)} alt={p.name} className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-slate-400">
+                        <Package size={22} />
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{CATALOG_TIER_LABELS[p.catalogTier]}</p>
+                    <p className="font-semibold leading-tight">{p.name}</p>
+                    {p.description ? <p className="mt-1 line-clamp-2 text-xs text-slate-500">{p.description}</p> : null}
+                    <p className="mt-1 text-sm font-bold">{money(p.price)}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </Field>
         {selectedClient && !openDebt && (
           <p className="text-sm text-slate-500">
@@ -453,19 +616,24 @@ export function NewCreditPage() {
             <b>Tiene saldo pendiente</b> en {openDebt.productName} ({money(openDebt.balance)}). Hay que saldarlo antes de entregar otro producto.
           </button>
         )}
-        <CreditPlanFields
-          price={product?.price ?? 0}
-          frequency={frequency}
-          setFrequency={setFrequency}
-          downPayment={downPayment}
-          setDownPayment={setDownPayment}
-          weeklyQuota={weeklyQuota}
-          setWeeklyQuota={setWeeklyQuota}
-          weeks={weeks}
-          setWeeks={setWeeks}
-          errors={errors}
-          locked={!product || Boolean(openDebt)}
-        />
+        {product && !openDebt ? (
+          <CreditPlanFields
+            price={product.price}
+            frequency={frequency}
+            setFrequency={setFrequency}
+            downPayment={downPayment}
+            setDownPayment={setDownPayment}
+            weeklyQuota={weeklyQuota}
+            setWeeklyQuota={setWeeklyQuota}
+            weeks={weeks}
+            setWeeks={setWeeks}
+            errors={errors}
+          />
+        ) : !openDebt ? (
+          <p className="rounded-2xl border border-dashed border-slate-200 p-4 text-sm text-slate-500">
+            Elige cliente y producto para ver el precio, el inicial y las cuotas.
+          </p>
+        ) : null}
         <button className="btn-primary" disabled={Boolean(openDebt) || !productId}>
           {openDebt ? "Saldar el anterior primero" : productId ? "Crear y entregar" : "Elige un producto para calcular"}
         </button>
@@ -506,38 +674,18 @@ export function CreditDetailPage() {
         frequency: PaymentFrequency;
         startDate: string;
         status: CreditStatus;
+        notes?: string | null;
         client: { firstName: string; lastName: string; id: string };
-        product: { name: string };
+        product: { name: string; imageUrl?: string | null };
         installments: Array<{ id: string; number: number; dueDate: string; amount: number; paidAmount: number; status: InstallmentStatus }>;
         payments: Array<{ id: string; type: string; amount: number }>;
       }>(`/api/credits/${id}`),
   });
   const c = q.data?.data;
-  const [frequency, setFrequency] = useState<PaymentFrequency>("WEEKLY");
-  const [downPayment, setDownPayment] = useState("0");
-  const [weeklyQuota, setWeeklyQuota] = useState("");
-  const [weeks, setWeeks] = useState("");
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    if (!c) return;
-    setFrequency(c.frequency ?? "WEEKLY");
-    setDownPayment(String(c.downPayment ?? 0));
-    setWeeklyQuota(String(c.weeklyQuota));
-    setWeeks(String(c.weeks));
-  }, [c]);
 
   const update = useMutation({
-    mutationFn: () =>
-      api(`/api/credits/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify({
-          weeklyQuota: parseMoney(weeklyQuota),
-          weeks: parseInteger(weeks),
-          downPayment: parseMoney(downPayment) || 0,
-          frequency,
-        }),
-      }),
+    mutationFn: (body: Record<string, unknown>) =>
+      api(`/api/credits/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
     onSuccess: () => {
       toast.success("Crédito actualizado");
       qc.invalidateQueries({ queryKey: ["credit", id] });
@@ -564,13 +712,24 @@ export function CreditDetailPage() {
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch">
+        {c.product.imageUrl ? (
+          <img
+            src={mediaUrl(c.product.imageUrl)}
+            alt={c.product.name}
+            className="h-40 w-full rounded-2xl object-cover lg:h-auto lg:w-44"
+          />
+        ) : null}
+        <div className="min-w-0 flex-1">
       <PageHeader
         title={c.product.name}
         description={`${c.code} · ${c.client.firstName} ${c.client.lastName}`}
         icon={FileText}
         actions={[
           { label: "Volver", icon: ArrowLeft, variant: "ghost", onClick: () => navigate("/creditos") },
-          ...(canEditPlan ? [{ label: "Editar plan", icon: Pencil, variant: "ghost" as const, onClick: () => setEditing((v) => !v) }] : []),
+          ...(c.status === "ACTIVE"
+            ? [{ label: "Editar", icon: Pencil, variant: "ghost" as const, onClick: () => setEditing(true) }]
+            : []),
           {
             label: c.status === "ACTIVE" ? "Desactivar" : "Reactivar",
             variant: "ghost" as const,
@@ -579,6 +738,8 @@ export function CreditDetailPage() {
           { label: "Registrar pago", href: `/pagos?creditId=${id}&clientId=${c.client.id}` },
         ]}
       />
+        </div>
+      </div>
       <div className="grid gap-4 md:grid-cols-4">
         <div className="panel p-5">
           <p className="text-xs uppercase tracking-widest text-slate-500">Empezó</p>
@@ -603,43 +764,25 @@ export function CreditDetailPage() {
           </p>
         </div>
       </div>
-      {editing && canEditPlan && (
-        <form
-          className="panel grid max-w-2xl gap-3 p-5"
-          onSubmit={(e) => {
-            e.preventDefault();
-            const next = {
-              weeklyQuota: moneyError(weeklyQuota, { label: "cuota" }) ?? "",
-              weeks: integerError(weeks, { min: 1, max: 104, label: "cantidad de cuotas" }) ?? "",
-              downPayment: moneyError(downPayment, { allowZero: true, label: "pago inicial" }) ?? "",
-            };
-            setErrors(next);
-            const message = firstError(Object.values(next));
-            if (message) {
-              toast.error(message);
-              return;
-            }
-            update.mutate();
-          }}
-        >
-          <h3 className="font-display text-xl">Corregir plan</h3>
-          <CreditPlanFields
-            price={c.price}
-            frequency={frequency}
-            setFrequency={setFrequency}
-            downPayment={downPayment}
-            setDownPayment={setDownPayment}
-            weeklyQuota={weeklyQuota}
-            setWeeklyQuota={setWeeklyQuota}
-            weeks={weeks}
-            setWeeks={setWeeks}
-            errors={errors}
+      {editing && (
+        <Modal title={`Editar ${c.code}`} onClose={() => setEditing(false)} size="lg">
+          <CreditEditForm
+            credit={{
+              price: c.price,
+              frequency: c.frequency ?? "WEEKLY",
+              downPayment: c.downPayment ?? 0,
+              weeklyQuota: c.weeklyQuota,
+              weeks: c.weeks,
+              startDate: c.startDate,
+              notes: c.notes,
+              product: c.product,
+            }}
+            locked={!canEditPlan}
+            saving={update.isPending}
+            onCancel={() => setEditing(false)}
+            onSave={(body) => update.mutate(body)}
           />
-          <div className="flex gap-2">
-            <button type="button" className="btn-ghost" onClick={() => setEditing(false)}>Cancelar</button>
-            <button className="btn-primary">Guardar plan</button>
-          </div>
-        </form>
+        </Modal>
       )}
       <div className="panel overflow-auto">
         <table className="w-full text-sm">

@@ -9,6 +9,8 @@ import { assertNoOutstandingDebt, outstandingCredits } from "../../shared/debt";
 import { notifyStaff } from "../notifications/notifications.service";
 import { createReferralSchema } from "../referrals/referrals.schema";
 import { referralsService } from "../referrals/referrals.service";
+import { paymentClaimsService } from "../payment-claims/payment-claims.service";
+import { asUploadError, claimImageUpload } from "../../lib/upload";
 
 export const portalRouter = Router();
 
@@ -53,8 +55,12 @@ portalRouter.post(
       },
       include: {
         credits: {
-          include: { product: true, installments: { orderBy: { number: "asc" } } },
+          include: { product: { select: { name: true, imageUrl: true, images: { take: 1, orderBy: { createdAt: "asc" }, select: { path: true } } } }, installments: { orderBy: { number: "asc" } } },
           orderBy: { createdAt: "desc" },
+        },
+        paymentClaims: {
+          where: { status: "PENDING" },
+          select: { id: true, creditId: true, amount: true, method: true, createdAt: true },
         },
         payments: { where: { voidedAt: null }, orderBy: { createdAt: "desc" }, take: 12 },
         pointsLedger: { orderBy: { createdAt: "desc" }, take: 12 },
@@ -73,7 +79,16 @@ portalRouter.post(
     const products = await prisma.product.findMany({
       where: { status: "ACTIVE" },
       orderBy: [{ catalogTier: "asc" }, { name: "asc" }],
-      select: { id: true, name: true, category: true, catalogTier: true, price: true, description: true },
+      select: {
+        id: true,
+        name: true,
+        category: true,
+        catalogTier: true,
+        price: true,
+        description: true,
+        imageUrl: true,
+        images: { take: 1, orderBy: { createdAt: "asc" }, select: { path: true } },
+      },
     });
     const pendingIds = new Set(client.productRequests.map((item) => item.productId));
     const debt = await outstandingCredits(client.id);
@@ -81,7 +96,13 @@ portalRouter.post(
     const catalog = products.map((product) => {
       const access = productRequestAccess(client.level, product.catalogTier, client.catalogApproved, hasDebt);
       return {
-        ...product,
+        id: product.id,
+        name: product.name,
+        category: product.category,
+        catalogTier: product.catalogTier,
+        price: product.price,
+        description: product.description,
+        imageUrl: product.imageUrl || product.images[0]?.path || null,
         canRequest: access.canRequest,
         lockReason: access.lockReason,
         requested: pendingIds.has(product.id),
@@ -99,7 +120,14 @@ portalRouter.post(
           affiliationPaid: client.affiliationPaid,
           catalogApproved: client.catalogApproved,
         },
-        credits: client.credits,
+        credits: client.credits.map((credit) => ({
+          ...credit,
+          product: {
+            name: credit.product.name,
+            imageUrl: credit.product.imageUrl || credit.product.images[0]?.path || null,
+          },
+        })),
+        paymentClaims: client.paymentClaims,
         payments: client.payments,
         pointsLedger: client.pointsLedger,
         catalog,
@@ -172,6 +200,43 @@ portalRouter.post(
       roles: ["DIRECCION", "COBRANZA", "ADMINISTRACION"],
     });
     res.status(201).json({ success: true, data: { ok: true } });
+  }),
+);
+
+portalRouter.post(
+  "/pay",
+  (req, res, next) => {
+    claimImageUpload.single("receipt")(req, res, (error) => {
+      if (error) {
+        next(asUploadError(error));
+        return;
+      }
+      next();
+    });
+  },
+  asyncHandler(async (req, res) => {
+    const identity = identitySchema.parse({
+      documentId: req.body.documentId,
+      phone: req.body.phone,
+    });
+    const payload = z
+      .object({
+        creditId: z.string().min(1, "Selecciona el producto a pagar"),
+        amount: z.coerce.number().positive("El monto debe ser mayor que 0"),
+        method: z.enum(["CASH", "TRANSFER"]),
+        notes: z.string().max(400).optional(),
+      })
+      .parse(req.body);
+    const client = await findPortalClient(identity.documentId, identity.phone);
+    const data = await paymentClaimsService.createFromPortal({
+      clientId: client.id,
+      creditId: payload.creditId,
+      amount: payload.amount,
+      method: payload.method,
+      notes: payload.notes,
+      file: req.file,
+    });
+    res.status(201).json({ success: true, data: { id: data.id, status: data.status } });
   }),
 );
 

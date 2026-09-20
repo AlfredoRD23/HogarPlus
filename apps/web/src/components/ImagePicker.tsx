@@ -4,6 +4,7 @@ import { mediaUrl } from "../lib/api";
 
 export const IMAGE_UPLOAD_ACCEPT = ".jpg,.jpeg,.png,.webp,.gif,.heic,.heif";
 export const MAX_CLIENT_IMAGES = 8;
+export const MAX_PRODUCT_IMAGES = 6;
 
 export type SavedImage = { id: string; path: string };
 
@@ -13,21 +14,27 @@ export function ImagePicker({
   onAddFiles,
   onRemoveSaved,
   onRemovePending,
+  label = "Fotos del cliente",
+  hint,
+  max = MAX_CLIENT_IMAGES,
 }: {
   saved?: SavedImage[];
   pending: File[];
   onAddFiles: (files: File[]) => void;
   onRemoveSaved?: (id: string) => void;
   onRemovePending: (index: number) => void;
+  label?: string;
+  hint?: string;
+  max?: number;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const total = saved.length + pending.length;
-  const remaining = Math.max(0, MAX_CLIENT_IMAGES - total);
+  const remaining = Math.max(0, max - total);
 
   return (
     <div>
-      <p className="label">Fotos del cliente</p>
-      <p className="mb-2 text-xs text-slate-400">Cédula, casa o el cliente. Máximo {MAX_CLIENT_IMAGES} imágenes.</p>
+      <p className="label">{label}</p>
+      <p className="mb-2 text-xs text-slate-400">{hint ?? `Cédula, casa o el cliente. Máximo ${max} imágenes.`}</p>
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
         {saved.map((image) => (
           <div key={image.id} className="relative overflow-hidden rounded-xl bg-slate-100">

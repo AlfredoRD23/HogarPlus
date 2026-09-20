@@ -96,13 +96,13 @@ export function AppLayout() {
           collapsed ? "w-20" : "w-72"
         }`}
       >
-        <nav className="flex-1 space-y-4 overflow-auto p-3">
+        <nav className={`sidebar-nav flex-1 overflow-y-auto overscroll-contain ${collapsed ? "space-y-1 p-2" : "space-y-4 p-3"}`}>
           {groups.map((group) => (
             <div key={group.id}>
               {!collapsed && (
                 <p className="mb-1 px-2 text-[11px] font-bold uppercase tracking-wider text-gold-300">{group.label}</p>
               )}
-              <div className="space-y-1">
+              <div className={collapsed ? "space-y-0.5" : "space-y-1"}>
                 {group.items.map((item) => {
                   const Icon = item.icon;
                   return (
@@ -112,9 +112,11 @@ export function AppLayout() {
                       end={item.end}
                       title={item.label}
                       className={({ isActive }) =>
-                        `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+                        `flex items-center gap-3 rounded-xl px-3 text-sm font-medium transition ${
+                          collapsed ? "justify-center px-2 py-2" : "py-2.5"
+                        } ${
                           isActive ? "bg-gold-500 text-navy-950" : "text-slate-200 hover:bg-navy-800"
-                        } ${collapsed ? "justify-center px-2" : ""}`
+                        }`
                       }
                     >
                       <Icon size={18} />

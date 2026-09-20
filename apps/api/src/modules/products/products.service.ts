@@ -1,9 +1,15 @@
 import { Prisma } from "@prisma/client";
+import fs from "fs";
 import { prisma } from "../../lib/prisma";
 import { AppError, nextCode, pagination } from "../../shared/utils";
 import { writeAudit } from "../../middleware/auth";
+import { absoluteUploadPath, MAX_PRODUCT_IMAGES, publicUploadPathFor } from "../../lib/upload";
 import type { z } from "zod";
 import type { createProductSchema, updateProductSchema } from "./products.schema";
+
+const productImages = {
+  images: { orderBy: { createdAt: "asc" as const }, select: { id: true, path: true, originalName: true } },
+};
 
 export class ProductsService {
   async list(query: {
@@ -30,7 +36,7 @@ export class ProductsService {
         skip,
         take,
         orderBy: { name: "asc" },
-        include: { _count: { select: { credits: true } } },
+        include: { _count: { select: { credits: true } }, ...productImages },
       }),
       prisma.product.count({ where }),
     ]);
@@ -41,7 +47,7 @@ export class ProductsService {
   async get(id: string) {
     const product = await prisma.product.findUnique({
       where: { id },
-      include: { inventoryMovements: { orderBy: { createdAt: "desc" }, take: 30 } },
+      include: { inventoryMovements: { orderBy: { createdAt: "desc" }, take: 30 }, ...productImages },
     });
     if (!product) throw new AppError(404, "NOT_FOUND", "Producto no encontrado");
     return product;
@@ -104,7 +110,52 @@ export class ProductsService {
     });
 
     await writeAudit({ userId: actorId, action: "UPDATE", entity: "Product", entityId: id, before, after: product, ip });
-    return product;
+    return prisma.product.findUniqueOrThrow({ where: { id }, include: { _count: { select: { credits: true } }, ...productImages } });
+  }
+
+  async addImages(productId: string, files: Express.Multer.File[]) {
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      include: { _count: { select: { images: true } } },
+    });
+    if (!product) throw new AppError(404, "NOT_FOUND", "Producto no encontrado");
+    if (product._count.images + files.length > MAX_PRODUCT_IMAGES) {
+      throw new AppError(400, "TOO_MANY_FILES", `Este producto ya tiene el máximo de ${MAX_PRODUCT_IMAGES} fotos`);
+    }
+
+    await prisma.productImage.createMany({
+      data: files.map((file) => ({
+        productId,
+        path: publicUploadPathFor("products", productId, file.filename),
+        originalName: file.originalname,
+      })),
+    });
+    await this.syncCover(productId);
+    return prisma.productImage.findMany({
+      where: { productId },
+      orderBy: { createdAt: "asc" },
+    });
+  }
+
+  async removeImage(productId: string, imageId: string) {
+    const image = await prisma.productImage.findFirst({ where: { id: imageId, productId } });
+    if (!image) throw new AppError(404, "NOT_FOUND", "Imagen no encontrada");
+    const diskPath = absoluteUploadPath(image.path);
+    if (fs.existsSync(diskPath)) fs.unlinkSync(diskPath);
+    await prisma.productImage.delete({ where: { id: imageId } });
+    await this.syncCover(productId);
+    return { id: imageId };
+  }
+
+  private async syncCover(productId: string) {
+    const first = await prisma.productImage.findFirst({
+      where: { productId },
+      orderBy: { createdAt: "asc" },
+    });
+    await prisma.product.update({
+      where: { id: productId },
+      data: { imageUrl: first?.path ?? null },
+    });
   }
 }
 

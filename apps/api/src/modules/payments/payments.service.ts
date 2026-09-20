@@ -90,6 +90,7 @@ export class PaymentsService {
           method: input.method,
           type: "INSTALLMENT",
           reference: input.reference,
+          receiptPath: input.receiptPath,
           notes: input.notes,
           createdById: actorId,
         },

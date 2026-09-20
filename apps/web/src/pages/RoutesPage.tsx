@@ -193,7 +193,7 @@ export function RoutesPage() {
               create.mutate();
             }}
           >
-            <Field label="Nombre">
+            <Field label="Nombre" required>
               <FormattedInput kind="city" required value={form.name} onValue={(v) => setForm({ ...form, name: v })} placeholder="Villamella" />
             </Field>
             <Field label="Zona o sector">
@@ -219,7 +219,7 @@ export function RoutesPage() {
               update.mutate();
             }}
           >
-            <Field label="Nombre">
+            <Field label="Nombre" required>
               <FormattedInput kind="city" required value={form.name} onValue={(v) => setForm({ ...form, name: v })} />
             </Field>
             <Field label="Zona o sector">

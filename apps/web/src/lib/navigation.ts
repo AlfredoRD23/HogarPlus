@@ -121,7 +121,7 @@ export const NAV_GROUPS: { id: string; label: string; items: NavItem[] }[] = [
         id: "solicitudes",
         to: "/solicitudes",
         label: "Solicitudes",
-        description: "Pedidos del portal de clientes",
+        description: "Pedidos y avisos de pago del portal",
         icon: Inbox,
         roles: ["DIRECCION", "VENTAS", "COBRANZA", "ADMINISTRACION"],
         keywords: ["solicitud", "pedido", "portal"],

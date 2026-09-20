@@ -202,8 +202,17 @@ export const REQUEST_STATUS_LABELS: Record<RequestStatus, string> = {
   REJECTED: "Rechazada",
 };
 
-export const NOTIFICATION_TYPES = ["PRODUCT_REQUEST", "COLLECT_ME", "REFERRAL_LEAD", "REFERRAL_REGISTERED"] as const;
+export const NOTIFICATION_TYPES = ["PRODUCT_REQUEST", "COLLECT_ME", "REFERRAL_LEAD", "REFERRAL_REGISTERED", "PAYMENT_CLAIM"] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
+
+export const PAYMENT_CLAIM_STATUSES = ["PENDING", "APPROVED", "REJECTED"] as const;
+export type PaymentClaimStatus = (typeof PAYMENT_CLAIM_STATUSES)[number];
+
+export const PAYMENT_CLAIM_STATUS_LABELS: Record<PaymentClaimStatus, string> = {
+  PENDING: "Por validar",
+  APPROVED: "Pago recibido",
+  REJECTED: "Rechazado",
+};
 
 export const REFERRAL_STATUSES = ["PENDING", "REGISTERED", "CANCELLED"] as const;
 export type ReferralStatus = (typeof REFERRAL_STATUSES)[number];

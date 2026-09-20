@@ -94,22 +94,22 @@ export function SettingsPage() {
           save.mutate();
         }}
       >
-        <Field label="Nombre" hint={fieldHint("text")} error={errors.companyName}>
+        <Field label="Nombre" hint={fieldHint("text")} error={errors.companyName} required>
           <FormattedInput kind="productName" required value={form.companyName} error={Boolean(errors.companyName)} onValue={(v) => setForm({ ...form, companyName: formatProductName(v) })} />
         </Field>
-        <Field label="Ubicación" hint={fieldHint("city")} error={errors.companyCity}>
+        <Field label="Ubicación" hint={fieldHint("city")} error={errors.companyCity} required>
           <FormattedInput kind="city" required value={form.companyCity} error={Boolean(errors.companyCity)} onValue={(v) => setForm({ ...form, companyCity: formatCity(v) })} />
         </Field>
-        <Field label="Afiliación" hint={fieldHint("money")} error={errors.affiliationFee}>
+        <Field label="Afiliación" hint={fieldHint("money")} error={errors.affiliationFee} required>
           <FormattedInput kind="money" required value={form.affiliationFee} error={Boolean(errors.affiliationFee)} onValue={(v) => setForm({ ...form, affiliationFee: v })} />
         </Field>
-        <Field label="Cuota semanal" hint={fieldHint("money")} error={errors.weeklyQuota}>
+        <Field label="Cuota semanal" hint={fieldHint("money")} error={errors.weeklyQuota} required>
           <FormattedInput kind="money" required value={form.weeklyQuota} error={Boolean(errors.weeklyQuota)} onValue={(v) => setForm({ ...form, weeklyQuota: v })} />
         </Field>
-        <Field label="Semanas" hint="Entre 1 y 104" error={errors.defaultWeeks}>
+        <Field label="Semanas" hint="Entre 1 y 104" error={errors.defaultWeeks} required>
           <FormattedInput kind="integer" required value={form.defaultWeeks} error={Boolean(errors.defaultWeeks)} onValue={(v) => setForm({ ...form, defaultWeeks: v })} />
         </Field>
-        <Field label="Reserva de caja %" hint={fieldHint("percent")} error={errors.cashReservePercent}>
+        <Field label="Reserva de caja %" hint={fieldHint("percent")} error={errors.cashReservePercent} required>
           <FormattedInput kind="percent" required value={form.cashReservePercent} error={Boolean(errors.cashReservePercent)} onValue={(v) => setForm({ ...form, cashReservePercent: v })} />
         </Field>
         <div className="sm:col-span-2">

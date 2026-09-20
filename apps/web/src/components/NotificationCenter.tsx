@@ -71,6 +71,7 @@ export function NotificationCenter() {
                     setOpen(false);
                     switch (item.type) {
                       case "PRODUCT_REQUEST":
+                      case "PAYMENT_CLAIM":
                         navigate("/solicitudes");
                         break;
                       case "COLLECT_ME":

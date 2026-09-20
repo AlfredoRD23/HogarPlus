@@ -170,20 +170,20 @@ function ExpenseForm({
         });
       }}
     >
-      <Field label="Categoría">
+      <Field label="Categoría" required>
         <select className="input" value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })}>
           {CATEGORIES.map(([v, l]) => (
             <option key={v} value={v}>{l}</option>
           ))}
         </select>
       </Field>
-      <Field label="Monto" hint={fieldHint("money")} error={errors.amount}>
+      <Field label="Monto" hint={fieldHint("money")} error={errors.amount} required>
         <FormattedInput kind="money" required value={f.amount} error={Boolean(errors.amount)} onValue={(v) => setF({ ...f, amount: v })} />
       </Field>
-      <Field label="Descripción" hint={fieldHint("note")} error={errors.description}>
+      <Field label="Descripción" hint={fieldHint("note")} error={errors.description} required>
         <FormattedInput kind="text" required value={f.description} error={Boolean(errors.description)} onValue={(v) => setF({ ...f, description: v })} />
       </Field>
-      <Field label="Fecha" hint="No puede ser futura" error={errors.incurredOn}>
+      <Field label="Fecha" hint="No puede ser futura" error={errors.incurredOn} required>
         <FormattedInput kind="date" required max={today} value={f.incurredOn} error={Boolean(errors.incurredOn)} onValue={(v) => setF({ ...f, incurredOn: v })} />
       </Field>
       <div className="flex justify-end gap-2">

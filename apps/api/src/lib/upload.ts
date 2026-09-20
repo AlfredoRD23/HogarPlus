@@ -5,6 +5,8 @@ import { config } from "../config/env";
 import { AppError } from "../shared/utils";
 
 export const MAX_CLIENT_IMAGES = 8;
+export const MAX_PRODUCT_IMAGES = 6;
+export const MAX_CLAIM_IMAGES = 1;
 
 const ALLOWED_MIME = new Set([
   "image/jpeg",
@@ -20,10 +22,37 @@ function isAllowed(file: Express.Multer.File) {
   return ALLOWED_MIME.has(file.mimetype) || /\.(jpe?g|png|webp|gif|heic|heif)$/i.test(file.originalname);
 }
 
-export const clientImageUpload = multer({
+function diskUpload(folder: "clients" | "products" | "claims", maxFiles: number) {
+  return multer({
+    storage: multer.diskStorage({
+      destination: (req, _file, cb) => {
+        const dir = path.join(config.uploadDir, folder, req.params.id);
+        fs.mkdirSync(dir, { recursive: true });
+        cb(null, dir);
+      },
+      filename: (_req, file, cb) => {
+        const ext = path.extname(file.originalname).toLowerCase() || ".jpg";
+        cb(null, `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`);
+      },
+    }),
+    limits: { fileSize: 8 * 1024 * 1024, files: maxFiles },
+    fileFilter: (_req, file, cb) => {
+      if (!isAllowed(file)) {
+        cb(new Error("Solo se permiten imágenes JPG, PNG, WEBP, GIF o HEIC"));
+        return;
+      }
+      cb(null, true);
+    },
+  });
+}
+
+export const clientImageUpload = diskUpload("clients", MAX_CLIENT_IMAGES);
+export const productImageUpload = diskUpload("products", MAX_PRODUCT_IMAGES);
+
+export const claimImageUpload = multer({
   storage: multer.diskStorage({
-    destination: (req, _file, cb) => {
-      const dir = path.join(config.uploadDir, "clients", req.params.id);
+    destination: (_req, _file, cb) => {
+      const dir = path.join(config.uploadDir, "claims", "inbox");
       fs.mkdirSync(dir, { recursive: true });
       cb(null, dir);
     },
@@ -32,7 +61,7 @@ export const clientImageUpload = multer({
       cb(null, `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`);
     },
   }),
-  limits: { fileSize: 8 * 1024 * 1024, files: MAX_CLIENT_IMAGES },
+  limits: { fileSize: 8 * 1024 * 1024, files: MAX_CLAIM_IMAGES },
   fileFilter: (_req, file, cb) => {
     if (!isAllowed(file)) {
       cb(new Error("Solo se permiten imágenes JPG, PNG, WEBP, GIF o HEIC"));
@@ -42,8 +71,20 @@ export const clientImageUpload = multer({
   },
 });
 
+export function moveUploadTo(folder: "claims", id: string, file: Express.Multer.File) {
+  const destDir = path.join(config.uploadDir, folder, id);
+  fs.mkdirSync(destDir, { recursive: true });
+  const dest = path.join(destDir, file.filename);
+  fs.renameSync(file.path, dest);
+  return publicUploadPathFor(folder, id, file.filename);
+}
+
+export function publicUploadPathFor(folder: "clients" | "products" | "claims", id: string, filename: string) {
+  return `/uploads/${folder}/${id}/${filename}`;
+}
+
 export function publicUploadPath(clientId: string, filename: string) {
-  return `/uploads/clients/${clientId}/${filename}`;
+  return publicUploadPathFor("clients", clientId, filename);
 }
 
 export function absoluteUploadPath(storedPath: string) {
@@ -58,7 +99,7 @@ export function asUploadError(error: unknown) {
     return new AppError(400, "FILE_TOO_LARGE", "Cada imagen debe pesar menos de 8 MB");
   }
   if (error && typeof error === "object" && "code" in error && error.code === "LIMIT_FILE_COUNT") {
-    return new AppError(400, "TOO_MANY_FILES", `Máximo ${MAX_CLIENT_IMAGES} imágenes por cliente`);
+    return new AppError(400, "TOO_MANY_FILES", "Demasiadas imágenes en esta carga");
   }
   return error;
 }

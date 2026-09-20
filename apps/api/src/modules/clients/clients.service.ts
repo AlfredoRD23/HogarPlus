@@ -136,7 +136,7 @@ export class ClientsService {
     return client;
   }
 
-  async create(input: z.infer<typeof createClientSchema>, actorId: string, ip?: string) {
+  async create(input: Omit<z.infer<typeof createClientSchema>, "productId">, actorId: string, ip?: string) {
     const exists = await prisma.client.findUnique({ where: { documentId: input.documentId } });
     if (exists) throw new AppError(409, "DUPLICATE", "Ya existe un cliente con esa cédula");
 

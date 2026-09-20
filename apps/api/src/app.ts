@@ -26,6 +26,7 @@ import { notificationsRouter } from "./modules/notifications/notifications.route
 import { requestsRouter } from "./modules/requests/requests.routes";
 import { routesRouter } from "./modules/routes/routes.routes";
 import { referralsRouter } from "./modules/referrals/referrals.routes";
+import { paymentClaimsRouter } from "./modules/payment-claims/payment-claims.routes";
 import { getLastSlaRun } from "./shared/sla";
 
 fs.mkdirSync(config.uploadDir, { recursive: true });
@@ -72,6 +73,7 @@ export function createApp() {
   app.use("/api/requests", requestsRouter);
   app.use("/api/routes", routesRouter);
   app.use("/api/referrals", referralsRouter);
+  app.use("/api/payment-claims", paymentClaimsRouter);
 
   const webDist = [
     path.resolve(process.cwd(), "apps/web/dist"),

@@ -19,6 +19,7 @@ export const createPaymentSchema = z
         message: "La referencia solo puede tener letras, números y guion",
       }),
     notes: z.string().max(400).optional(),
+    receiptPath: z.string().max(500).optional(),
   })
   .superRefine((data, ctx) => {
     if ((data.method === "TRANSFER" || data.method === "DEPOSIT") && !data.reference) {

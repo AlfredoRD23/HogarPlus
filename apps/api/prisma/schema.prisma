@@ -122,6 +122,7 @@ model User {
   createdCredits     Credit[]            @relation("CreditCreatedBy")
   createdPayments    Payment[]           @relation("PaymentCreatedBy")
   voidedPayments     Payment[]           @relation("PaymentVoidedBy")
+  reviewedPaymentClaims PaymentClaim[]   @relation("PaymentClaimReviewedBy")
   inventoryMoves     InventoryMovement[]
   collectionNotes    CollectionNote[]
   expenses           Expense[]
@@ -167,6 +168,7 @@ model Client {
   pointsLedger   PointsLedger[]
   collectionNotes CollectionNote[]
   productRequests ProductRequest[]
+  paymentClaims   PaymentClaim[]
   images          ClientImage[]
   referralsMade   Referral[] @relation("ReferralsMade")
   fromReferral    Referral?  @relation("ReferralRegistered")
@@ -208,8 +210,21 @@ model Product {
   credits            Credit[]
   inventoryMovements InventoryMovement[]
   productRequests    ProductRequest[]
+  images             ProductImage[]
 
   @@index([category, catalogTier, status])
+}
+
+model ProductImage {
+  id           String   @id @default(cuid())
+  productId    String
+  path         String
+  originalName String?
+  createdAt    DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, createdAt])
 }
 
 model InventoryMovement {
@@ -261,6 +276,7 @@ model Credit {
   inventoryMoves InventoryMovement[]
   collectionNotes CollectionNote[]
   pointsLedger PointsLedger[]
+  paymentClaims PaymentClaim[]
 
   @@index([status, startDate])
   @@index([clientId, status])
@@ -305,6 +321,7 @@ model Payment {
   voidedBy    User?               @relation("PaymentVoidedBy", fields: [voidedById], references: [id])
   allocations PaymentAllocation[]
   pointsLedger PointsLedger[]
+  claim       PaymentClaim?
 
   @@index([createdAt])
   @@index([clientId, createdAt])
@@ -412,6 +429,39 @@ enum NotificationType {
   COLLECT_ME
   REFERRAL_LEAD
   REFERRAL_REGISTERED
+  PAYMENT_CLAIM
+}
+
+enum PaymentClaimStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model PaymentClaim {
+  id           String             @id @default(cuid())
+  clientId     String
+  creditId     String
+  amount       Decimal            @db.Decimal(12, 2)
+  method       PaymentMethod
+  receiptPath  String?
+  notes        String?            @db.Text
+  status       PaymentClaimStatus @default(PENDING)
+  paymentId    String?            @unique
+  reviewedById String?
+  reviewedAt   DateTime?
+  rejectReason String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  client     Client  @relation(fields: [clientId], references: [id])
+  credit     Credit  @relation(fields: [creditId], references: [id])
+  payment    Payment? @relation(fields: [paymentId], references: [id])
+  reviewedBy User?   @relation("PaymentClaimReviewedBy", fields: [reviewedById], references: [id])
+
+  @@index([status, createdAt])
+  @@index([clientId, status])
+  @@index([creditId, status])
 }
 
 enum ReferralStatus {

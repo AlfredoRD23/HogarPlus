@@ -64,12 +64,12 @@ export function LoginPage() {
           <h1 className="mt-4 font-display text-3xl text-navy-900">Iniciar sesión</h1>
           <p className="mt-2 text-sm text-slate-500">Ingresa con tu correo y contraseña.</p>
           <div className="mt-6">
-            <Field label="Correo" hint={fieldHint("email")}>
+            <Field label="Correo" hint={fieldHint("email")} required>
               <FormattedInput kind="email" required autoComplete="username" value={email} onValue={setEmail} />
             </Field>
           </div>
           <div className="mt-4">
-            <Field label="Contraseña">
+            <Field label="Contraseña" required>
               <FormattedInput kind="password" required autoComplete="current-password" value={password} onValue={setPassword} placeholder="Tu contraseña" />
             </Field>
           </div>

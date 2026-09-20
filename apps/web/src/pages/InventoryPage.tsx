@@ -131,7 +131,7 @@ function MoveForm({
         });
       }}
     >
-      <Field label="Producto" error={errors.productId}>
+      <Field label="Producto" error={errors.productId} required>
         <select className={`input ${errors.productId ? "input-error" : ""}`} value={f.productId} onChange={(e) => setF({ ...f, productId: e.target.value })}>
           <option value="">Seleccione</option>
           {products.map((p) => (
@@ -139,17 +139,17 @@ function MoveForm({
           ))}
         </select>
       </Field>
-      <Field label="Tipo">
+      <Field label="Tipo" required>
         <select className="input" value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}>
           <option value="IN">Entrada</option>
           <option value="OUT">Salida</option>
           <option value="ADJUSTMENT">Ajuste a cantidad absoluta</option>
         </select>
       </Field>
-      <Field label="Cantidad" hint={fieldHint("integer")} error={errors.quantity}>
+      <Field label="Cantidad" hint={fieldHint("integer")} error={errors.quantity} required>
         <FormattedInput kind="integer" required value={f.quantity} error={Boolean(errors.quantity)} onValue={(v) => setF({ ...f, quantity: v })} />
       </Field>
-      <Field label="Motivo" hint="Mínimo 2 caracteres" error={errors.reason}>
+      <Field label="Motivo" hint="Mínimo 2 caracteres" error={errors.reason} required>
         <FormattedInput kind="text" required value={f.reason} error={Boolean(errors.reason)} onValue={(v) => setF({ ...f, reason: v })} />
       </Field>
       <div className="flex justify-end gap-2">

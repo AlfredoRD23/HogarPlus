@@ -88,8 +88,11 @@ export function formatCity(value: string): string {
 
 export function cityError(value: string): string | null {
   const trimmed = value.trim();
-  if (!trimmed) return null;
+  if (!trimmed) return "La ciudad es obligatoria";
   if (trimmed.length < 2) return "La ciudad debe tener al menos 2 letras";
+  if (!/^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+(?:[ .'-]?[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+)*$/.test(trimmed)) {
+    return "La ciudad solo puede incluir letras";
+  }
   return null;
 }
 

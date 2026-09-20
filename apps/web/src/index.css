@@ -44,6 +44,19 @@ body {
     max-height: 100%;
   }
 
+  .modal-panel-lg {
+    @apply max-w-2xl;
+  }
+
+  .sidebar-nav {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .sidebar-nav::-webkit-scrollbar {
+    display: none;
+  }
+
   @media (min-width: 640px) {
     .modal-overlay {
       padding: 5rem 1rem 1.5rem;
@@ -54,6 +67,11 @@ body {
       max-height: min(90vh, 44rem);
       max-height: min(90dvh, 44rem);
       @apply rounded-2xl;
+    }
+
+    .modal-panel-lg {
+      max-height: min(90vh, 52rem);
+      max-height: min(90dvh, 52rem);
     }
   }
 

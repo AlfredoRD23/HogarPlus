@@ -118,7 +118,7 @@ export function PaymentsPage() {
       >
         <h2 className="font-display text-2xl">Registrar pago</h2>
         <p className="text-xs text-slate-500">El pago se aplica primero a las cuotas más antiguas.</p>
-        <Field label="Cliente" error={errors.clientId}>
+        <Field label="Cliente" error={errors.clientId} required>
           <select className={`input ${errors.clientId ? "input-error" : ""}`} required value={form.clientId} onChange={(e) => setForm({ ...form, clientId: e.target.value })}>
             <option value="">Seleccione</option>
             {(clients.data?.data ?? []).map((c) => (
@@ -134,10 +134,10 @@ export function PaymentsPage() {
             ))}
           </select>
         </Field>
-        <Field label="Monto" hint={fieldHint("money")} error={errors.amount}>
+        <Field label="Monto" hint={fieldHint("money")} error={errors.amount} required>
           <FormattedInput kind="money" required value={form.amount} error={Boolean(errors.amount)} onValue={(v) => setForm({ ...form, amount: v })} />
         </Field>
-        <Field label="Método">
+        <Field label="Método" required>
           <select className="input" value={form.method} onChange={(e) => setForm({ ...form, method: e.target.value as PaymentMethod })}>
             <option value="CASH">Efectivo</option>
             <option value="TRANSFER">Transferencia</option>

@@ -313,7 +313,6 @@ function ClientForm({
     referencePhone: initial?.referencePhone ?? "",
     routeId: initial?.routeId ?? initial?.route?.id ?? "",
     referredById: initial?.referredById ?? initial?.referredBy?.id ?? "",
-    payAffiliation: true,
     affiliationMethod: "CASH",
     productId: "",
   });
@@ -357,7 +356,7 @@ function ClientForm({
   };
 
   return (
-    <Modal title={editing ? "Editar cliente" : "Nuevo cliente"} onClose={onClose}>
+    <Modal title={editing ? "Editar cliente" : "Nuevo cliente"} onClose={onClose} size="lg">
       <form
         className="grid gap-3 sm:grid-cols-2"
         noValidate
@@ -372,6 +371,7 @@ function ClientForm({
             locationUrl: locationUrlError(form.locationUrl) ?? "",
             referenceName: form.referenceName || form.referencePhone ? personNameError(form.referenceName, "nombre de la referencia") ?? "" : "",
             referencePhone: form.referenceName || form.referencePhone ? phoneError(form.referencePhone) ?? "" : "",
+            productId: !editing && !form.productId ? "Selecciona un producto Bronce" : "",
           };
           setErrors(next);
           if (firstError(Object.values(next))) return;
@@ -390,31 +390,32 @@ function ClientForm({
           if (!editing) {
             Object.assign(payload, {
               documentId: digitsOnly(form.documentId),
-              payAffiliation: form.payAffiliation,
+              payAffiliation: true,
               affiliationMethod: form.affiliationMethod,
-              productId: form.productId || undefined,
+              productId: form.productId,
               referredById: form.referredById || match.data?.data?.referrer.id,
             });
           }
           onSave(payload, pending);
         }}
       >
-        <Field label="Nombre" hint={fieldHint("name")} error={errors.firstName}>
+        <p className="sm:col-span-2 text-xs text-slate-400">Los campos con * son obligatorios.</p>
+        <Field label="Nombre" hint={fieldHint("name")} error={errors.firstName} required>
           <FormattedInput kind="name" required value={form.firstName} error={Boolean(errors.firstName)} onValue={(v) => set("firstName", v)} />
         </Field>
-        <Field label="Apellido" hint={fieldHint("name")} error={errors.lastName}>
+        <Field label="Apellido" hint={fieldHint("name")} error={errors.lastName} required>
           <FormattedInput kind="name" required value={form.lastName} error={Boolean(errors.lastName)} onValue={(v) => set("lastName", v)} />
         </Field>
         {!editing && (
-          <Field label="Cédula" hint={fieldHint("cedula")} error={errors.documentId}>
+          <Field label="Cédula" hint={fieldHint("cedula")} error={errors.documentId} required>
             <FormattedInput kind="cedula" required value={form.documentId} error={Boolean(errors.documentId)} onValue={(v) => set("documentId", v)} />
           </Field>
         )}
-        <Field label="Teléfono" hint={fieldHint("phone")} error={errors.phone}>
+        <Field label="Teléfono" hint={fieldHint("phone")} error={errors.phone} required>
           <FormattedInput kind="phone" required value={form.phone} error={Boolean(errors.phone)} onValue={(v) => set("phone", v)} />
         </Field>
-        <Field label="Ciudad" hint={fieldHint("city")} error={errors.city}>
-          <FormattedInput kind="city" value={form.city} error={Boolean(errors.city)} onValue={(v) => set("city", v)} />
+        <Field label="Ciudad" hint={fieldHint("city")} error={errors.city} required>
+          <FormattedInput kind="city" required value={form.city} error={Boolean(errors.city)} onValue={(v) => set("city", v)} />
         </Field>
         <Field label="Dirección">
           <FormattedInput kind="text" value={form.address} onValue={(v) => set("address", v)} placeholder="Calle, sector, casa" />
@@ -422,6 +423,41 @@ function ClientForm({
         <Field label="Link de ubicación" hint={fieldHint("url")} error={errors.locationUrl}>
           <FormattedInput kind="url" value={form.locationUrl} error={Boolean(errors.locationUrl)} onValue={(v) => set("locationUrl", v)} />
         </Field>
+        {!editing && (
+          <>
+            <Field label="Producto inicial" hint="El cliente entra en Inicial y solo puede tomar Bronce" error={errors.productId} required>
+              <select
+                className={`input ${errors.productId ? "input-error" : ""}`}
+                required
+                value={form.productId}
+                onChange={(e) => set("productId", e.target.value)}
+              >
+                <option value="">{starterProducts.length ? "Seleccione un producto Bronce" : "No hay productos Bronce"}</option>
+                {starterProducts.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} · {money(p.price)}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Método de afiliación" required>
+              <select className="input" value={form.affiliationMethod} onChange={(e) => set("affiliationMethod", e.target.value)}>
+                <option value="CASH">Efectivo</option>
+                <option value="TRANSFER">Transferencia</option>
+                <option value="DEPOSIT">Depósito</option>
+              </select>
+            </Field>
+            {products.isFetched && starterProducts.length === 0 ? (
+              <p className="sm:col-span-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm">
+                No hay productos Bronce activos. Crea uno en Catálogo antes de registrar el cliente.
+              </p>
+            ) : (
+              <p className="sm:col-span-2 text-xs text-slate-500">
+                Al guardar se cobra la afiliación {money(affiliationFee)} y se entrega el producto. Con puntos sube a Plata y Oro.
+              </p>
+            )}
+          </>
+        )}
         <Field label="Nombre de la referencia personal" hint="Contacto de confianza. No es un cliente referido." error={errors.referenceName}>
           <FormattedInput kind="name" value={form.referenceName} error={Boolean(errors.referenceName)} onValue={(v) => set("referenceName", v)} placeholder="Persona de contacto" />
         </Field>
@@ -481,49 +517,11 @@ function ClientForm({
             }
           />
         </div>
-        {!editing && (
-          <>
-            <Field label="Método afiliación">
-              <select className="input" value={form.affiliationMethod} onChange={(e) => set("affiliationMethod", e.target.value)}>
-                <option value="CASH">Efectivo</option>
-                <option value="TRANSFER">Transferencia</option>
-                <option value="DEPOSIT">Depósito</option>
-              </select>
-            </Field>
-            <Field label="Producto (opcional)">
-              <select
-                className="input"
-                value={form.productId}
-                onChange={(e) => {
-                  const productId = e.target.value;
-                  setForm((f) => ({ ...f, productId, payAffiliation: productId ? true : f.payAffiliation }));
-                }}
-              >
-                <option value="">Sin producto todavía</option>
-                {starterProducts.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} · Bronce · {money(p.price)}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <p className="sm:col-span-2 text-xs text-slate-500">
-              El cliente entra en Inicial y solo puede tomar productos Bronce. Con puntos sube a Plata y Oro.
-            </p>
-            <label className="sm:col-span-2 flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={form.payAffiliation}
-                disabled={Boolean(form.productId)}
-                onChange={(e) => set("payAffiliation", e.target.checked)}
-              />
-              Cobrar afiliación {money(affiliationFee)} ahora (20 puntos)
-            </label>
-          </>
-        )}
         <div className="sm:col-span-2 flex justify-end gap-2">
           <button type="button" className="btn-ghost" onClick={onClose}>Cancelar</button>
-          <button className="btn-primary">Guardar</button>
+          <button className="btn-primary" disabled={!editing && (products.isFetched && starterProducts.length === 0)}>
+            Guardar
+          </button>
         </div>
       </form>
       {removingImage && initial?.id && (

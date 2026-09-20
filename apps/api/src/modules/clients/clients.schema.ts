@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CLIENT_STATUSES, digitsOnly, isValidCedula, isValidEmail, isValidPhoneRD, locationUrlError, personNameError } from "@hogarplus/shared";
+import { CLIENT_STATUSES, cityError, digitsOnly, isValidCedula, isValidEmail, isValidPhoneRD, locationUrlError, personNameError } from "@hogarplus/shared";
 
 export const createClientSchema = z.object({
   firstName: z
@@ -25,7 +25,10 @@ export const createClientSchema = z.object({
     .transform((value) => (value ? value.trim().toLowerCase() : undefined))
     .refine((value) => !value || isValidEmail(value), { message: "Correo inválido" }),
   address: z.string().max(160).optional(),
-  city: z.string().trim().max(50).optional(),
+  city: z
+    .string()
+    .transform((value) => value.trim())
+    .refine((value) => !cityError(value), { message: "La ciudad es obligatoria y solo puede incluir letras" }),
   province: z.string().trim().max(50).optional(),
   referredById: z.string().min(1).optional().or(z.literal("")).transform((value) => value || undefined),
   notes: z.string().max(400).optional(),
@@ -53,15 +56,15 @@ export const createClientSchema = z.object({
     .transform((value) => (value ? value.trim() : undefined))
     .refine((value) => !value || !locationUrlError(value), { message: "Pega un link válido de Google Maps o ubicación" }),
   routeId: z.string().min(1).optional().or(z.literal("")).transform((value) => value || undefined),
-  payAffiliation: z.boolean().optional(),
+  payAffiliation: z.boolean().optional().default(true),
   affiliationMethod: z.enum(["CASH", "TRANSFER", "DEPOSIT"]).optional(),
-  productId: z.string().min(1).optional().or(z.literal("")).transform((value) => value || undefined),
+  productId: z.string().min(1, "Selecciona un producto Bronce para entregar"),
 }).superRefine((data, ctx) => {
-  if (data.productId && data.payAffiliation === false) {
+  if (data.payAffiliation === false) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["payAffiliation"],
-      message: "Para entregar un producto hay que cobrar la afiliación",
+      message: "Hay que cobrar la afiliación al entregar el producto",
     });
   }
   if (Boolean(data.referenceName) !== Boolean(data.referencePhone)) {

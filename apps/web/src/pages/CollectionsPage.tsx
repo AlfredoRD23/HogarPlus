@@ -173,7 +173,7 @@ function NoteForm({ onSave, onCancel }: { onSave: (note: string, channel: string
         onSave(note.trim(), channel);
       }}
     >
-      <Field label="Canal">
+      <Field label="Canal" required>
         <select className="input" value={channel} onChange={(e) => setChannel(e.target.value)}>
           <option value="WHATSAPP">WhatsApp</option>
           <option value="CALL">Llamada</option>
@@ -181,7 +181,7 @@ function NoteForm({ onSave, onCancel }: { onSave: (note: string, channel: string
           <option value="SMS">SMS</option>
         </select>
       </Field>
-      <Field label="Nota" hint="Mínimo 3 caracteres" error={error}>
+      <Field label="Nota" hint="Mínimo 3 caracteres" error={error} required>
         <FormattedTextarea required value={note} error={Boolean(error)} onValue={(v) => { setNote(v); setError(""); }} />
       </Field>
       <div className="flex justify-end gap-2">

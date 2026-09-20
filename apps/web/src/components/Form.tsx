@@ -20,11 +20,13 @@ export function Modal({
   children,
   onClose,
   zClass = "z-[100]",
+  size = "md",
 }: {
   title: string;
   children: ReactNode;
   onClose: () => void;
   zClass?: string;
+  size?: "md" | "lg";
 }) {
   useEffect(() => {
     const previous = document.body.style.overflow;
@@ -36,7 +38,7 @@ export function Modal({
 
   return createPortal(
     <div className={`modal-overlay ${zClass}`} role="dialog" aria-modal="true" aria-labelledby="modal-title">
-      <div className="modal-panel">
+      <div className={`modal-panel ${size === "lg" ? "modal-panel-lg" : ""}`}>
         <div className="flex shrink-0 items-center justify-between bg-navy-900 px-5 py-4 text-white">
           <h3 id="modal-title" className="font-display text-lg">
             {title}
@@ -56,16 +58,21 @@ export function Field({
   label,
   hint,
   error,
+  required,
   children,
 }: {
   label: string;
   hint?: string;
   error?: string;
+  required?: boolean;
   children: ReactNode;
 }) {
   return (
     <label className="block">
-      <span className="label">{label}</span>
+      <span className="label">
+        {label}
+        {required ? <span className="ml-0.5 text-rose-500">*</span> : null}
+      </span>
       {children}
       {error ? (
         <span className="mt-1 block text-xs text-rose-600">{error}</span>

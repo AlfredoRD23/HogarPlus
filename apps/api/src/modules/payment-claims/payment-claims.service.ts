@@ -1,0 +1,147 @@
+import { PAYMENT_METHOD_LABELS } from "@hogarplus/shared";
+import { prisma } from "../../lib/prisma";
+import { AppError, money, pagination } from "../../shared/utils";
+import { notifyStaff } from "../notifications/notifications.service";
+import { paymentsService } from "../payments/payments.service";
+import { moveUploadTo } from "../../lib/upload";
+
+export class PaymentClaimsService {
+  async list(query: { page?: unknown; pageSize?: unknown; status?: string }) {
+    const { skip, take, page, pageSize } = pagination(query);
+    const status =
+      query.status === "PENDING" || query.status === "APPROVED" || query.status === "REJECTED"
+        ? (query.status as "PENDING" | "APPROVED" | "REJECTED")
+        : undefined;
+    const where = status ? { status } : {};
+    const [items, total] = await prisma.$transaction([
+      prisma.paymentClaim.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { createdAt: "desc" },
+        include: {
+          client: { select: { id: true, code: true, firstName: true, lastName: true, phone: true } },
+          credit: { select: { id: true, code: true, balance: true, product: { select: { name: true, imageUrl: true } } } },
+          payment: { select: { id: true, code: true } },
+        },
+      }),
+      prisma.paymentClaim.count({ where }),
+    ]);
+    return { items, meta: { page, pageSize, total } };
+  }
+
+  async createFromPortal(input: {
+    clientId: string;
+    creditId: string;
+    amount: number;
+    method: "CASH" | "TRANSFER" | "DEPOSIT";
+    notes?: string;
+    file?: Express.Multer.File;
+  }) {
+    const credit = await prisma.credit.findFirst({
+      where: { id: input.creditId, clientId: input.clientId },
+      include: { product: { select: { name: true } }, client: { select: { firstName: true, lastName: true, code: true, phone: true } } },
+    });
+    if (!credit || credit.status !== "ACTIVE") {
+      throw new AppError(400, "NO_CREDIT", "No hay un crédito activo para este aviso");
+    }
+    if (input.amount <= 0) throw new AppError(400, "INVALID_AMOUNT", "El monto debe ser mayor que 0");
+    if (input.amount > Number(credit.balance) + 0.05) {
+      throw new AppError(400, "OVERPAY", `El aviso no puede pasar el saldo de ${money(credit.balance)}`);
+    }
+    if (input.method === "TRANSFER" && !input.file) {
+      throw new AppError(400, "NO_FILE", "La transferencia necesita la foto del comprobante");
+    }
+
+    const pending = await prisma.paymentClaim.findFirst({
+      where: { clientId: input.clientId, creditId: input.creditId, status: "PENDING" },
+    });
+    if (pending) {
+      throw new AppError(409, "DUPLICATE", "Ya tienes un aviso de pago en revisión para este producto");
+    }
+
+    const created = await prisma.paymentClaim.create({
+      data: {
+        clientId: input.clientId,
+        creditId: input.creditId,
+        amount: input.amount,
+        method: input.method,
+        notes: input.notes,
+      },
+    });
+
+    let receiptPath: string | undefined;
+    if (input.file) {
+      receiptPath = moveUploadTo("claims", created.id, input.file);
+      await prisma.paymentClaim.update({ where: { id: created.id }, data: { receiptPath } });
+    }
+
+    const methodLabel = PAYMENT_METHOD_LABELS[input.method];
+    await notifyStaff({
+      type: "PAYMENT_CLAIM",
+      title: input.method === "CASH" ? "Cliente avisa pago en efectivo" : "Comprobante de transferencia",
+      message: `${credit.client.firstName} ${credit.client.lastName} (${credit.client.code}) avisa ${methodLabel} de ${money(input.amount)} en ${credit.product.name} (${credit.code}). Tel. ${credit.client.phone}.`,
+      clientId: input.clientId,
+      requestId: created.id,
+      roles: ["DIRECCION", "COBRANZA", "ADMINISTRACION"],
+    });
+
+    return prisma.paymentClaim.findUniqueOrThrow({ where: { id: created.id } });
+  }
+
+  async approve(id: string, actorId: string, ip?: string) {
+    const claim = await prisma.paymentClaim.findUnique({
+      where: { id },
+      include: { credit: true },
+    });
+    if (!claim) throw new AppError(404, "NOT_FOUND", "Aviso de pago no encontrado");
+    if (claim.status !== "PENDING") throw new AppError(400, "CLAIM_CLOSED", "Este aviso ya fue revisado");
+
+    const payment = await paymentsService.create(
+      {
+        clientId: claim.clientId,
+        creditId: claim.creditId,
+        amount: Number(claim.amount),
+        method: claim.method,
+        reference: claim.method === "CASH" ? undefined : `PORTAL-${claim.id.slice(-8).toUpperCase()}`,
+        notes: claim.notes || "Validado desde aviso del portal",
+        receiptPath: claim.receiptPath ?? undefined,
+      },
+      actorId,
+      ip,
+    );
+
+    return prisma.paymentClaim.update({
+      where: { id },
+      data: {
+        status: "APPROVED",
+        paymentId: payment.id,
+        reviewedById: actorId,
+        reviewedAt: new Date(),
+      },
+      include: {
+        client: { select: { id: true, firstName: true, lastName: true } },
+        credit: { select: { code: true, product: { select: { name: true } } } },
+        payment: { select: { id: true, code: true } },
+      },
+    });
+  }
+
+  async reject(id: string, actorId: string, reason?: string) {
+    const claim = await prisma.paymentClaim.findUnique({ where: { id } });
+    if (!claim) throw new AppError(404, "NOT_FOUND", "Aviso de pago no encontrado");
+    if (claim.status !== "PENDING") throw new AppError(400, "CLAIM_CLOSED", "Este aviso ya fue revisado");
+
+    return prisma.paymentClaim.update({
+      where: { id },
+      data: {
+        status: "REJECTED",
+        rejectReason: reason,
+        reviewedById: actorId,
+        reviewedAt: new Date(),
+      },
+    });
+  }
+}
+
+export const paymentClaimsService = new PaymentClaimsService();

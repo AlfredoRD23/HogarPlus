@@ -159,18 +159,18 @@ function UserForm({
         });
       }}
     >
-      <Field label="Nombre" hint={fieldHint("name")} error={errors.name}>
+      <Field label="Nombre" hint={fieldHint("name")} error={errors.name} required>
         <FormattedInput kind="name" required value={f.name} error={Boolean(errors.name)} onValue={(v) => set("name", v)} />
       </Field>
       {!editing && (
-        <Field label="Correo" hint={fieldHint("email")} error={errors.email}>
+        <Field label="Correo" hint={fieldHint("email")} error={errors.email} required>
           <FormattedInput kind="email" required value={f.email} error={Boolean(errors.email)} onValue={(v) => set("email", v)} />
         </Field>
       )}
-      <Field label={editing ? "Nueva contraseña (opcional)" : "Contraseña"} hint={fieldHint("password")} error={errors.password}>
+      <Field label={editing ? "Nueva contraseña (opcional)" : "Contraseña"} hint={fieldHint("password")} error={errors.password} required={!editing}>
         <FormattedInput kind="password" required={!editing} value={f.password} error={Boolean(errors.password)} onValue={(v) => set("password", v)} />
       </Field>
-      <Field label="Rol">
+      <Field label="Rol" required>
         <select className="input" value={f.role} onChange={(e) => set("role", e.target.value)}>
           {ROLES.map((r) => (
             <option key={r} value={r}>{ROLE_LABELS[r]}</option>

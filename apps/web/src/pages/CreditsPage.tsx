@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { api, formatDate, money } from "../lib/api";
 import { creditsFromDebtError, debtFacts, debtNotes, isDebtError } from "../lib/debt";
-import { Field, FormattedInput, fieldHint } from "../components/Form";
+import { Field, FormattedInput } from "../components/Form";
 import { PageHeader } from "../components/PageHeader";
 import { DataTable } from "../components/DataTable";
 import { ArrowLeft, FileText, Pencil, Plus } from "lucide-react";
@@ -152,6 +152,7 @@ function CreditPlanFields({
   weeks,
   setWeeks,
   errors,
+  locked,
 }: {
   price: number;
   frequency: PaymentFrequency;
@@ -163,12 +164,39 @@ function CreditPlanFields({
   weeks: string;
   setWeeks: (value: string) => void;
   errors: Record<string, string>;
+  locked?: boolean;
 }) {
   const down = parseMoney(downPayment) || 0;
   const financed = price > 0 ? financedAmount(price, down) : 0;
+  const count = parseInteger(weeks);
+  const quota = parseMoney(weeklyQuota) || 0;
+
+  function applyFromWeeks(nextWeeks: string, nextDown = down) {
+    setWeeks(nextWeeks);
+    const nextCount = parseInteger(nextWeeks);
+    if (price > 0 && Number.isInteger(nextCount) && nextCount > 0) {
+      setWeeklyQuota(String(quotaFromInstallments(price, nextDown, nextCount)));
+    }
+  }
+
+  function applyFromDown(nextDownValue: string) {
+    setDownPayment(nextDownValue);
+    const nextDown = parseMoney(nextDownValue) || 0;
+    if (price > 0 && Number.isInteger(count) && count > 0) {
+      setWeeklyQuota(String(quotaFromInstallments(price, nextDown, count)));
+    }
+  }
+
+  function applyFromQuota(nextQuotaValue: string) {
+    setWeeklyQuota(nextQuotaValue);
+    const nextQuota = parseMoney(nextQuotaValue);
+    if (price > 0 && nextQuota > 0) {
+      setWeeks(String(installmentsFromQuota(price, down, nextQuota)));
+    }
+  }
 
   return (
-    <>
+    <div className={`grid gap-3 ${locked ? "pointer-events-none opacity-50" : ""}`}>
       <Field label="Frecuencia de cuota">
         <select className="input" value={frequency} onChange={(e) => setFrequency(e.target.value as PaymentFrequency)}>
           {PAYMENT_FREQUENCIES.map((item) => (
@@ -176,59 +204,50 @@ function CreditPlanFields({
           ))}
         </select>
       </Field>
-      <Field label="Pago inicial" hint={fieldHint("money")} error={errors.downPayment}>
+      <Field label="Pago inicial" hint="Se resta del precio y el resto se parte en cuotas" error={errors.downPayment}>
         <FormattedInput
           kind="money"
           value={downPayment}
           error={Boolean(errors.downPayment)}
-          onValue={(value) => {
-            setDownPayment(value);
-            const nextDown = parseMoney(value) || 0;
-            const count = parseInteger(weeks);
-            if (price > 0 && Number.isInteger(count) && count > 0) {
-              setWeeklyQuota(String(quotaFromInstallments(price, nextDown, count)));
-            }
-          }}
+          onValue={applyFromDown}
         />
       </Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label={`Cantidad (${PAYMENT_FREQUENCY_UNIT[frequency]})`} hint="Al cambiar, se calcula la cuota" error={errors.weeks}>
+        <Field label={`Cantidad (${PAYMENT_FREQUENCY_UNIT[frequency]})`} hint="Cambia esto y se calcula la cuota" error={errors.weeks}>
           <FormattedInput
             kind="integer"
             required
             value={weeks}
             error={Boolean(errors.weeks)}
-            onValue={(value) => {
-              setWeeks(value);
-              const count = parseInteger(value);
-              if (price > 0 && Number.isInteger(count) && count > 0) {
-                setWeeklyQuota(String(quotaFromInstallments(price, down, count)));
-              }
-            }}
+            onValue={(value) => applyFromWeeks(value)}
           />
         </Field>
-        <Field label="Monto de cada cuota" hint="Al cambiar, se calculan las cuotas" error={errors.weeklyQuota}>
+        <Field label="Monto de cada cuota" hint="Cambia esto y se calcula cuántas cuotas van" error={errors.weeklyQuota}>
           <FormattedInput
             kind="money"
             required
             value={weeklyQuota}
             error={Boolean(errors.weeklyQuota)}
-            onValue={(value) => {
-              setWeeklyQuota(value);
-              const quota = parseMoney(value);
-              if (price > 0 && quota > 0) {
-                setWeeks(String(installmentsFromQuota(price, down, quota)));
-              }
-            }}
+            onValue={applyFromQuota}
           />
         </Field>
       </div>
-      {price > 0 && (
-        <p className="rounded-xl bg-gold-50 p-3 text-sm">
-          Precio {money(price)} · Inicial {money(down)} · A financiar {money(financed)} · {parseInteger(weeks) || 0} {PAYMENT_FREQUENCY_UNIT[frequency]} · cuota {money(parseMoney(weeklyQuota) || 0)}
+      {price > 0 ? (
+        <div className="rounded-2xl bg-gold-50 p-4 text-sm">
+          <p className="font-semibold text-navy-900">Cálculo automático</p>
+          <p className="mt-2">
+            Precio {money(price)} − inicial {money(down)} = a financiar {money(financed)}
+          </p>
+          <p className="mt-1">
+            {Number.isInteger(count) && count > 0 ? count : 0} {PAYMENT_FREQUENCY_UNIT[frequency]} × {money(quota)} = {money(financed)}
+          </p>
+        </div>
+      ) : (
+        <p className="rounded-2xl border border-dashed border-slate-200 p-4 text-sm text-slate-500">
+          Elige un producto para ver el precio, el inicial y la cuota calculada.
         </p>
       )}
-    </>
+    </div>
   );
 }
 
@@ -247,6 +266,7 @@ export function NewCreditPage() {
         credits?: Array<{
           id: string;
           code: string;
+          status?: CreditStatus;
           balance: number;
           weeklyQuota: number;
           product: { name: string };
@@ -271,16 +291,36 @@ export function NewCreditPage() {
   const [weeks, setWeeks] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [debt, setDebt] = useState<OutstandingCredit | null>(null);
+  const clientDetail = useQuery({
+    queryKey: ["client", clientId],
+    queryFn: () =>
+      api<{
+        firstName: string;
+        lastName: string;
+        affiliationPaid: boolean;
+        level: ClientLevel;
+        credits: Array<{
+          id: string;
+          code: string;
+          status: CreditStatus;
+          balance: number;
+          weeklyQuota: number;
+          product: { name: string };
+          installments: Array<{ dueDate: string; amount: number; number: number; status: InstallmentStatus }>;
+        }>;
+      }>(`/api/clients/${clientId}`),
+    enabled: Boolean(clientId),
+  });
 
   useEffect(() => {
     if (!settings.data) return;
-    setWeeklyQuota((q) => (q === "" ? String(settings.data.data.weeklyQuota) : q));
     setWeeks((w) => (w === "" ? String(settings.data.data.defaultWeeks) : w));
   }, [settings.data]);
 
   const selectedClient = (clients.data?.data ?? []).find((c) => c.id === clientId);
-  const openDebt = (selectedClient?.credits ?? [])
-    .filter((credit) => Number(credit.balance) > 0)
+  const debtCredits = clientDetail.data?.data.credits ?? selectedClient?.credits ?? [];
+  const openDebt = debtCredits
+    .filter((credit) => Number(credit.balance) > 0 && credit.status !== "CANCELLED" && credit.status !== "COMPLETED")
     .map((credit) => {
       const remaining = (credit.installments ?? []).filter((item) => item.status !== "PAID");
       const next = remaining[0];
@@ -315,12 +355,15 @@ export function NewCreditPage() {
   }, [clientId, productId, products.data, selectedClient]);
 
   useEffect(() => {
-    if (!product) return;
+    if (!product) {
+      setWeeklyQuota("");
+      return;
+    }
     const count = parseInteger(weeks) || settings.data?.data.defaultWeeks || 10;
     const down = parseMoney(downPayment) || 0;
     setWeeks(String(count));
     setWeeklyQuota(String(quotaFromInstallments(product.price, down, count)));
-  }, [productId]);
+  }, [productId, product?.price]);
 
   const create = useMutation({
     mutationFn: () =>
@@ -400,9 +443,9 @@ export function NewCreditPage() {
             ))}
           </select>
         </Field>
-        {selectedClient && (
+        {selectedClient && !openDebt && (
           <p className="text-sm text-slate-500">
-            Nivel {LEVEL_LABELS[selectedClient.level]}: puede tomar {catalogAccessLabel(selectedClient.level)}.
+            Nivel {LEVEL_LABELS[selectedClient.level]}: puede tomar {catalogAccessLabel(selectedClient.level)}. Elige el producto para calcular inicial y cuotas.
           </p>
         )}
         {openDebt && (
@@ -421,9 +464,10 @@ export function NewCreditPage() {
           weeks={weeks}
           setWeeks={setWeeks}
           errors={errors}
+          locked={!product || Boolean(openDebt)}
         />
-        <button className="btn-primary" disabled={Boolean(openDebt)}>
-          {openDebt ? "Saldar el anterior primero" : "Crear y entregar"}
+        <button className="btn-primary" disabled={Boolean(openDebt) || !productId}>
+          {openDebt ? "Saldar el anterior primero" : productId ? "Crear y entregar" : "Elige un producto para calcular"}
         </button>
       </form>
       {debt && (

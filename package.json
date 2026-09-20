@@ -9,7 +9,8 @@
     "packages/shared"
   ],
   "scripts": {
-    "dev": "concurrently -n api,web -c blue,magenta \"npm run dev -w @hogarplus/api\" \"npm run dev -w @hogarplus/web\"",
+    "dev": "npm run build -w @hogarplus/shared && concurrently -n api,web -c blue,magenta \"npm run dev -w @hogarplus/api\" \"npm run dev -w @hogarplus/web\"",
+    "start": "node apps/api/dist/src/main.js",
     "dev:api": "npm run dev -w @hogarplus/api",
     "dev:web": "npm run dev -w @hogarplus/web",
     "build": "npm run build -w @hogarplus/shared && npm run build -w @hogarplus/api && npm run build -w @hogarplus/web",

@@ -146,6 +146,34 @@ export class ProductsService {
     });
   }
 
+  async remove(id: string, actorId: string, ip?: string) {
+    const product = await prisma.product.findUnique({
+      where: { id },
+      include: {
+        images: true,
+        _count: { select: { credits: true } },
+      },
+    });
+    if (!product) throw new AppError(404, "NOT_FOUND", "Producto no encontrado");
+    if (product._count.credits > 0) {
+      throw new AppError(409, "IN_USE", "Este producto ya se entregó. Desactívalo; no se puede borrar.");
+    }
+
+    for (const image of product.images) {
+      const diskPath = absoluteUploadPath(image.path);
+      if (fs.existsSync(diskPath)) fs.unlinkSync(diskPath);
+    }
+
+    await prisma.$transaction([
+      prisma.productImage.deleteMany({ where: { productId: id } }),
+      prisma.inventoryMovement.deleteMany({ where: { productId: id } }),
+      prisma.productRequest.deleteMany({ where: { productId: id } }),
+      prisma.product.delete({ where: { id } }),
+    ]);
+    await writeAudit({ userId: actorId, action: "DELETE", entity: "Product", entityId: id, before: product, ip });
+    return { id };
+  }
+
   async removeImage(productId: string, imageId: string) {
     const image = await prisma.productImage.findFirst({ where: { id: imageId, productId } });
     if (!image) throw new AppError(404, "NOT_FOUND", "Imagen no encontrada");

@@ -15,6 +15,7 @@ import { PageHeader, type HeaderAction } from "../components/PageHeader";
 import { DataTable } from "../components/DataTable";
 import { Loader, WaitLabel } from "../components/Loader";
 import { TableCard } from "../components/TableCard";
+import { StatusTabs } from "../components/StatusTabs";
 import { useOnceSubmit } from "../hooks/useOnceSubmit";
 import {
   cityError,
@@ -108,6 +109,7 @@ export function ClientsPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Client | null>(null);
   const [confirm, setConfirm] = useState<{ client: Client; activate: boolean } | null>(null);
+  const [statusTab, setStatusTab] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
   const query = useQuery({
     queryKey: ["clients", search],
     queryFn: () => api<Client[]>(`/api/clients?search=${encodeURIComponent(search)}&pageSize=50`),
@@ -117,7 +119,10 @@ export function ClientsPage() {
     queryKey: ["settings"],
     queryFn: () => api<{ affiliationFee: number }>("/api/settings"),
   });
-  const rows = query.data?.data ?? [];
+  const allRows = query.data?.data ?? [];
+  const activeRows = allRows.filter((c) => c.status === "ACTIVE");
+  const inactiveRows = allRows.filter((c) => c.status !== "ACTIVE");
+  const rows = statusTab === "ACTIVE" ? activeRows : inactiveRows;
 
   const create = useMutation({
     mutationFn: async ({ body, files }: { body: Record<string, unknown>; files: File[] }) => {
@@ -171,13 +176,19 @@ export function ClientsPage() {
         onSearchChange={setSearch}
         actions={[{ label: "Nuevo cliente", icon: Plus, onClick: () => setOpen(true) }]}
       />
+      <StatusTabs
+        value={statusTab}
+        onChange={setStatusTab}
+        activeCount={activeRows.length}
+        inactiveCount={inactiveRows.length}
+      />
       <DataTable
         title="Lista de clientes"
-        count={query.data?.meta?.total ?? rows.length}
+        count={rows.length}
         loading={query.isLoading}
         rows={rows.length}
-        emptyTitle="Sin clientes"
-        emptyDescription="Crea el primer cliente para comenzar la cartera."
+        emptyTitle={statusTab === "ACTIVE" ? "Sin clientes activos" : "Sin clientes inactivos"}
+        emptyDescription={statusTab === "ACTIVE" ? "Crea el primer cliente para comenzar la cartera." : "Los que desactives aparecen aquí."}
         emptyAction={<button className="btn-gold" onClick={() => setOpen(true)}>Nuevo cliente</button>}
         headers={["Cliente", "Contacto", "Referencia", "Inicio", "Próxima cuota", "Saldo", "Acciones"]}
         mobile={rows.map((c) => {

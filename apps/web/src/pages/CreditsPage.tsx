@@ -16,7 +16,6 @@ import { InfoModal } from "../components/InfoModal";
 import { RowActions } from "../components/RowActions";
 import {
   catalogsForLevel,
-  CATALOG_TIER_LABELS,
   catalogAccessLabel,
   financedAmount,
   firstError,
@@ -37,7 +36,8 @@ import {
   type OutstandingCredit,
   type PaymentFrequency,
 } from "@hogarplus/shared";
-import { CreditBadge, InstallmentBadge } from "../components/Badges";
+import { CatalogBadge, CreditBadge, InstallmentBadge } from "../components/Badges";
+import { StatusTabs } from "../components/StatusTabs";
 
 type Credit = {
   id: string;
@@ -70,6 +70,7 @@ export function CreditsPage() {
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<Credit | null>(null);
   const [confirm, setConfirm] = useState<{ credit: Credit; activate: boolean } | null>(null);
+  const [statusTab, setStatusTab] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
   const q = useQuery({
     queryKey: ["credits", search],
     queryFn: () => api<Credit[]>(`/api/credits?pageSize=50&search=${encodeURIComponent(search)}`),
@@ -94,7 +95,10 @@ export function CreditsPage() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
-  const rows = q.data?.data ?? [];
+  const allRows = q.data?.data ?? [];
+  const activeRows = allRows.filter((c) => c.status !== "CANCELLED");
+  const inactiveRows = allRows.filter((c) => c.status === "CANCELLED");
+  const rows = statusTab === "ACTIVE" ? activeRows : inactiveRows;
 
   return (
     <div className="space-y-4">
@@ -107,13 +111,20 @@ export function CreditsPage() {
         onSearchChange={setSearch}
         actions={[{ label: "Nuevo crédito", icon: Plus, href: "/creditos/nuevo" }]}
       />
+      <StatusTabs
+        value={statusTab}
+        onChange={setStatusTab}
+        activeCount={activeRows.length}
+        inactiveCount={inactiveRows.length}
+        inactiveLabel="Desactivados"
+      />
       <DataTable
         title="Cartera de créditos"
-        count={q.data?.meta?.total ?? rows.length}
+        count={rows.length}
         loading={q.isLoading}
         rows={rows.length}
-        emptyTitle="Sin créditos"
-        emptyDescription="Entrega el primer producto a crédito para abrir cartera."
+        emptyTitle={statusTab === "ACTIVE" ? "Sin créditos activos" : "Sin créditos desactivados"}
+        emptyDescription={statusTab === "ACTIVE" ? "Entrega el primer producto a crédito para abrir cartera." : "Los que desactives aparecen aquí."}
         emptyAction={<a className="btn-gold" href="/creditos/nuevo">Nuevo crédito</a>}
         headers={["Código", "Cliente", "Producto", "Inicial", "Cuota", "Saldo", "Estado", "Acciones"]}
         mobile={rows.map((c) => (
@@ -628,7 +639,7 @@ export function NewCreditPage() {
                     )}
                   </div>
                   <div className="p-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{CATALOG_TIER_LABELS[p.catalogTier]}</p>
+                    <div className="mb-1"><CatalogBadge tier={p.catalogTier} /></div>
                     <p className="font-semibold leading-tight">{p.name}</p>
                     {p.description ? <p className="mt-1 line-clamp-2 text-xs text-slate-500">{p.description}</p> : null}
                     <p className="mt-1 text-sm font-bold">{money(p.price)}</p>

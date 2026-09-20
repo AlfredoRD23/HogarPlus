@@ -106,8 +106,8 @@ export class CreditsService {
         `El nivel ${LEVEL_LABELS[client.level]} no puede tomar productos ${CATALOG_TIER_LABELS[product.catalogTier]}`,
       );
     }
-    if (product.catalogTier === "C" && !client.catalogApproved) {
-      throw new AppError(400, "NEEDS_EVALUATION", "Los productos Oro requieren aprobación de capacidad de pago");
+    if (product.catalogTier === "C" && client.level !== "ORO" && !client.catalogApproved) {
+      throw new AppError(400, "NEEDS_EVALUATION", "Los productos Oro requieren categoría Oro");
     }
 
     await assertNoOutstandingDebt(client.id);

@@ -38,3 +38,8 @@ productsRouter.delete(
   authorize("INVENTARIO"),
   asyncHandler((req, res) => productsController.removeImage(req, res)),
 );
+productsRouter.delete(
+  "/:id",
+  authorize("INVENTARIO"),
+  asyncHandler((req, res) => productsController.remove(req, res)),
+);

@@ -12,6 +12,7 @@ import { InfoModal } from "../components/InfoModal";
 import { ReferClientForm } from "../components/ReferClientForm";
 import {
   CATEGORY_LABELS,
+  CATALOG_TIER_LABELS,
   catalogAccessLabel,
   cedulaError,
   digitsOnly,
@@ -19,7 +20,6 @@ import {
   firstError,
   formatPhoneRD,
   LEVEL_LABELS,
-  PRODUCT_CATEGORIES,
   PAYMENT_FREQUENCY_LABELS,
   PAYMENT_METHOD_LABELS,
   PAYMENT_TYPE_LABELS,
@@ -29,6 +29,7 @@ import {
   POINTS_ACTION_LABELS,
   POINTS_RULES,
   progressToNextLevel,
+  requiredLevelForTier,
   REFERRAL_STATUS_LABELS,
   type CatalogTier,
   type ClientLevel,
@@ -132,6 +133,7 @@ export function PortalPage() {
   const [referOpen, setReferOpen] = useState(false);
   const [referError, setReferError] = useState<string | undefined>();
   const [debtModal, setDebtModal] = useState<OutstandingCredit | null>(null);
+  const [levelLock, setLevelLock] = useState<CatalogProduct | null>(null);
   const [payCredit, setPayCredit] = useState<PortalCredit | null>(null);
   const [activeCreditId, setActiveCreditId] = useState("");
   const [activity, setActivity] = useState<ActivityTab>("payments");
@@ -202,10 +204,6 @@ export function PortalPage() {
     .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())[0];
   const progress = progressToNextLevel(data.client.points);
   const selected = data.credits.find((credit) => credit.id === activeCreditId) ?? data.credits[0] ?? null;
-  const catalogByCategory = PRODUCT_CATEGORIES.map((category) => ({
-    category,
-    items: data.catalog.filter((product) => product.category === category),
-  })).filter((group) => group.items.length > 0);
 
   return (
     <div className="portal-shell min-h-screen text-navy-900">
@@ -231,10 +229,10 @@ export function PortalPage() {
           <div className="flex items-start gap-4">
             <ProfilePhoto name={data.client.name} photoUrl={data.client.photoUrl} />
             <div className="min-w-0">
-              <p className="text-sm text-gold-300">Mi cuenta</p>
+              <p className="text-sm text-gold-300">Mi cuenta · {LEVEL_LABELS[data.client.level]}</p>
               <h1 className="font-display text-4xl font-semibold capitalize tracking-tight text-white">{data.client.name.toLowerCase()}</h1>
               <p className="mt-1 text-sm text-slate-300">
-                {data.client.code} · {catalogAccessLabel(data.client.level)}
+                {data.client.code} · puedes pedir {catalogAccessLabel(data.client.level)}
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <LevelBadge level={data.client.level} />
@@ -339,51 +337,49 @@ export function PortalPage() {
           )}
         </section>
 
-        <section className="space-y-6">
-          <SectionHead title="Catálogo" hint="Ves todo. Los de tu categoría se pueden pedir; el resto queda a la vista, bloqueado." />
-          {data.debt?.[0] ? (
-            <div className="panel px-5 py-3 text-sm text-navy-800">
-              Tienes saldo en <b>{data.debt[0].productName}</b>. Saldalo para pedir otro producto.
-            </div>
-          ) : null}
-          {catalogByCategory.length === 0 ? (
-            <EmptyStrip text="No hay productos en catálogo." />
+        <section className="panel p-4 sm:p-5">
+          {data.catalog.length === 0 ? (
+            <>
+              <SectionHead title="Catálogo" hint="Cuando haya productos, salen aquí." />
+              <EmptyStrip text="No hay productos en catálogo." />
+            </>
           ) : (
-            catalogByCategory.map((group) => (
-              <Carousel
-                key={group.category}
-                title={CATEGORY_LABELS[group.category]}
-                hint={`${group.items.length} producto${group.items.length === 1 ? "" : "s"}`}
-              >
-                {group.items.map((product) => (
-                  <CatalogSlide
-                    key={product.id}
-                    product={product}
-                    busy={busy === product.id}
-                    onRequest={async () => {
-                      setBusy(product.id);
-                      try {
-                        await api("/api/portal/request", {
-                          method: "POST",
-                          body: JSON.stringify({ ...identity(), productId: product.id }),
-                        });
-                        toast.success("Solicitud enviada");
-                        await lookup();
-                      } catch (err) {
-                        if (isDebtError(err)) {
-                          setDebtModal(creditsFromDebtError(err)[0] ?? data.debt?.[0] ?? null);
-                        } else {
-                          toast.error(err instanceof Error ? err.message : "No se pudo solicitar");
-                        }
-                      } finally {
-                        setBusy("");
+            <Carousel title="Catálogo" hint="Pide los de tu categoría. Si tocas otro, te explicamos.">
+              {data.catalog.map((product) => (
+                <CatalogSlide
+                  key={product.id}
+                  product={product}
+                  busy={busy === product.id}
+                  onAsk={async () => {
+                    if (!product.canRequest && !product.lockReason?.includes("saldar")) {
+                      setLevelLock(product);
+                      return;
+                    }
+                    if (!product.canRequest && product.lockReason?.includes("saldar")) {
+                      setDebtModal(data.debt?.[0] ?? null);
+                      return;
+                    }
+                    setBusy(product.id);
+                    try {
+                      await api("/api/portal/request", {
+                        method: "POST",
+                        body: JSON.stringify({ ...identity(), productId: product.id }),
+                      });
+                      toast.success("Solicitud enviada");
+                      await lookup();
+                    } catch (err) {
+                      if (isDebtError(err)) {
+                        setDebtModal(creditsFromDebtError(err)[0] ?? data.debt?.[0] ?? null);
+                      } else {
+                        toast.error(err instanceof Error ? err.message : "No se pudo solicitar");
                       }
-                    }}
-                    onDebt={() => setDebtModal(data.debt?.[0] ?? null)}
-                  />
-                ))}
-              </Carousel>
-            ))
+                    } finally {
+                      setBusy("");
+                    }
+                  }}
+                />
+              ))}
+            </Carousel>
           )}
         </section>
 
@@ -477,6 +473,18 @@ export function PortalPage() {
             }
           }}
           onClose={() => setDebtModal(null)}
+        />
+      )}
+      {levelLock && (
+        <InfoModal
+          title={`Este es de ${CATALOG_TIER_LABELS[levelLock.catalogTier]}`}
+          message="Tu categoría ahora es"
+          itemName={LEVEL_LABELS[data.client.level]}
+          notes={[
+            `Para pedirlo tienes que subir a ${LEVEL_LABELS[requiredLevelForTier(levelLock.catalogTier)]}.`,
+            `Tú puedes pedir: ${catalogAccessLabel(data.client.level)}.`,
+          ]}
+          onClose={() => setLevelLock(null)}
         />
       )}
     </div>
@@ -779,18 +787,14 @@ function CreditSlide({
 function CatalogSlide({
   product,
   busy,
-  onRequest,
-  onDebt,
+  onAsk,
 }: {
   product: CatalogProduct;
   busy: boolean;
-  onRequest: () => void;
-  onDebt: () => void;
+  onAsk: () => void;
 }) {
   return (
-    <article className={`carousel-item flex h-full w-64 flex-col overflow-hidden rounded-2xl border ${
-      product.canRequest ? "border-slate-200 bg-white" : "border-slate-200 bg-slate-50"
-    }`}>
+    <article className="carousel-item flex h-full w-64 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white">
       <div className="relative h-36 bg-slate-100">
         {product.imageUrl ? (
           <img src={mediaUrl(product.imageUrl)} alt={product.name} className="h-full w-full object-cover" />
@@ -808,17 +812,9 @@ function CatalogSlide({
         <p className="mt-0.5 font-semibold leading-tight">{product.name}</p>
         <p className="mt-2 font-display text-lg">{money(product.price)}</p>
         <div className="mt-auto pt-3">
-          {product.canRequest ? (
-            <button className="btn-gold w-full btn-compact" disabled={product.requested || busy} onClick={onRequest}>
-              {product.requested ? "Ya solicitado" : "Solicitar"}
-            </button>
-          ) : product.lockReason?.includes("saldar") ? (
-            <button type="button" className="btn-gold w-full btn-compact" onClick={onDebt}>
-              Solicitar
-            </button>
-          ) : (
-            <p className="text-xs font-medium text-rose-700">{product.lockReason || "Bloqueado para tu nivel"}</p>
-          )}
+          <button className="btn-gold w-full btn-compact" disabled={product.requested || busy} onClick={onAsk}>
+            {product.requested ? "Ya solicitado" : "Solicitar"}
+          </button>
         </div>
       </div>
     </article>

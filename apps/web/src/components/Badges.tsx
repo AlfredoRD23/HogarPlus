@@ -3,9 +3,9 @@ import { CATALOG_TIER_LABELS, effectiveInstallmentStatus, LEVEL_LABELS } from "@
 
 const levelClass: Record<ClientLevel, string> = {
   INICIAL: "bg-slate-100 text-slate-700",
-  BRONCE: "bg-amber-100 text-amber-800",
-  PLATA: "bg-slate-200 text-slate-800",
-  ORO: "bg-gold-100 text-gold-600",
+  BRONCE: "bg-[#B87333] text-white",
+  PLATA: "bg-[#8E9AA8] text-white",
+  ORO: "bg-[#C4A04A] text-navy-950",
 };
 
 const creditClass: Record<CreditStatus, string> = {
@@ -37,11 +37,11 @@ export function CreditBadge({ status }: { status: CreditStatus }) {
 
 export function CatalogBadge({ tier }: { tier: CatalogTier }) {
   const cls: Record<CatalogTier, string> = {
-    A: "bg-amber-100 text-amber-800",
-    B: "bg-slate-200 text-slate-800",
-    C: "bg-gold-100 text-gold-700",
+    A: "bg-[#B87333] text-white",
+    B: "bg-[#8E9AA8] text-white",
+    C: "bg-[#C4A04A] text-navy-950",
   };
-  return <Badge className={cls[tier]}>{CATALOG_TIER_LABELS[tier]}</Badge>;
+  return <Badge className={`${cls[tier]} font-semibold`}>{CATALOG_TIER_LABELS[tier]}</Badge>;
 }
 
 export function InstallmentBadge({ status, dueDate }: { status: InstallmentStatus; dueDate?: string | Date }) {

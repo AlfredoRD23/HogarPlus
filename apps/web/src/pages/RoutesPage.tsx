@@ -9,6 +9,7 @@ import { ConfirmModal } from "../components/ConfirmModal";
 import { PageHeader } from "../components/PageHeader";
 import { Loader, WaitLabel } from "../components/Loader";
 import { RowActions } from "../components/RowActions";
+import { StatusTabs } from "../components/StatusTabs";
 import { formatPhoneRD } from "@hogarplus/shared";
 
 type RouteRow = {
@@ -43,6 +44,7 @@ export function RoutesPage() {
   const [selected, setSelected] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", area: "", notes: "" });
   const [pick, setPick] = useState<string[]>([]);
+  const [statusTab, setStatusTab] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
 
   const list = useQuery({
     queryKey: ["routes"],
@@ -102,7 +104,10 @@ export function RoutesPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const rows = list.data?.data ?? [];
+  const allRows = list.data?.data ?? [];
+  const activeRows = allRows.filter((item) => item.active);
+  const inactiveRows = allRows.filter((item) => !item.active);
+  const rows = statusTab === "ACTIVE" ? activeRows : inactiveRows;
   const route = detail.data?.data;
   const available = (clients.data?.data ?? []).filter((c) => c.routeId !== selected);
 
@@ -114,10 +119,20 @@ export function RoutesPage() {
         icon={MapPinned}
         actions={[{ label: "Nueva ruta", icon: Plus, onClick: () => setOpen(true) }]}
       />
+      <StatusTabs
+        value={statusTab}
+        onChange={setStatusTab}
+        activeCount={activeRows.length}
+        inactiveCount={inactiveRows.length}
+      />
       <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
         <div className="panel overflow-hidden">
           {list.isLoading ? <Loader label="Cargando rutas..." /> : null}
-          {!list.isLoading && rows.length === 0 && <p className="p-5 text-sm text-slate-500">Todavía no hay rutas.</p>}
+          {!list.isLoading && rows.length === 0 && (
+            <p className="p-5 text-sm text-slate-500">
+              {statusTab === "ACTIVE" ? "Todavía no hay rutas activas." : "No hay rutas inactivas."}
+            </p>
+          )}
           {rows.map((item) => (
             <button
               key={item.id}

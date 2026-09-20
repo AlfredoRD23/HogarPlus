@@ -8,8 +8,9 @@ import { ImagePicker, MAX_PRODUCT_IMAGES } from "../components/ImagePicker";
 import { RowActions } from "../components/RowActions";
 import { PageHeader } from "../components/PageHeader";
 import { Package, Plus } from "lucide-react";
-import { CATEGORY_LABELS, CATALOG_TIER_LABELS, CATALOG_TIERS, firstError, integerError, moneyError, parseInteger, parseMoney, productNameError, type CatalogTier, type ProductCategory } from "@hogarplus/shared";
+import { CATEGORY_LABELS, CATALOG_TIERS, firstError, integerError, moneyError, parseInteger, parseMoney, productNameError, type CatalogTier, type ProductCategory } from "@hogarplus/shared";
 import { CatalogBadge } from "../components/Badges";
+import { StatusTabs } from "../components/StatusTabs";
 import { WaitLabel } from "../components/Loader";
 import { useOnceSubmit } from "../hooks/useOnceSubmit";
 
@@ -42,13 +43,65 @@ function coverOf(product: Product) {
   return product.imageUrl || product.images?.[0]?.path || "";
 }
 
+function ProductCard({
+  product,
+  onEdit,
+  onActivate,
+  onDeactivate,
+  onDelete,
+}: {
+  product: Product;
+  onEdit: () => void;
+  onActivate?: () => void;
+  onDeactivate?: () => void;
+  onDelete: () => void;
+}) {
+  const cover = coverOf(product);
+  return (
+    <article className="panel overflow-hidden">
+      <div className="relative h-48 bg-slate-100">
+        {cover ? (
+          <img src={mediaUrl(cover)} alt={product.name} className="h-full w-full object-cover" />
+        ) : (
+          <div className="flex h-full flex-col items-center justify-center text-slate-400">
+            <Package size={28} />
+            <span className="mt-2 text-xs">Sin foto</span>
+          </div>
+        )}
+        <div className="absolute left-3 top-3">
+          <CatalogBadge tier={product.catalogTier} />
+        </div>
+      </div>
+      <div className="space-y-3 p-5">
+        <div>
+          <p className="text-xs text-slate-400">{product.sku} · {CATEGORY_LABELS[product.category]}</p>
+          <h3 className="font-display text-xl leading-tight">{product.name}</h3>
+          {product.description ? <p className="mt-1 line-clamp-2 text-sm text-slate-500">{product.description}</p> : null}
+        </div>
+        <div>
+          <p className="font-display text-2xl">{money(product.price)}</p>
+          <p className="text-xs text-slate-500">Costo {money(product.cost)} · Stock {product.stock}</p>
+        </div>
+        <RowActions
+          active={product.status === "ACTIVE"}
+          onEdit={onEdit}
+          onDeactivate={onDeactivate}
+          onActivate={onActivate}
+          onDelete={onDelete}
+        />
+      </div>
+    </article>
+  );
+}
+
 export function ProductsPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
-  const [confirm, setConfirm] = useState<{ product: Product; activate: boolean } | null>(null);
+  const [confirm, setConfirm] = useState<{ product: Product; kind: "activate" | "deactivate" | "delete" } | null>(null);
   const [search, setSearch] = useState("");
   const [tier, setTier] = useState<CatalogTier | "ALL">("ALL");
+  const [statusTab, setStatusTab] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
   const q = useQuery({
     queryKey: ["products", search],
     queryFn: () => api<Product[]>(`/api/products?pageSize=100&search=${encodeURIComponent(search)}`),
@@ -82,7 +135,16 @@ export function ProductsPage() {
     mutationFn: ({ id, status }: { id: string; status: "ACTIVE" | "INACTIVE" }) =>
       api(`/api/products/${id}`, { method: "PATCH", body: JSON.stringify({ status }) }),
     onSuccess: () => {
-      toast.success(confirm?.activate ? "Producto reactivado" : "Producto desactivado");
+      toast.success(confirm?.kind === "activate" ? "Producto reactivado" : "Producto desactivado");
+      qc.invalidateQueries({ queryKey: ["products"] });
+      setConfirm(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const remove = useMutation({
+    mutationFn: (id: string) => api(`/api/products/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      toast.success("Producto eliminado");
       qc.invalidateQueries({ queryKey: ["products"] });
       setConfirm(null);
     },
@@ -90,6 +152,9 @@ export function ProductsPage() {
   });
 
   const rows = (q.data?.data ?? []).filter((p) => (tier === "ALL" ? true : p.catalogTier === tier));
+  const activeRows = rows.filter((p) => p.status === "ACTIVE");
+  const inactiveRows = rows.filter((p) => p.status !== "ACTIVE");
+  const visible = statusTab === "ACTIVE" ? activeRows : inactiveRows;
 
   return (
     <div className="space-y-4">
@@ -102,68 +167,53 @@ export function ProductsPage() {
         onSearchChange={setSearch}
         actions={[{ label: "Nuevo producto", icon: Plus, onClick: () => setOpen(true) }]}
       />
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <button className={tier === "ALL" ? "btn-primary" : "btn-ghost"} onClick={() => setTier("ALL")}>Todos</button>
         {CATALOG_TIERS.map((item) => (
-          <button key={item} className={tier === item ? "btn-primary" : "btn-ghost"} onClick={() => setTier(item)}>
-            {CATALOG_TIER_LABELS[item]}
+          <button
+            key={item}
+            type="button"
+            className={`rounded-full ${tier === item ? "ring-2 ring-navy-900 ring-offset-2" : "opacity-80 hover:opacity-100"}`}
+            onClick={() => setTier(item)}
+          >
+            <CatalogBadge tier={item} />
           </button>
         ))}
       </div>
+      <StatusTabs
+        value={statusTab}
+        onChange={setStatusTab}
+        activeCount={activeRows.length}
+        inactiveCount={inactiveRows.length}
+      />
       {q.isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="panel h-80 animate-pulse bg-slate-100" />
           ))}
         </div>
-      ) : rows.length === 0 ? (
+      ) : visible.length === 0 ? (
         <div className="panel p-8 text-center">
-          <p className="font-display text-xl">Catálogo vacío</p>
-          <p className="mt-1 text-sm text-slate-500">Agrega el primer producto con su foto.</p>
-          <button className="btn-gold mt-4" onClick={() => setOpen(true)}>Nuevo producto</button>
+          <p className="font-display text-xl">{statusTab === "ACTIVE" ? "Sin productos activos" : "Sin productos inactivos"}</p>
+          <p className="mt-1 text-sm text-slate-500">
+            {statusTab === "ACTIVE" ? "Agrega un producto o reactívalo en Inactivos." : "Los que desactives aparecen aquí."}
+          </p>
+          {statusTab === "ACTIVE" ? (
+            <button className="btn-gold mt-4" onClick={() => setOpen(true)}>Nuevo producto</button>
+          ) : null}
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {rows.map((p) => {
-            const cover = coverOf(p);
-            return (
-              <article key={p.id} className={`panel overflow-hidden ${p.status !== "ACTIVE" ? "opacity-70" : ""}`}>
-                <div className="relative h-48 bg-slate-100">
-                  {cover ? (
-                    <img src={mediaUrl(cover)} alt={p.name} className="h-full w-full object-cover" />
-                  ) : (
-                    <div className="flex h-full flex-col items-center justify-center text-slate-400">
-                      <Package size={28} />
-                      <span className="mt-2 text-xs">Sin foto</span>
-                    </div>
-                  )}
-                  <div className="absolute left-3 top-3">
-                    <CatalogBadge tier={p.catalogTier} />
-                  </div>
-                </div>
-                <div className="space-y-3 p-5">
-                  <div>
-                    <p className="text-xs text-slate-400">{p.sku} · {CATEGORY_LABELS[p.category]}</p>
-                    <h3 className="font-display text-xl leading-tight">{p.name}</h3>
-                    {p.description ? <p className="mt-1 line-clamp-2 text-sm text-slate-500">{p.description}</p> : null}
-                    {p.status !== "ACTIVE" ? <p className="mt-1 text-[11px] font-bold uppercase text-rose-700">Inactivo</p> : null}
-                  </div>
-                  <div className="flex items-end justify-between">
-                    <div>
-                      <p className="font-display text-2xl">{money(p.price)}</p>
-                      <p className="text-xs text-slate-500">Costo {money(p.cost)} · Stock {p.stock}</p>
-                    </div>
-                  </div>
-                  <RowActions
-                    active={p.status === "ACTIVE"}
-                    onEdit={() => setEditing(p)}
-                    onDeactivate={() => setConfirm({ product: p, activate: false })}
-                    onActivate={() => setConfirm({ product: p, activate: true })}
-                  />
-                </div>
-              </article>
-            );
-          })}
+          {visible.map((p) => (
+            <ProductCard
+              key={p.id}
+              product={p}
+              onEdit={() => setEditing(p)}
+              onDeactivate={p.status === "ACTIVE" ? () => setConfirm({ product: p, kind: "deactivate" }) : undefined}
+              onActivate={p.status !== "ACTIVE" ? () => setConfirm({ product: p, kind: "activate" }) : undefined}
+              onDelete={() => setConfirm({ product: p, kind: "delete" })}
+            />
+          ))}
         </div>
       )}
       {open && (
@@ -183,24 +233,58 @@ export function ProductsPage() {
       )}
       {confirm && (
         <ConfirmModal
-          title={confirm.activate ? "Reactivar producto" : "Desactivar producto"}
-          message={confirm.activate ? "Vas a reactivar" : "Vas a desactivar"}
+          title={
+            confirm.kind === "activate"
+              ? "Reactivar producto"
+              : confirm.kind === "delete"
+                ? "Eliminar producto"
+                : "Desactivar producto"
+          }
+          message={
+            confirm.kind === "activate"
+              ? "Vas a reactivar"
+              : confirm.kind === "delete"
+                ? "Vas a eliminar"
+                : "Vas a desactivar"
+          }
           itemName={confirm.product.name}
-          confirmText={confirm.activate ? "Reactivar" : "Desactivar"}
-          loading={toggle.isPending}
-          error={toggle.error instanceof Error ? toggle.error.message : undefined}
+          confirmText={
+            confirm.kind === "activate" ? "Reactivar" : confirm.kind === "delete" ? "Eliminar" : "Desactivar"
+          }
+          loading={confirm.kind === "delete" ? remove.isPending : toggle.isPending}
+          irreversible={confirm.kind === "delete"}
+          error={
+            (confirm.kind === "delete" ? remove.error : toggle.error) instanceof Error
+              ? ((confirm.kind === "delete" ? remove.error : toggle.error) as Error).message
+              : undefined
+          }
           consequences={
-            confirm.activate
+            confirm.kind === "activate"
               ? ["Volverá a verse en el catálogo y se podrá entregar otra vez"]
-              : [
-                  "No se borra el producto ni el kardex",
-                  "Los créditos ya entregados se quedan igual",
-                  "Nadie podrá solicitarlo ni entregarlo de nuevo",
-                  "Puedes reactivarlo cuando quieras",
-                ]
+              : confirm.kind === "delete"
+                ? [
+                    "Se borra del catálogo",
+                    "Si ya se entregó a un cliente, no se puede borrar",
+                    "Esto no se puede deshacer",
+                  ]
+                : [
+                    "No se borra el producto ni el kardex",
+                    "Los créditos ya entregados se quedan igual",
+                    "Nadie podrá solicitarlo ni entregarlo de nuevo",
+                    "Puedes reactivarlo cuando quieras",
+                  ]
           }
           onClose={() => setConfirm(null)}
-          onConfirm={() => toggle.mutate({ id: confirm.product.id, status: confirm.activate ? "ACTIVE" : "INACTIVE" })}
+          onConfirm={() => {
+            if (confirm.kind === "delete") {
+              remove.mutate(confirm.product.id);
+              return;
+            }
+            toggle.mutate({
+              id: confirm.product.id,
+              status: confirm.kind === "activate" ? "ACTIVE" : "INACTIVE",
+            });
+          }}
         />
       )}
     </div>
@@ -279,11 +363,18 @@ function ProductForm({
         </select>
       </Field>
       <Field label="Nivel del catálogo" required>
-        <select className="input" value={f.catalogTier} onChange={(e) => set("catalogTier", e.target.value)}>
-          <option value="A">Bronce</option>
-          <option value="B">Plata</option>
-          <option value="C">Oro</option>
-        </select>
+        <div className="flex flex-wrap gap-2">
+          {CATALOG_TIERS.map((item) => (
+            <button
+              key={item}
+              type="button"
+              className={`rounded-full ${f.catalogTier === item ? "ring-2 ring-navy-900 ring-offset-2" : "opacity-70 hover:opacity-100"}`}
+              onClick={() => set("catalogTier", item)}
+            >
+              <CatalogBadge tier={item} />
+            </button>
+          ))}
+        </div>
       </Field>
       <Field label="Costo" hint={fieldHint("money")} error={errors.cost} required>
         <FormattedInput kind="money" required value={f.cost} error={Boolean(errors.cost)} onValue={(v) => set("cost", v)} />

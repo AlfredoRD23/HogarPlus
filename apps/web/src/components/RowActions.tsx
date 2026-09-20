@@ -1,4 +1,4 @@
-import { Ban, MoreHorizontal, Pencil, RotateCcw, type LucideIcon } from "lucide-react";
+import { Ban, MoreHorizontal, Pencil, RotateCcw, Trash2, type LucideIcon } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -14,6 +14,7 @@ export function RowActions({
   onEdit,
   onDeactivate,
   onActivate,
+  onDelete,
   deactivateLabel = "Desactivar",
   activateLabel = "Activar",
   extra = [],
@@ -22,6 +23,7 @@ export function RowActions({
   onEdit?: () => void;
   onDeactivate?: () => void;
   onActivate?: () => void;
+  onDelete?: () => void;
   deactivateLabel?: string;
   activateLabel?: string;
   extra?: RowActionItem[];
@@ -34,6 +36,7 @@ export function RowActions({
     ...(!active && onActivate
       ? [{ label: activateLabel, icon: RotateCcw, onClick: onActivate }]
       : []),
+    ...(onDelete ? [{ label: "Eliminar", icon: Trash2, onClick: onDelete, danger: true }] : []),
     ...extra,
   ];
 

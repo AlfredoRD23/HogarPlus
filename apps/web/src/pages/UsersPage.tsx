@@ -12,6 +12,7 @@ import { WaitLabel } from "../components/Loader";
 import { Plus, Shield } from "lucide-react";
 import { ROLE_DESCRIPTIONS, ROLE_LABELS, ROLES, emailError, firstError, passwordError, personNameError, type Role } from "@hogarplus/shared";
 import { useOnceSubmit } from "../hooks/useOnceSubmit";
+import { StatusTabs } from "../components/StatusTabs";
 
 type StaffUser = { id: string; name: string; email: string; role: Role; active: boolean };
 
@@ -20,6 +21,7 @@ export function UsersPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<StaffUser | null>(null);
   const [confirm, setConfirm] = useState<{ user: StaffUser; activate: boolean } | null>(null);
+  const [statusTab, setStatusTab] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
   const q = useQuery({
     queryKey: ["users"],
     queryFn: () => api<StaffUser[]>("/api/users"),
@@ -54,7 +56,10 @@ export function UsersPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const rows = q.data?.data ?? [];
+  const allRows = q.data?.data ?? [];
+  const activeRows = allRows.filter((u) => u.active);
+  const inactiveRows = allRows.filter((u) => !u.active);
+  const rows = statusTab === "ACTIVE" ? activeRows : inactiveRows;
 
   return (
     <div className="space-y-4">
@@ -64,13 +69,19 @@ export function UsersPage() {
         icon={Shield}
         actions={[{ label: "Nuevo usuario", icon: Plus, onClick: () => setOpen(true) }]}
       />
+      <StatusTabs
+        value={statusTab}
+        onChange={setStatusTab}
+        activeCount={activeRows.length}
+        inactiveCount={inactiveRows.length}
+      />
       <DataTable
         title="Equipo"
-        count={q.data?.meta?.total ?? rows.length}
+        count={rows.length}
         loading={q.isLoading}
         rows={rows.length}
-        emptyTitle="Sin usuarios"
-        emptyDescription="Crea un usuario operativo para ventas o cobranza."
+        emptyTitle={statusTab === "ACTIVE" ? "Sin usuarios activos" : "Sin usuarios inactivos"}
+        emptyDescription={statusTab === "ACTIVE" ? "Crea un usuario operativo para ventas o cobranza." : "Los que desactives aparecen aquí."}
         headers={["Nombre", "Correo", "Rol", "Estado", "Acciones"]}
         mobile={rows.map((u) => (
           <TableCard

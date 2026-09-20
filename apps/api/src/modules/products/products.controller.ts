@@ -41,6 +41,11 @@ export class ProductsController {
     res.status(201).json({ success: true, data });
   }
 
+  async remove(req: Request, res: Response) {
+    const data = await productsService.remove(req.params.id, (req as AuthedRequest).user.id, req.ip);
+    res.json({ success: true, data });
+  }
+
   async removeImage(req: Request, res: Response) {
     const data = await productsService.removeImage(req.params.id, req.params.imageId);
     res.json({ success: true, data });

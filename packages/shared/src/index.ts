@@ -130,11 +130,10 @@ export function progressToNextLevel(points: number): { next: ClientLevel | null;
 export function catalogsForLevel(level: ClientLevel): CatalogTier[] {
   switch (level) {
     case "INICIAL":
-      return ["A"];
     case "BRONCE":
-      return ["A", "B"];
+      return ["A"];
     case "PLATA":
-      return ["A", "B", "C"];
+      return ["A", "B"];
     case "ORO":
       return ["A", "B", "C"];
     default: {
@@ -153,11 +152,11 @@ export function catalogAccessLabel(level: ClientLevel): string {
 export function requiredLevelForTier(tier: CatalogTier): ClientLevel {
   switch (tier) {
     case "A":
-      return "INICIAL";
-    case "B":
       return "BRONCE";
-    case "C":
+    case "B":
       return "PLATA";
+    case "C":
+      return "ORO";
     default: {
       const _exhaustive: never = tier;
       return _exhaustive;
@@ -178,10 +177,10 @@ export function productRequestAccess(
       lockReason: `No puedes solicitarlo hasta subir a ${LEVEL_LABELS[need]}`,
     };
   }
-  if (tier === "C" && !catalogApproved) {
+  if (tier === "C" && level !== "ORO" && !catalogApproved) {
     return {
       canRequest: false,
-      lockReason: "No puedes solicitarlo hasta que aprueben tu categoría Oro",
+      lockReason: `No puedes solicitarlo hasta subir a ${LEVEL_LABELS.ORO}`,
     };
   }
   if (hasDebt) {

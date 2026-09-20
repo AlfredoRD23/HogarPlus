@@ -22,7 +22,8 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<ApiE
   const token = getToken();
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
-  const res = await fetch(path, { ...init, headers });
+  const base = import.meta.env.VITE_API_URL ?? "";
+  const res = await fetch(`${base}${path}`, { ...init, headers });
   const json = (await res.json()) as ApiEnvelope<T>;
   if (!res.ok || json.success === false) {
     throw new Error(json.error?.message || "Error de red");

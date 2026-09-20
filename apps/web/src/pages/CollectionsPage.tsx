@@ -3,9 +3,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { api, money } from "../lib/api";
 import { KpiCard } from "../components/KpiCard";
-import { Field, Modal } from "../components/Form";
+import { Field, FormattedTextarea, Modal } from "../components/Form";
 import { PageHeader } from "../components/PageHeader";
 import { Bell } from "lucide-react";
+import { firstError, formatPhoneRD, noteError } from "@hogarplus/shared";
 
 type Board = {
   kpis: { expected: number; received: number; pending: number; rate: number; overdueCount: number };
@@ -86,7 +87,7 @@ function Bucket({
             onClick={() => onNote({ clientId: item.clientId, creditId: item.creditId, name: item.name })}
           >
             <p className="font-semibold">{item.name}</p>
-            <p className="text-xs text-slate-500">{item.phone} · {item.extra}</p>
+            <p className="text-xs text-slate-500">{formatPhoneRD(item.phone)} · {item.extra}</p>
           </button>
         ))}
         {items.length === 0 && <p className="text-sm text-slate-400">Sin cuentas en este estado</p>}
@@ -98,12 +99,20 @@ function Bucket({
 function NoteForm({ onSave, onCancel }: { onSave: (note: string, channel: string) => void; onCancel: () => void }) {
   const [note, setNote] = useState("");
   const [channel, setChannel] = useState("WHATSAPP");
+  const [error, setError] = useState("");
   return (
     <form
       className="space-y-3"
+      noValidate
       onSubmit={(e) => {
         e.preventDefault();
-        onSave(note, channel);
+        const message = firstError([noteError(note)]);
+        if (message) {
+          setError(message);
+          toast.error(message);
+          return;
+        }
+        onSave(note.trim(), channel);
       }}
     >
       <Field label="Canal">
@@ -114,7 +123,9 @@ function NoteForm({ onSave, onCancel }: { onSave: (note: string, channel: string
           <option value="SMS">SMS</option>
         </select>
       </Field>
-      <Field label="Nota"><textarea className="input min-h-24" value={note} onChange={(e) => setNote(e.target.value)} /></Field>
+      <Field label="Nota" hint="Mínimo 3 caracteres" error={error}>
+        <FormattedTextarea required value={note} error={Boolean(error)} onValue={(v) => { setNote(v); setError(""); }} />
+      </Field>
       <div className="flex justify-end gap-2">
         <button type="button" className="btn-ghost" onClick={onCancel}>Cancelar</button>
         <button className="btn-primary">Guardar</button>

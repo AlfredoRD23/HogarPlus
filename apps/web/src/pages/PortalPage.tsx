@@ -2,7 +2,8 @@ import { useState } from "react";
 import { api, money } from "../lib/api";
 import { Logo } from "../components/Logo";
 import { LevelBadge, InstallmentBadge } from "../components/Badges";
-import { CATEGORY_LABELS, type ClientLevel, type InstallmentStatus, type ProductCategory } from "@hogarplus/shared";
+import { FormattedInput } from "../components/Form";
+import { CATEGORY_LABELS, cedulaError, digitsOnly, firstError, phoneError, type ClientLevel, type InstallmentStatus, type ProductCategory } from "@hogarplus/shared";
 
 type PortalData = {
   client: { code: string; name: string; points: number; level: ClientLevel; affiliationPaid: boolean };
@@ -34,13 +35,19 @@ export function PortalPage() {
         <p className="mt-2 text-slate-300">Saldo, puntos, catálogo disponible y próximos pagos.</p>
         <form
           className="mt-6 grid gap-3 rounded-2xl bg-navy-900 p-5 md:grid-cols-3"
+          noValidate
           onSubmit={async (e) => {
             e.preventDefault();
             setError("");
+            const message = firstError([cedulaError(documentId), phoneError(phone)]);
+            if (message) {
+              setError(message);
+              return;
+            }
             try {
               const res = await api<PortalData>("/api/portal/lookup", {
                 method: "POST",
-                body: JSON.stringify({ documentId, phone }),
+                body: JSON.stringify({ documentId: digitsOnly(documentId), phone: digitsOnly(phone) }),
               });
               setData(res.data);
             } catch (err) {
@@ -49,8 +56,8 @@ export function PortalPage() {
             }
           }}
         >
-          <input className="input text-navy-900" value={documentId} onChange={(e) => setDocumentId(e.target.value)} placeholder="Cédula" />
-          <input className="input text-navy-900" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Teléfono" />
+          <FormattedInput kind="cedula" required className="input text-navy-900" value={documentId} onValue={setDocumentId} placeholder="000-0000000-0" />
+          <FormattedInput kind="phone" required className="input text-navy-900" value={phone} onValue={setPhone} placeholder="809-000-0000" />
           <button className="btn-gold">Consultar</button>
         </form>
         {error && <p className="mt-4 text-rose-300">{error}</p>}

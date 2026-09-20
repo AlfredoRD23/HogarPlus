@@ -36,7 +36,7 @@ Usuario demo: `admin@hogarplus.do` / `Admin123!`
 
 También: `ventas@hogarplus.do`, `cobranza@hogarplus.do`, `inventario@hogarplus.do` (misma clave).
 
-Consulta de portal: cédula `00100000001` y teléfono `8091110001`.
+Consulta de portal: cédula `001-0000001-7` y teléfono `809-111-0001`.
 
 ## Módulos
 

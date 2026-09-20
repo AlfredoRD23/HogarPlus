@@ -2,11 +2,11 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { api } from "../lib/api";
-import { Field, Modal } from "../components/Form";
+import { Field, FormattedInput, Modal, fieldHint } from "../components/Form";
 import { PageHeader } from "../components/PageHeader";
 import { DataTable } from "../components/DataTable";
 import { Plus, Shield } from "lucide-react";
-import { ROLE_LABELS, ROLES, type Role } from "@hogarplus/shared";
+import { ROLE_LABELS, ROLES, emailError, firstError, passwordError, personNameError, type Role } from "@hogarplus/shared";
 
 export function UsersPage() {
   const qc = useQueryClient();
@@ -64,19 +64,42 @@ export function UsersPage() {
 
 function UserForm({ onSave, onCancel }: { onSave: (b: Record<string, unknown>) => void; onCancel: () => void }) {
   const [f, setF] = useState({ name: "", email: "", password: "", role: "VENTAS" });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const set = (key: keyof typeof f, value: string) => {
+    setF((current) => ({ ...current, [key]: value }));
+    setErrors((current) => ({ ...current, [key]: "" }));
+  };
   return (
     <form
       className="grid gap-3"
+      noValidate
       onSubmit={(e) => {
         e.preventDefault();
-        onSave(f);
+        const next = {
+          name: personNameError(f.name, "nombre") ?? "",
+          email: emailError(f.email) ?? "",
+          password: passwordError(f.password) ?? "",
+        };
+        setErrors(next);
+        const message = firstError(Object.values(next));
+        if (message) {
+          toast.error(message);
+          return;
+        }
+        onSave({ ...f, name: f.name.trim(), email: f.email.trim() });
       }}
     >
-      <Field label="Nombre"><input className="input" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
-      <Field label="Correo"><input className="input" type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} /></Field>
-      <Field label="Contraseña"><input className="input" type="password" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} /></Field>
+      <Field label="Nombre" hint={fieldHint("name")} error={errors.name}>
+        <FormattedInput kind="name" required value={f.name} error={Boolean(errors.name)} onValue={(v) => set("name", v)} />
+      </Field>
+      <Field label="Correo" hint={fieldHint("email")} error={errors.email}>
+        <FormattedInput kind="email" required value={f.email} error={Boolean(errors.email)} onValue={(v) => set("email", v)} />
+      </Field>
+      <Field label="Contraseña" hint={fieldHint("password")} error={errors.password}>
+        <FormattedInput kind="password" required value={f.password} error={Boolean(errors.password)} onValue={(v) => set("password", v)} />
+      </Field>
       <Field label="Rol">
-        <select className="input" value={f.role} onChange={(e) => setF({ ...f, role: e.target.value })}>
+        <select className="input" value={f.role} onChange={(e) => set("role", e.target.value)}>
           {ROLES.map((r) => (
             <option key={r} value={r}>{ROLE_LABELS[r]}</option>
           ))}

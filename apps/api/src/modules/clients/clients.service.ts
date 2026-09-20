@@ -1,5 +1,5 @@
 import { Prisma } from "@prisma/client";
-import { levelFromPoints, POINTS_RULES } from "@hogarplus/shared";
+import { levelFromPoints, POINTS_RULES, digitsOnly } from "@hogarplus/shared";
 import { settingsService } from "../settings/settings.service";
 import { prisma } from "../../lib/prisma";
 import { AppError, nextCode, pagination } from "../../shared/utils";
@@ -33,17 +33,20 @@ const clientSelect = {
 export class ClientsService {
   async list(query: { page?: unknown; pageSize?: unknown; search?: string; status?: string; level?: string }) {
     const { skip, take, page, pageSize } = pagination(query);
+    const search = query.search?.trim();
+    const digits = search ? digitsOnly(search) : "";
     const where: Prisma.ClientWhereInput = {
       ...(query.status ? { status: query.status as Prisma.EnumClientStatusFilter["equals"] } : {}),
       ...(query.level ? { level: query.level as Prisma.EnumClientLevelFilter["equals"] } : {}),
-      ...(query.search
+      ...(search
         ? {
             OR: [
-              { firstName: { contains: query.search } },
-              { lastName: { contains: query.search } },
-              { documentId: { contains: query.search } },
-              { phone: { contains: query.search } },
-              { code: { contains: query.search } },
+              { firstName: { contains: search } },
+              { lastName: { contains: search } },
+              { code: { contains: search } },
+              ...(digits.length >= 3
+                ? [{ documentId: { contains: digits } }, { phone: { contains: digits } }]
+                : [{ documentId: { contains: search } }, { phone: { contains: search } }]),
             ],
           }
         : {}),

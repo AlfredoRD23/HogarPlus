@@ -1,6 +1,6 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import { DEFAULTS, levelFromPoints, POINTS_RULES } from "@hogarplus/shared";
+import { DEFAULTS, levelFromPoints, POINTS_RULES, withCedulaCheckDigit } from "@hogarplus/shared";
 
 const prisma = new PrismaClient();
 
@@ -88,18 +88,18 @@ async function main() {
   }
 
   const names = [
-    ["Ana", "Pérez", "00100000001", "8091110001", "Santo Domingo"],
-    ["José", "Gómez", "00100000002", "8091110002", "Santiago"],
-    ["Luisa", "Martínez", "00100000003", "8091110003", "La Vega"],
-    ["Pedro", "Santos", "00100000004", "8091110004", "San Cristóbal"],
-    ["Carmen", "Díaz", "00100000005", "8091110005", "Puerto Plata"],
-    ["Miguel", "Reyes", "00100000006", "8091110006", "Santo Domingo"],
-    ["Rosa", "Castillo", "00100000007", "8091110007", "San Pedro"],
-    ["Juan", "Vargas", "00100000008", "8091110008", "La Romana"],
-    ["Elena", "Núñez", "00100000009", "8091110009", "Moca"],
-    ["Carlos", "Fernández", "00100000010", "8091110010", "Santo Domingo"],
-    ["Patricia", "López", "00100000011", "8091110011", "Bonao"],
-    ["Rafael", "Cruz", "00100000012", "8091110012", "Azua"],
+    ["Ana", "Pérez", withCedulaCheckDigit("0010000001"), "8091110001", "Santo Domingo"],
+    ["José", "Gómez", withCedulaCheckDigit("0010000002"), "8091110002", "Santiago"],
+    ["Luisa", "Martínez", withCedulaCheckDigit("0010000003"), "8091110003", "La Vega"],
+    ["Pedro", "Santos", withCedulaCheckDigit("0010000004"), "8091110004", "San Cristóbal"],
+    ["Carmen", "Díaz", withCedulaCheckDigit("0010000005"), "8091110005", "Puerto Plata"],
+    ["Miguel", "Reyes", withCedulaCheckDigit("0010000006"), "8091110006", "Santo Domingo"],
+    ["Rosa", "Castillo", withCedulaCheckDigit("0010000007"), "8091110007", "San Pedro"],
+    ["Juan", "Vargas", withCedulaCheckDigit("0010000008"), "8091110008", "La Romana"],
+    ["Elena", "Núñez", withCedulaCheckDigit("0010000009"), "8091110009", "Moca"],
+    ["Carlos", "Fernández", withCedulaCheckDigit("0010000010"), "8091110010", "Santo Domingo"],
+    ["Patricia", "López", withCedulaCheckDigit("0010000011"), "8091110011", "Bonao"],
+    ["Rafael", "Cruz", withCedulaCheckDigit("0010000012"), "8091110012", "Azua"],
   ];
 
   const clients = [];
@@ -258,6 +258,7 @@ async function main() {
   console.log("Seed HogarPlus listo");
   console.log("Usuario:  admin@hogarplus.do");
   console.log("Clave:    Admin123!");
+  console.log(`Portal:   ${names[0][2]} / ${names[0][3]}`);
 }
 
 main()

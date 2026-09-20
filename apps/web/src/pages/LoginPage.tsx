@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { Logo } from "../components/Logo";
 import { useAuth } from "../auth/AuthContext";
+import { Field, FormattedInput, fieldHint } from "../components/Form";
+import { emailError, firstError } from "@hogarplus/shared";
 
 const EMAIL_KEY = "hogarplus.lastEmail";
 
@@ -34,12 +36,18 @@ export function LoginPage() {
       <section className="flex items-center justify-center p-6">
         <form
           className="panel w-full max-w-md p-8"
+          noValidate
           onSubmit={async (e) => {
             e.preventDefault();
+            const message = firstError([emailError(email), password.length < 6 ? "La contraseña es obligatoria" : null]);
+            if (message) {
+              toast.error(message);
+              return;
+            }
             setLoading(true);
             try {
-              await login(email, password);
-              if (remember) localStorage.setItem(EMAIL_KEY, email);
+              await login(email.trim(), password);
+              if (remember) localStorage.setItem(EMAIL_KEY, email.trim());
               else localStorage.removeItem(EMAIL_KEY);
               toast.success("Bienvenido a HogarPlus");
               navigate("/dashboard");
@@ -55,14 +63,16 @@ export function LoginPage() {
           </div>
           <h1 className="mt-4 font-display text-3xl text-navy-900">Ingreso al sistema</h1>
           <p className="mt-2 text-sm text-slate-500">Usa tu usuario real. La sesión se valida contra la base de datos.</p>
-          <label className="mt-6 block">
-            <span className="label">Correo</span>
-            <input className="input" type="email" required autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} />
-          </label>
-          <label className="mt-4 block">
-            <span className="label">Contraseña</span>
-            <input className="input" type="password" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
-          </label>
+          <div className="mt-6">
+            <Field label="Correo" hint={fieldHint("email")}>
+              <FormattedInput kind="email" required autoComplete="username" value={email} onValue={setEmail} />
+            </Field>
+          </div>
+          <div className="mt-4">
+            <Field label="Contraseña">
+              <FormattedInput kind="password" required autoComplete="current-password" value={password} onValue={setPassword} placeholder="Tu contraseña" />
+            </Field>
+          </div>
           <label className="mt-3 flex items-center gap-2 text-sm text-slate-600">
             <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
             Recordar correo en este equipo

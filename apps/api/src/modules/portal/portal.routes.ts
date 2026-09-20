@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { catalogsForLevel } from "@hogarplus/shared";
+import { catalogsForLevel, digitsOnly, formatCedula, formatPhoneRD, isValidPhoneRD } from "@hogarplus/shared";
 import { prisma } from "../../lib/prisma";
 import { asyncHandler } from "../../shared/http";
 import { AppError } from "../../shared/utils";
@@ -8,8 +8,14 @@ import { AppError } from "../../shared/utils";
 export const portalRouter = Router();
 
 const lookupSchema = z.object({
-  documentId: z.string().min(5),
-  phone: z.string().min(7),
+  documentId: z
+    .string()
+    .transform((value) => digitsOnly(value))
+    .refine((value) => value.length === 11, { message: "La cédula debe tener 11 dígitos (000-0000000-0)" }),
+  phone: z
+    .string()
+    .transform((value) => digitsOnly(value))
+    .refine((value) => isValidPhoneRD(value), { message: "El teléfono debe tener 10 dígitos y iniciar con 809, 829 o 849" }),
 });
 
 portalRouter.post(
@@ -17,7 +23,12 @@ portalRouter.post(
   asyncHandler(async (req, res) => {
     const body = lookupSchema.parse(req.body);
     const client = await prisma.client.findFirst({
-      where: { documentId: body.documentId, phone: body.phone },
+      where: {
+        AND: [
+          { OR: [{ documentId: body.documentId }, { documentId: formatCedula(body.documentId) }] },
+          { OR: [{ phone: body.phone }, { phone: formatPhoneRD(body.phone) }] },
+        ],
+      },
       include: {
         credits: {
           include: { product: true, installments: { orderBy: { number: "asc" } } },

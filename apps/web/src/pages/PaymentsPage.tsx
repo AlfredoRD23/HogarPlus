@@ -3,11 +3,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { api, formatDate, money } from "../lib/api";
-import { Field } from "../components/Form";
+import { Field, FormattedInput, fieldHint } from "../components/Form";
 import { PageHeader } from "../components/PageHeader";
 import { DataTable } from "../components/DataTable";
 import { Wallet } from "lucide-react";
-import { PAYMENT_METHOD_LABELS, type PaymentMethod } from "@hogarplus/shared";
+import { PAYMENT_METHOD_LABELS, firstError, moneyError, parseMoney, referenceError, type PaymentMethod } from "@hogarplus/shared";
 
 type Payment = {
   id: string;
@@ -40,22 +40,33 @@ export function PaymentsPage() {
   const [form, setForm] = useState({
     clientId: params.get("clientId") ?? "",
     creditId: params.get("creditId") ?? "",
-    amount: 0,
+    amount: "",
     method: "CASH" as PaymentMethod,
     reference: "",
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const settings = useQuery({
     queryKey: ["settings"],
     queryFn: () => api<{ weeklyQuota: number }>("/api/settings"),
   });
   useEffect(() => {
-    if (form.amount === 0 && settings.data?.data.weeklyQuota) {
-      setForm((f) => ({ ...f, amount: settings.data.data.weeklyQuota }));
+    if (!form.amount && settings.data?.data.weeklyQuota) {
+      setForm((f) => ({ ...f, amount: String(settings.data.data.weeklyQuota) }));
     }
   }, [settings.data, form.amount]);
 
   const create = useMutation({
-    mutationFn: () => api("/api/payments", { method: "POST", body: JSON.stringify(form) }),
+    mutationFn: () =>
+      api("/api/payments", {
+        method: "POST",
+        body: JSON.stringify({
+          clientId: form.clientId,
+          creditId: form.creditId || undefined,
+          amount: parseMoney(form.amount),
+          method: form.method,
+          reference: form.reference.trim() || undefined,
+        }),
+      }),
     onSuccess: () => {
       toast.success("Pago aplicado al saldo y a las cuotas");
       qc.invalidateQueries({ queryKey: ["payments"] });
@@ -77,15 +88,28 @@ export function PaymentsPage() {
       <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
       <form
         className="panel p-5 space-y-3"
+        noValidate
         onSubmit={(e) => {
           e.preventDefault();
+          const needsReference = form.method === "TRANSFER" || form.method === "DEPOSIT";
+          const next = {
+            clientId: form.clientId ? "" : "Selecciona un cliente",
+            amount: moneyError(form.amount, { label: "monto" }) ?? "",
+            reference: referenceError(form.reference, needsReference) ?? "",
+          };
+          setErrors(next);
+          const message = firstError(Object.values(next));
+          if (message) {
+            toast.error(message);
+            return;
+          }
           create.mutate();
         }}
       >
         <h2 className="font-display text-2xl">Registrar pago</h2>
         <p className="text-xs text-slate-500">El sistema aplica FIFO a cuotas, marca adelantos y no trata el cobro como utilidad.</p>
-        <Field label="Cliente">
-          <select className="input" required value={form.clientId} onChange={(e) => setForm({ ...form, clientId: e.target.value })}>
+        <Field label="Cliente" error={errors.clientId}>
+          <select className={`input ${errors.clientId ? "input-error" : ""}`} required value={form.clientId} onChange={(e) => setForm({ ...form, clientId: e.target.value })}>
             <option value="">Seleccione</option>
             {(clients.data?.data ?? []).map((c) => (
               <option key={c.id} value={c.id}>{c.firstName} {c.lastName}</option>
@@ -100,7 +124,9 @@ export function PaymentsPage() {
             ))}
           </select>
         </Field>
-        <Field label="Monto"><input className="input" type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: Number(e.target.value) })} /></Field>
+        <Field label="Monto" hint={fieldHint("money")} error={errors.amount}>
+          <FormattedInput kind="money" required value={form.amount} error={Boolean(errors.amount)} onValue={(v) => setForm({ ...form, amount: v })} />
+        </Field>
         <Field label="Método">
           <select className="input" value={form.method} onChange={(e) => setForm({ ...form, method: e.target.value as PaymentMethod })}>
             <option value="CASH">Efectivo</option>
@@ -108,7 +134,9 @@ export function PaymentsPage() {
             <option value="DEPOSIT">Depósito</option>
           </select>
         </Field>
-        <Field label="Referencia"><input className="input" value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} /></Field>
+        <Field label="Referencia" hint={form.method === "CASH" ? "Opcional en efectivo" : fieldHint("reference")} error={errors.reference}>
+          <FormattedInput kind="reference" value={form.reference} error={Boolean(errors.reference)} onValue={(v) => setForm({ ...form, reference: v })} />
+        </Field>
         <button className="btn-primary w-full">Aplicar pago</button>
       </form>
       <DataTable

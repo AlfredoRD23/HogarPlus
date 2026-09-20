@@ -2,9 +2,10 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { api, money, formatDate } from "../lib/api";
-import { Field, Modal } from "../components/Form";
+import { Field, FormattedInput, Modal, fieldHint } from "../components/Form";
 import { PageHeader } from "../components/PageHeader";
 import { Plus, Warehouse } from "lucide-react";
+import { firstError, integerError, noteError, parseInteger } from "@hogarplus/shared";
 
 type InventoryPayload = {
   movements: Array<{
@@ -103,17 +104,36 @@ function MoveForm({
   onSave: (b: Record<string, unknown>) => void;
   onCancel: () => void;
 }) {
-  const [f, setF] = useState({ productId: products[0]?.id ?? "", type: "IN", quantity: 1, reason: "Reposición" });
+  const [f, setF] = useState({ productId: products[0]?.id ?? "", type: "IN", quantity: "1", reason: "Reposición" });
+  const [errors, setErrors] = useState<Record<string, string>>({});
   return (
     <form
       className="grid gap-3"
+      noValidate
       onSubmit={(e) => {
         e.preventDefault();
-        onSave(f);
+        const next = {
+          productId: f.productId ? "" : "Selecciona un producto",
+          quantity: integerError(f.quantity, { min: f.type === "ADJUSTMENT" ? 0 : 1, label: "cantidad" }) ?? "",
+          reason: noteError(f.reason, { min: 2, label: "motivo" }) ?? "",
+        };
+        setErrors(next);
+        const message = firstError(Object.values(next));
+        if (message) {
+          toast.error(message);
+          return;
+        }
+        onSave({
+          productId: f.productId,
+          type: f.type,
+          quantity: parseInteger(f.quantity),
+          reason: f.reason.trim(),
+        });
       }}
     >
-      <Field label="Producto">
-        <select className="input" value={f.productId} onChange={(e) => setF({ ...f, productId: e.target.value })}>
+      <Field label="Producto" error={errors.productId}>
+        <select className={`input ${errors.productId ? "input-error" : ""}`} value={f.productId} onChange={(e) => setF({ ...f, productId: e.target.value })}>
+          <option value="">Seleccione</option>
           {products.map((p) => (
             <option key={p.id} value={p.id}>{p.name}</option>
           ))}
@@ -126,8 +146,12 @@ function MoveForm({
           <option value="ADJUSTMENT">Ajuste a cantidad absoluta</option>
         </select>
       </Field>
-      <Field label="Cantidad"><input className="input" type="number" value={f.quantity} onChange={(e) => setF({ ...f, quantity: Number(e.target.value) })} /></Field>
-      <Field label="Motivo"><input className="input" value={f.reason} onChange={(e) => setF({ ...f, reason: e.target.value })} /></Field>
+      <Field label="Cantidad" hint={fieldHint("integer")} error={errors.quantity}>
+        <FormattedInput kind="integer" required value={f.quantity} error={Boolean(errors.quantity)} onValue={(v) => setF({ ...f, quantity: v })} />
+      </Field>
+      <Field label="Motivo" hint="Mínimo 2 caracteres" error={errors.reason}>
+        <FormattedInput kind="text" required value={f.reason} error={Boolean(errors.reason)} onValue={(v) => setF({ ...f, reason: v })} />
+      </Field>
       <div className="flex justify-end gap-2">
         <button type="button" className="btn-ghost" onClick={onCancel}>Cancelar</button>
         <button className="btn-primary">Guardar</button>

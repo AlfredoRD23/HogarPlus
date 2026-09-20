@@ -5,10 +5,21 @@ import { ArrowLeft, Plus, Users } from "lucide-react";
 import toast from "react-hot-toast";
 import { api, money } from "../lib/api";
 import { LevelBadge } from "../components/Badges";
-import { Field, Modal } from "../components/Form";
+import { Field, FormattedInput, Modal, fieldHint } from "../components/Form";
 import { PageHeader, type HeaderAction } from "../components/PageHeader";
 import { DataTable } from "../components/DataTable";
-import type { ClientLevel, ClientStatus } from "@hogarplus/shared";
+import {
+  cityError,
+  cedulaError,
+  digitsOnly,
+  firstError,
+  formatCedula,
+  formatPhoneRD,
+  personNameError,
+  phoneError,
+  type ClientLevel,
+  type ClientStatus,
+} from "@hogarplus/shared";
 
 type Client = {
   id: string;
@@ -78,9 +89,9 @@ export function ClientsPage() {
               <Link className="font-semibold text-navy-800" to={`/clientes/${c.id}`}>
                 {c.firstName} {c.lastName}
               </Link>
-              <div className="text-xs text-slate-500">{c.code} · {c.documentId}</div>
+              <div className="text-xs text-slate-500">{c.code} · {formatCedula(c.documentId)}</div>
             </td>
-            <td className="px-4 py-3">{c.phone}<div className="text-xs text-slate-500">{c.city}</div></td>
+            <td className="px-4 py-3">{formatPhoneRD(c.phone)}<div className="text-xs text-slate-500">{c.city}</div></td>
             <td className="px-4 py-3"><LevelBadge level={c.level} /></td>
             <td className="px-4 py-3 font-semibold">{c.points}</td>
             <td className="px-4 py-3">{c.affiliationPaid ? "Pagada" : "Pendiente"}</td>
@@ -117,23 +128,58 @@ function ClientForm({
     payAffiliation: true,
     affiliationMethod: "CASH",
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const set = (k: string, v: string | boolean) => setForm((f) => ({ ...f, [k]: v }));
+  const set = (k: string, v: string | boolean) => {
+    setForm((f) => ({ ...f, [k]: v }));
+    setErrors((current) => ({ ...current, [k]: "" }));
+  };
 
   return (
     <Modal title="Nuevo cliente" onClose={onClose}>
       <form
         className="grid gap-3 sm:grid-cols-2"
+        noValidate
         onSubmit={(e) => {
           e.preventDefault();
-          onSave(form);
+          const next = {
+            firstName: personNameError(form.firstName, "nombre") ?? "",
+            lastName: personNameError(form.lastName, "apellido") ?? "",
+            documentId: cedulaError(form.documentId) ?? "",
+            phone: phoneError(form.phone) ?? "",
+            city: cityError(form.city) ?? "",
+          };
+          setErrors(next);
+          const message = firstError(Object.values(next));
+          if (message) {
+            toast.error(message);
+            return;
+          }
+          onSave({
+            ...form,
+            firstName: form.firstName.trim(),
+            lastName: form.lastName.trim(),
+            documentId: digitsOnly(form.documentId),
+            phone: digitsOnly(form.phone),
+            city: form.city.trim(),
+          });
         }}
       >
-        <Field label="Nombre"><input className="input" required value={form.firstName} onChange={(e) => set("firstName", e.target.value)} /></Field>
-        <Field label="Apellido"><input className="input" required value={form.lastName} onChange={(e) => set("lastName", e.target.value)} /></Field>
-        <Field label="Cédula"><input className="input" required value={form.documentId} onChange={(e) => set("documentId", e.target.value)} /></Field>
-        <Field label="Teléfono"><input className="input" required value={form.phone} onChange={(e) => set("phone", e.target.value)} /></Field>
-        <Field label="Ciudad"><input className="input" value={form.city} onChange={(e) => set("city", e.target.value)} /></Field>
+        <Field label="Nombre" hint={fieldHint("name")} error={errors.firstName}>
+          <FormattedInput kind="name" required value={form.firstName} error={Boolean(errors.firstName)} onValue={(v) => set("firstName", v)} />
+        </Field>
+        <Field label="Apellido" hint={fieldHint("name")} error={errors.lastName}>
+          <FormattedInput kind="name" required value={form.lastName} error={Boolean(errors.lastName)} onValue={(v) => set("lastName", v)} />
+        </Field>
+        <Field label="Cédula" hint={fieldHint("cedula")} error={errors.documentId}>
+          <FormattedInput kind="cedula" required value={form.documentId} error={Boolean(errors.documentId)} onValue={(v) => set("documentId", v)} />
+        </Field>
+        <Field label="Teléfono" hint={fieldHint("phone")} error={errors.phone}>
+          <FormattedInput kind="phone" required value={form.phone} error={Boolean(errors.phone)} onValue={(v) => set("phone", v)} />
+        </Field>
+        <Field label="Ciudad" hint={fieldHint("city")} error={errors.city}>
+          <FormattedInput kind="city" value={form.city} error={Boolean(errors.city)} onValue={(v) => set("city", v)} />
+        </Field>
         <Field label="Método afiliación">
           <select className="input" value={form.affiliationMethod} onChange={(e) => set("affiliationMethod", e.target.value)}>
             <option value="CASH">Efectivo</option>
@@ -191,7 +237,7 @@ export function ClientDetailPage() {
     <div className="space-y-4">
       <PageHeader
         title={`${c.firstName} ${c.lastName}`}
-        description={`${c.code} · ${c.documentId} · ${c.phone}`}
+        description={`${c.code} · ${formatCedula(c.documentId)} · ${formatPhoneRD(c.phone)}`}
         icon={Users}
         actions={[
           { label: "Volver", icon: ArrowLeft, variant: "ghost", onClick: () => navigate("/clientes") },

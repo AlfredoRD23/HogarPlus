@@ -1,30 +1,64 @@
 import { z } from "zod";
-import { CLIENT_STATUSES } from "@hogarplus/shared";
+import { CLIENT_STATUSES, digitsOnly, isValidCedula, isValidEmail, isValidPhoneRD, personNameError } from "@hogarplus/shared";
 
 export const createClientSchema = z.object({
-  firstName: z.string().min(2),
-  lastName: z.string().min(2),
-  documentId: z.string().min(5),
-  phone: z.string().min(7),
-  email: z.string().email().optional().or(z.literal("")),
-  address: z.string().optional(),
-  city: z.string().optional(),
-  province: z.string().optional(),
+  firstName: z
+    .string()
+    .transform((value) => value.trim())
+    .refine((value) => !personNameError(value, "nombre"), { message: "El nombre solo puede incluir letras y debe tener al menos 2 caracteres" }),
+  lastName: z
+    .string()
+    .transform((value) => value.trim())
+    .refine((value) => !personNameError(value, "apellido"), { message: "El apellido solo puede incluir letras y debe tener al menos 2 caracteres" }),
+  documentId: z
+    .string()
+    .transform((value) => digitsOnly(value))
+    .refine((value) => isValidCedula(value), { message: "La cédula debe ser válida (000-0000000-0)" }),
+  phone: z
+    .string()
+    .transform((value) => digitsOnly(value))
+    .refine((value) => isValidPhoneRD(value), { message: "El teléfono debe tener 10 dígitos y iniciar con 809, 829 o 849" }),
+  email: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .transform((value) => (value ? value.trim().toLowerCase() : undefined))
+    .refine((value) => !value || isValidEmail(value), { message: "Correo inválido" }),
+  address: z.string().max(160).optional(),
+  city: z.string().trim().max(50).optional(),
+  province: z.string().trim().max(50).optional(),
   referredById: z.string().optional(),
-  notes: z.string().optional(),
+  notes: z.string().max(400).optional(),
   payAffiliation: z.boolean().optional(),
   affiliationMethod: z.enum(["CASH", "TRANSFER", "DEPOSIT"]).optional(),
 });
 
 export const updateClientSchema = z.object({
-  firstName: z.string().min(2).optional(),
-  lastName: z.string().min(2).optional(),
-  phone: z.string().min(7).optional(),
-  email: z.string().email().optional().or(z.literal("")),
-  address: z.string().optional(),
-  city: z.string().optional(),
-  province: z.string().optional(),
+  firstName: z
+    .string()
+    .transform((value) => value.trim())
+    .refine((value) => !personNameError(value, "nombre"), { message: "El nombre solo puede incluir letras" })
+    .optional(),
+  lastName: z
+    .string()
+    .transform((value) => value.trim())
+    .refine((value) => !personNameError(value, "apellido"), { message: "El apellido solo puede incluir letras" })
+    .optional(),
+  phone: z
+    .string()
+    .transform((value) => digitsOnly(value))
+    .refine((value) => isValidPhoneRD(value), { message: "El teléfono debe iniciar con 809, 829 o 849" })
+    .optional(),
+  email: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .transform((value) => (value ? value.trim().toLowerCase() : undefined))
+    .refine((value) => !value || isValidEmail(value), { message: "Correo inválido" }),
+  address: z.string().max(160).optional(),
+  city: z.string().trim().max(50).optional(),
+  province: z.string().trim().max(50).optional(),
   status: z.enum(CLIENT_STATUSES).optional(),
   catalogApproved: z.boolean().optional(),
-  notes: z.string().optional(),
+  notes: z.string().max(400).optional(),
 });

@@ -4,11 +4,11 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { api, money } from "../lib/api";
 import { CreditBadge, InstallmentBadge } from "../components/Badges";
-import { Field } from "../components/Form";
+import { Field, FormattedInput, fieldHint } from "../components/Form";
 import { PageHeader } from "../components/PageHeader";
 import { DataTable } from "../components/DataTable";
 import { ArrowLeft, FileText, Plus } from "lucide-react";
-import type { CreditStatus, InstallmentStatus } from "@hogarplus/shared";
+import { firstError, integerError, moneyError, parseInteger, parseMoney, type CreditStatus, type InstallmentStatus } from "@hogarplus/shared";
 
 type Credit = {
   id: string;
@@ -79,20 +79,26 @@ export function NewCreditPage() {
   });
   const [clientId, setClientId] = useState(params.get("clientId") ?? "");
   const [productId, setProductId] = useState("");
-  const [weeklyQuota, setWeeklyQuota] = useState(0);
-  const [weeks, setWeeks] = useState(0);
+  const [weeklyQuota, setWeeklyQuota] = useState("");
+  const [weeks, setWeeks] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!settings.data) return;
-    setWeeklyQuota((q) => (q === 0 ? settings.data.data.weeklyQuota : q));
-    setWeeks((w) => (w === 0 ? settings.data.data.defaultWeeks : w));
+    setWeeklyQuota((q) => (q === "" ? String(settings.data.data.weeklyQuota) : q));
+    setWeeks((w) => (w === "" ? String(settings.data.data.defaultWeeks) : w));
   }, [settings.data]);
 
   const create = useMutation({
     mutationFn: () =>
       api("/api/credits", {
         method: "POST",
-        body: JSON.stringify({ clientId, productId, weeklyQuota, weeks }),
+        body: JSON.stringify({
+          clientId,
+          productId,
+          weeklyQuota: parseMoney(weeklyQuota),
+          weeks: parseInteger(weeks),
+        }),
       }),
     onSuccess: (res) => {
       toast.success("Crédito creado y mercancía descontada");
@@ -114,13 +120,26 @@ export function NewCreditPage() {
       />
       <form
         className="mt-4 grid gap-3"
+        noValidate
         onSubmit={(e) => {
           e.preventDefault();
+          const next = {
+            clientId: clientId ? "" : "Selecciona un cliente",
+            productId: productId ? "" : "Selecciona un producto",
+            weeklyQuota: moneyError(weeklyQuota, { label: "cuota semanal" }) ?? "",
+            weeks: integerError(weeks, { min: 1, max: 104, label: "cantidad de semanas" }) ?? "",
+          };
+          setErrors(next);
+          const message = firstError(Object.values(next));
+          if (message) {
+            toast.error(message);
+            return;
+          }
           create.mutate();
         }}
       >
-        <Field label="Cliente">
-          <select className="input" required value={clientId} onChange={(e) => setClientId(e.target.value)}>
+        <Field label="Cliente" error={errors.clientId}>
+          <select className={`input ${errors.clientId ? "input-error" : ""}`} required value={clientId} onChange={(e) => setClientId(e.target.value)}>
             <option value="">Seleccione</option>
             {(clients.data?.data ?? []).map((c) => (
               <option key={c.id} value={c.id}>
@@ -129,8 +148,8 @@ export function NewCreditPage() {
             ))}
           </select>
         </Field>
-        <Field label="Producto">
-          <select className="input" required value={productId} onChange={(e) => setProductId(e.target.value)}>
+        <Field label="Producto" error={errors.productId}>
+          <select className={`input ${errors.productId ? "input-error" : ""}`} required value={productId} onChange={(e) => setProductId(e.target.value)}>
             <option value="">Seleccione</option>
             {(products.data?.data ?? []).map((p) => (
               <option key={p.id} value={p.id}>{p.name} · Cat {p.catalogTier} · {money(p.price)}</option>
@@ -138,12 +157,16 @@ export function NewCreditPage() {
           </select>
         </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Cuota semanal"><input className="input" type="number" value={weeklyQuota} onChange={(e) => setWeeklyQuota(Number(e.target.value))} /></Field>
-          <Field label="Semanas"><input className="input" type="number" value={weeks} onChange={(e) => setWeeks(Number(e.target.value))} /></Field>
+          <Field label="Cuota semanal" hint={fieldHint("money")} error={errors.weeklyQuota}>
+            <FormattedInput kind="money" required value={weeklyQuota} error={Boolean(errors.weeklyQuota)} onValue={setWeeklyQuota} />
+          </Field>
+          <Field label="Semanas" hint="Entre 1 y 104" error={errors.weeks}>
+            <FormattedInput kind="integer" required value={weeks} error={Boolean(errors.weeks)} onValue={setWeeks} />
+          </Field>
         </div>
         {product && (
           <p className="rounded-xl bg-gold-50 p-3 text-sm">
-            Precio {money(product.price)} · Plan {money(weeklyQuota * weeks)} · El cobro no se contabiliza como ganancia.
+            Precio {money(product.price)} · Plan {money((parseMoney(weeklyQuota) || 0) * (parseInteger(weeks) || 0))} · El cobro no se contabiliza como ganancia.
           </p>
         )}
         <button className="btn-primary">Crear y entregar</button>

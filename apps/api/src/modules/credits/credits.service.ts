@@ -1,5 +1,5 @@
 import { Prisma } from "@prisma/client";
-import { catalogsForLevel } from "@hogarplus/shared";
+import { catalogsForLevel, digitsOnly } from "@hogarplus/shared";
 import { prisma } from "../../lib/prisma";
 import { settingsService } from "../settings/settings.service";
 import { addWeeks, AppError, money, nextCode, pagination } from "../../shared/utils";
@@ -29,16 +29,18 @@ const creditInclude = {
 export class CreditsService {
   async list(query: { page?: unknown; pageSize?: unknown; search?: string; status?: string; clientId?: string }) {
     const { skip, take, page, pageSize } = pagination(query);
+    const search = query.search?.trim();
+    const digits = search ? digitsOnly(search) : "";
     const where: Prisma.CreditWhereInput = {
       ...(query.status ? { status: query.status as Prisma.EnumCreditStatusFilter["equals"] } : {}),
       ...(query.clientId ? { clientId: query.clientId } : {}),
-      ...(query.search
+      ...(search
         ? {
             OR: [
-              { code: { contains: query.search } },
-              { client: { firstName: { contains: query.search } } },
-              { client: { lastName: { contains: query.search } } },
-              { client: { documentId: { contains: query.search } } },
+              { code: { contains: search } },
+              { client: { firstName: { contains: search } } },
+              { client: { lastName: { contains: search } } },
+              { client: { documentId: { contains: digits.length >= 3 ? digits : search } } },
             ],
           }
         : {}),

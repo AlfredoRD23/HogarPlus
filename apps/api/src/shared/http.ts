@@ -21,7 +21,7 @@ export function errorHandler(
       success: false,
       error: {
         code: "VALIDATION_ERROR",
-        message: "Los datos enviados no son válidos",
+        message: err.issues[0]?.message || "Los datos enviados no son válidos",
         details: err.flatten(),
       },
     });

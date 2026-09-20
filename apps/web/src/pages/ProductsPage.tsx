@@ -2,11 +2,11 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { api, money } from "../lib/api";
-import { Field, Modal } from "../components/Form";
+import { Field, FormattedInput, Modal, fieldHint } from "../components/Form";
 import { PageHeader } from "../components/PageHeader";
 import { DataTable } from "../components/DataTable";
 import { Package, Plus } from "lucide-react";
-import { CATEGORY_LABELS, type CatalogTier, type ProductCategory } from "@hogarplus/shared";
+import { CATEGORY_LABELS, firstError, integerError, moneyError, parseInteger, parseMoney, productNameError, type CatalogTier, type ProductCategory } from "@hogarplus/shared";
 
 type Product = {
   id: string;
@@ -87,34 +87,69 @@ function ProductForm({ onSave, onCancel }: { onSave: (b: Record<string, unknown>
     name: "",
     category: "HOGAR",
     catalogTier: "A",
-    cost: 0,
-    price: 0,
-    stock: 0,
+    cost: "",
+    price: "",
+    stock: "0",
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const set = (key: keyof typeof f, value: string) => {
+    setF((current) => ({ ...current, [key]: value }));
+    setErrors((current) => ({ ...current, [key]: "" }));
+  };
   return (
     <form
       className="grid gap-3 sm:grid-cols-2"
+      noValidate
       onSubmit={(e) => {
         e.preventDefault();
-        onSave(f);
+        const next = {
+          name: productNameError(f.name) ?? "",
+          cost: moneyError(f.cost, { label: "costo" }) ?? "",
+          price: moneyError(f.price, { label: "precio" }) ?? "",
+          stock: integerError(f.stock, { min: 0, label: "cantidad" }) ?? "",
+        };
+        setErrors(next);
+        const message = firstError(Object.values(next));
+        if (message) {
+          toast.error(message);
+          return;
+        }
+        onSave({
+          name: f.name.trim(),
+          category: f.category,
+          catalogTier: f.catalogTier,
+          cost: parseMoney(f.cost),
+          price: parseMoney(f.price),
+          stock: parseInteger(f.stock),
+        });
       }}
     >
-      <Field label="Nombre"><input className="input" required value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
+      <Field label="Nombre" hint={fieldHint("productName")} error={errors.name}>
+        <FormattedInput kind="productName" required value={f.name} error={Boolean(errors.name)} onValue={(v) => set("name", v)} />
+      </Field>
       <Field label="Categoría">
-        <select className="input" value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })}>
+        <select className="input" value={f.category} onChange={(e) => set("category", e.target.value)}>
           <option value="SALUD_BIENESTAR">Salud</option>
           <option value="BELLEZA">Belleza</option>
           <option value="HOGAR">Hogar</option>
         </select>
       </Field>
       <Field label="Catálogo">
-        <select className="input" value={f.catalogTier} onChange={(e) => setF({ ...f, catalogTier: e.target.value })}>
-          <option>A</option><option>B</option><option>C</option>
+        <select className="input" value={f.catalogTier} onChange={(e) => set("catalogTier", e.target.value)}>
+          <option value="A">A</option>
+          <option value="B">B</option>
+          <option value="C">C</option>
         </select>
       </Field>
-      <Field label="Costo"><input className="input" type="number" value={f.cost} onChange={(e) => setF({ ...f, cost: Number(e.target.value) })} /></Field>
-      <Field label="Precio"><input className="input" type="number" value={f.price} onChange={(e) => setF({ ...f, price: Number(e.target.value) })} /></Field>
-      <Field label="Stock inicial"><input className="input" type="number" value={f.stock} onChange={(e) => setF({ ...f, stock: Number(e.target.value) })} /></Field>
+      <Field label="Costo" hint={fieldHint("money")} error={errors.cost}>
+        <FormattedInput kind="money" required value={f.cost} error={Boolean(errors.cost)} onValue={(v) => set("cost", v)} />
+      </Field>
+      <Field label="Precio" hint={fieldHint("money")} error={errors.price}>
+        <FormattedInput kind="money" required value={f.price} error={Boolean(errors.price)} onValue={(v) => set("price", v)} />
+      </Field>
+      <Field label="Stock inicial" hint={fieldHint("integer")} error={errors.stock}>
+        <FormattedInput kind="integer" value={f.stock} error={Boolean(errors.stock)} onValue={(v) => set("stock", v)} />
+      </Field>
       <div className="sm:col-span-2 flex justify-end gap-2">
         <button type="button" className="btn-ghost" onClick={onCancel}>Cancelar</button>
         <button className="btn-primary">Guardar</button>

@@ -2,10 +2,11 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { api, formatDate, money } from "../lib/api";
-import { Field, Modal } from "../components/Form";
+import { Field, FormattedInput, Modal, fieldHint } from "../components/Form";
 import { PageHeader } from "../components/PageHeader";
 import { DataTable } from "../components/DataTable";
 import { Plus, Receipt } from "lucide-react";
+import { dateError, firstError, moneyError, noteError, parseMoney } from "@hogarplus/shared";
 
 const CATEGORIES = [
   ["PAYROLL", "Nómina"],
@@ -75,18 +76,37 @@ export function ExpensesPage() {
 }
 
 function ExpenseForm({ onSave, onCancel }: { onSave: (b: Record<string, unknown>) => void; onCancel: () => void }) {
+  const today = new Date().toISOString().slice(0, 10);
   const [f, setF] = useState({
     category: "OPERATIONS",
-    amount: 0,
+    amount: "",
     description: "",
-    incurredOn: new Date().toISOString().slice(0, 10),
+    incurredOn: today,
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
   return (
     <form
       className="grid gap-3"
+      noValidate
       onSubmit={(e) => {
         e.preventDefault();
-        onSave(f);
+        const next = {
+          amount: moneyError(f.amount, { label: "monto" }) ?? "",
+          description: noteError(f.description, { min: 3, label: "descripción" }) ?? "",
+          incurredOn: dateError(f.incurredOn) ?? "",
+        };
+        setErrors(next);
+        const message = firstError(Object.values(next));
+        if (message) {
+          toast.error(message);
+          return;
+        }
+        onSave({
+          category: f.category,
+          amount: parseMoney(f.amount),
+          description: f.description.trim(),
+          incurredOn: f.incurredOn,
+        });
       }}
     >
       <Field label="Categoría">
@@ -96,9 +116,15 @@ function ExpenseForm({ onSave, onCancel }: { onSave: (b: Record<string, unknown>
           ))}
         </select>
       </Field>
-      <Field label="Monto"><input className="input" type="number" value={f.amount} onChange={(e) => setF({ ...f, amount: Number(e.target.value) })} /></Field>
-      <Field label="Descripción"><input className="input" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></Field>
-      <Field label="Fecha"><input className="input" type="date" value={f.incurredOn} onChange={(e) => setF({ ...f, incurredOn: e.target.value })} /></Field>
+      <Field label="Monto" hint={fieldHint("money")} error={errors.amount}>
+        <FormattedInput kind="money" required value={f.amount} error={Boolean(errors.amount)} onValue={(v) => setF({ ...f, amount: v })} />
+      </Field>
+      <Field label="Descripción" hint={fieldHint("note")} error={errors.description}>
+        <FormattedInput kind="text" required value={f.description} error={Boolean(errors.description)} onValue={(v) => setF({ ...f, description: v })} />
+      </Field>
+      <Field label="Fecha" hint="No puede ser futura" error={errors.incurredOn}>
+        <FormattedInput kind="date" required max={today} value={f.incurredOn} error={Boolean(errors.incurredOn)} onValue={(v) => setF({ ...f, incurredOn: v })} />
+      </Field>
       <div className="flex justify-end gap-2">
         <button type="button" className="btn-ghost" onClick={onCancel}>Cancelar</button>
         <button className="btn-primary">Guardar</button>

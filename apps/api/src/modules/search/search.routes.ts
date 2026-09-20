@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { digitsOnly } from "@hogarplus/shared";
 import { authenticate } from "../../middleware/auth";
 import { asyncHandler } from "../../shared/http";
 import { prisma } from "../../lib/prisma";
@@ -10,6 +11,7 @@ searchRouter.get(
   "/",
   asyncHandler(async (req, res) => {
     const q = String(req.query.q ?? "").trim();
+    const digits = digitsOnly(q);
     if (q.length < 2) {
       res.json({ success: true, data: { clients: [], products: [], credits: [] } });
       return;
@@ -21,8 +23,8 @@ searchRouter.get(
           OR: [
             { firstName: { contains: q } },
             { lastName: { contains: q } },
-            { documentId: { contains: q } },
-            { phone: { contains: q } },
+            { documentId: { contains: digits.length >= 3 ? digits : q } },
+            { phone: { contains: digits.length >= 3 ? digits : q } },
             { code: { contains: q } },
           ],
         },

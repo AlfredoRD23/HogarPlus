@@ -17,13 +17,17 @@ import {
 
 export function Modal({
   title,
+  description,
   children,
+  footer,
   onClose,
   zClass = "z-[100]",
   size = "md",
 }: {
   title: string;
+  description?: string;
   children: ReactNode;
+  footer?: ReactNode;
   onClose: () => void;
   zClass?: string;
   size?: "md" | "lg";
@@ -39,18 +43,31 @@ export function Modal({
   return createPortal(
     <div className={`modal-overlay ${zClass}`} role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <div className={`modal-panel ${size === "lg" ? "modal-panel-lg" : ""}`}>
-        <div className="flex shrink-0 items-center justify-between bg-navy-900 px-5 py-4 text-white">
-          <h3 id="modal-title" className="font-display text-lg">
-            {title}
-          </h3>
-          <button type="button" onClick={onClose} className="text-gold-300">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b px-5 py-4">
+          <div className="min-w-0">
+            <h3 id="modal-title" className="text-lg font-semibold text-navy-900">
+              {title}
+            </h3>
+            {description ? <p className="mt-1 text-sm text-slate-500">{description}</p> : null}
+          </div>
+          <button type="button" onClick={onClose} className="shrink-0 text-sm font-semibold text-slate-500 hover:text-navy-900">
             Cerrar
           </button>
         </div>
         <div className="modal-body">{children}</div>
+        {footer ? <div className="shrink-0 border-t bg-white px-5 py-3">{footer}</div> : null}
       </div>
     </div>,
     document.body,
+  );
+}
+
+export function FormSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="space-y-3">
+      <h4 className="text-sm font-semibold text-slate-800">{title}</h4>
+      <div className="grid gap-4 sm:grid-cols-2">{children}</div>
+    </section>
   );
 }
 

@@ -45,7 +45,7 @@ body {
   }
 
   .modal-panel-lg {
-    @apply max-w-2xl;
+    @apply max-w-3xl;
   }
 
   .sidebar-nav {
@@ -114,7 +114,7 @@ body {
   }
 
   .label {
-    @apply mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500;
+    @apply mb-1.5 block text-sm font-semibold leading-tight text-slate-700;
   }
 
   .page-shell {

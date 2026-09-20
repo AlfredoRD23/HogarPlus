@@ -5,7 +5,7 @@ import { ArrowLeft, MapPin, Pencil, Plus, UserPlus, Users } from "lucide-react";
 import toast from "react-hot-toast";
 import { api, formatDate, mediaUrl, money } from "../lib/api";
 import { debtFacts, debtNotes } from "../lib/debt";
-import { Field, FormattedInput, Modal, fieldHint } from "../components/Form";
+import { Field, FormSection, FormattedInput, Modal, fieldHint } from "../components/Form";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { InfoModal } from "../components/InfoModal";
 import { ImagePicker } from "../components/ImagePicker";
@@ -419,9 +419,28 @@ function ClientForm({
   };
 
   return (
-    <Modal title={editing ? "Editar cliente" : "Nuevo cliente"} onClose={onClose} size="lg">
+    <Modal
+      title={editing ? "Editar cliente" : "Nuevo cliente"}
+      description={editing ? "Actualiza la ficha. Completa los campos obligatorios." : "Registra al cliente. Completa los campos obligatorios."}
+      onClose={onClose}
+      size="lg"
+      footer={
+        <div className="flex justify-end gap-2">
+          <button type="button" className="btn-ghost" onClick={onClose}>Cancelar</button>
+          <button
+            type="submit"
+            form="client-form"
+            className="btn-primary"
+            disabled={!editing && products.isFetched && starterProducts.length === 0}
+          >
+            Guardar
+          </button>
+        </div>
+      }
+    >
       <form
-        className="grid gap-3 sm:grid-cols-2"
+        id="client-form"
+        className="space-y-6"
         noValidate
         onSubmit={(e) => {
           e.preventDefault();
@@ -464,35 +483,40 @@ function ClientForm({
           onSave(payload, pending);
         }}
       >
-        <p className="sm:col-span-2 text-xs text-slate-400">Los campos con * son obligatorios.</p>
-        <Field label="Nombre" hint={fieldHint("name")} error={errors.firstName} required>
-          <FormattedInput kind="name" required value={form.firstName} error={Boolean(errors.firstName)} onValue={(v) => set("firstName", v)} />
-        </Field>
-        <Field label="Apellido" hint={fieldHint("name")} error={errors.lastName} required>
-          <FormattedInput kind="name" required value={form.lastName} error={Boolean(errors.lastName)} onValue={(v) => set("lastName", v)} />
-        </Field>
-        {!editing && (
-          <Field label="Cédula" hint={fieldHint("cedula")} error={errors.documentId} required>
-            <FormattedInput kind="cedula" required value={form.documentId} error={Boolean(errors.documentId)} onValue={(v) => set("documentId", v)} />
+        <FormSection title="Datos personales">
+          <Field label="Nombre" hint={fieldHint("name")} error={errors.firstName} required>
+            <FormattedInput kind="name" required value={form.firstName} error={Boolean(errors.firstName)} onValue={(v) => set("firstName", v)} />
           </Field>
-        )}
-        <Field label="Teléfono" hint={fieldHint("phone")} error={errors.phone} required>
-          <FormattedInput kind="phone" required value={form.phone} error={Boolean(errors.phone)} onValue={(v) => set("phone", v)} />
-        </Field>
-        <Field label="Correo" hint="Para avisos de pedido, cuotas y plantillas" error={errors.email}>
-          <FormattedInput kind="email" value={form.email} error={Boolean(errors.email)} onValue={(v) => set("email", v)} placeholder="correo@dominio.com" />
-        </Field>
-        <Field label="Ciudad" hint={fieldHint("city")} error={errors.city} required>
-          <FormattedInput kind="city" required value={form.city} error={Boolean(errors.city)} onValue={(v) => set("city", v)} />
-        </Field>
-        <Field label="Dirección">
-          <FormattedInput kind="text" value={form.address} onValue={(v) => set("address", v)} placeholder="Calle, sector, casa" />
-        </Field>
-        <Field label="Link de ubicación" hint={fieldHint("url")} error={errors.locationUrl}>
-          <FormattedInput kind="url" value={form.locationUrl} error={Boolean(errors.locationUrl)} onValue={(v) => set("locationUrl", v)} />
-        </Field>
-        {!editing && (
-          <>
+          <Field label="Apellido" hint={fieldHint("name")} error={errors.lastName} required>
+            <FormattedInput kind="name" required value={form.lastName} error={Boolean(errors.lastName)} onValue={(v) => set("lastName", v)} />
+          </Field>
+          {!editing ? (
+            <Field label="Cédula" hint={fieldHint("cedula")} error={errors.documentId} required>
+              <FormattedInput kind="cedula" required value={form.documentId} error={Boolean(errors.documentId)} onValue={(v) => set("documentId", v)} />
+            </Field>
+          ) : null}
+        </FormSection>
+        <FormSection title="Contacto">
+          <Field label="Teléfono" hint={fieldHint("phone")} error={errors.phone} required>
+            <FormattedInput kind="phone" required value={form.phone} error={Boolean(errors.phone)} onValue={(v) => set("phone", v)} />
+          </Field>
+          <Field label="Correo" hint="Para avisos de pedido, cuotas y plantillas" error={errors.email}>
+            <FormattedInput kind="email" value={form.email} error={Boolean(errors.email)} onValue={(v) => set("email", v)} placeholder="correo@dominio.com" />
+          </Field>
+          <Field label="Ciudad" hint={fieldHint("city")} error={errors.city} required>
+            <FormattedInput kind="city" required value={form.city} error={Boolean(errors.city)} onValue={(v) => set("city", v)} />
+          </Field>
+          <Field label="Dirección">
+            <FormattedInput kind="text" value={form.address} onValue={(v) => set("address", v)} placeholder="Calle, sector, casa" />
+          </Field>
+          <div className="sm:col-span-2">
+            <Field label="Link de ubicación" hint={fieldHint("url")} error={errors.locationUrl}>
+              <FormattedInput kind="url" value={form.locationUrl} error={Boolean(errors.locationUrl)} onValue={(v) => set("locationUrl", v)} />
+            </Field>
+          </div>
+        </FormSection>
+        {!editing ? (
+          <FormSection title="Producto y afiliación">
             <Field label="Producto inicial" hint="El cliente entra en Inicial y solo puede tomar Bronce" error={errors.productId} required>
               <select
                 className={`input ${errors.productId ? "input-error" : ""}`}
@@ -520,77 +544,69 @@ function ClientForm({
                 No hay productos Bronce activos. Crea uno en Catálogo antes de registrar el cliente.
               </p>
             ) : (
-              <p className="sm:col-span-2 text-xs text-slate-500">
+              <p className="sm:col-span-2 text-sm text-slate-500">
                 Al guardar se cobra la afiliación {money(affiliationFee)} y se entrega el producto. Con puntos sube a Plata y Oro.
               </p>
             )}
-          </>
-        )}
-        <Field label="Nombre de la referencia personal" hint="Contacto de confianza. No es un cliente referido." error={errors.referenceName}>
-          <FormattedInput kind="name" value={form.referenceName} error={Boolean(errors.referenceName)} onValue={(v) => set("referenceName", v)} placeholder="Persona de contacto" />
-        </Field>
-        <Field label="Teléfono de la referencia personal" hint={fieldHint("phone")} error={errors.referencePhone}>
-          <FormattedInput kind="phone" value={form.referencePhone} error={Boolean(errors.referencePhone)} onValue={(v) => set("referencePhone", v)} />
-        </Field>
-        {!editing && (
-          <div className="sm:col-span-2">
-            <Field label="Cliente que lo trajo">
-              <select className="input" value={form.referredById} onChange={(e) => set("referredById", e.target.value)}>
-                <option value="">Nadie / se detecta por teléfono referido</option>
-                {(referrers.data?.data ?? []).map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.firstName} {item.lastName} · {item.code}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            {match.data?.data ? (
-              <p className="mt-2 rounded-xl bg-gold-50 p-3 text-sm">
-                Este teléfono lo refirió <b>{match.data.data.referrer.firstName} {match.data.data.referrer.lastName}</b> ({match.data.data.referrer.code}) como {match.data.data.firstName} {match.data.data.lastName}. Al guardar se valida y se le suman {POINTS_RULES.REFERRAL} puntos.
-              </p>
-            ) : null}
-          </div>
-        )}
-        <Field label="Ruta de cobro">
-          <select className="input" value={form.routeId} onChange={(e) => set("routeId", e.target.value)}>
-            <option value="">Sin ruta</option>
-            {(routes.data?.data ?? []).map((route) => (
-              <option key={route.id} value={route.id}>
-                {route.name}{route.area ? ` · ${route.area}` : ""}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <div className="sm:col-span-2">
+          </FormSection>
+        ) : null}
+        <FormSection title="Referencia y ruta">
+          <Field label="Nombre de la referencia" hint="Contacto de confianza. No es un cliente referido." error={errors.referenceName}>
+            <FormattedInput kind="name" value={form.referenceName} error={Boolean(errors.referenceName)} onValue={(v) => set("referenceName", v)} placeholder="Persona de contacto" />
+          </Field>
+          <Field label="Teléfono de la referencia" hint={fieldHint("phone")} error={errors.referencePhone}>
+            <FormattedInput kind="phone" value={form.referencePhone} error={Boolean(errors.referencePhone)} onValue={(v) => set("referencePhone", v)} />
+          </Field>
+          {!editing ? (
+            <div className="sm:col-span-2">
+              <Field label="Cliente que lo trajo">
+                <select className="input" value={form.referredById} onChange={(e) => set("referredById", e.target.value)}>
+                  <option value="">Nadie / se detecta por teléfono referido</option>
+                  {(referrers.data?.data ?? []).map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.firstName} {item.lastName} · {item.code}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              {match.data?.data ? (
+                <p className="mt-2 rounded-xl bg-gold-50 p-3 text-sm">
+                  Este teléfono lo refirió <b>{match.data.data.referrer.firstName} {match.data.data.referrer.lastName}</b> ({match.data.data.referrer.code}) como {match.data.data.firstName} {match.data.data.lastName}. Al guardar se valida y se le suman {POINTS_RULES.REFERRAL} puntos.
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+          <Field label="Ruta de cobro">
+            <select className="input" value={form.routeId} onChange={(e) => set("routeId", e.target.value)}>
+              <option value="">Sin ruta</option>
+              {(routes.data?.data ?? []).map((route) => (
+                <option key={route.id} value={route.id}>
+                  {route.name}{route.area ? ` · ${route.area}` : ""}
+                </option>
+              ))}
+            </select>
+          </Field>
           <Field label="Nota">
             <FormattedInput kind="text" value={form.notes} onValue={(v) => set("notes", v)} placeholder="Horario, portón, etc." />
           </Field>
-        </div>
-        <div className="sm:col-span-2">
-          <ImagePicker
-            saved={savedImages}
-            pending={pending}
-            onAddFiles={(files) => setPending((current) => [...current, ...files])}
-            onRemovePending={(index) => setPending((current) => current.filter((_, i) => i !== index))}
-            onRemoveSaved={
-              initial?.id
-                ? (imageId) => {
-                    const image = savedImages.find((item) => item.id === imageId);
-                    if (image) {
-                      setRemoveError(undefined);
-                      setRemovingImage(image);
-                    }
+        </FormSection>
+        <ImagePicker
+          saved={savedImages}
+          pending={pending}
+          onAddFiles={(files) => setPending((current) => [...current, ...files])}
+          onRemovePending={(index) => setPending((current) => current.filter((_, i) => i !== index))}
+          onRemoveSaved={
+            initial?.id
+              ? (imageId) => {
+                  const image = savedImages.find((item) => item.id === imageId);
+                  if (image) {
+                    setRemoveError(undefined);
+                    setRemovingImage(image);
                   }
-                : undefined
-            }
-          />
-        </div>
-        <div className="sm:col-span-2 flex justify-end gap-2">
-          <button type="button" className="btn-ghost" onClick={onClose}>Cancelar</button>
-          <button className="btn-primary" disabled={!editing && (products.isFetched && starterProducts.length === 0)}>
-            Guardar
-          </button>
-        </div>
+                }
+              : undefined
+          }
+        />
       </form>
       {removingImage && initial?.id && (
         <ConfirmModal

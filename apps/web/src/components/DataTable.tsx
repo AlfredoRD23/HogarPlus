@@ -11,6 +11,7 @@ export function DataTable({
   headers,
   children,
   rows,
+  mobile,
 }: {
   title: string;
   count?: number;
@@ -21,6 +22,7 @@ export function DataTable({
   headers: string[];
   children: ReactNode;
   rows?: number;
+  mobile?: ReactNode;
 }) {
   const isEmpty = !loading && (rows ?? 0) === 0;
 
@@ -43,20 +45,23 @@ export function DataTable({
           <EmptyState title={emptyTitle ?? "Sin registros"} description={emptyDescription ?? "Aún no hay datos en esta lista."} action={emptyAction} />
         </div>
       ) : (
-        <div className="overflow-auto">
-          <table className="data-table">
-            <thead className="bg-navy-900 text-xs uppercase tracking-wide text-gold-300">
-              <tr>
-                {headers.map((h) => (
-                  <th key={h}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>{children}</tbody>
-          </table>
-        </div>
+        <>
+          {mobile ? <div className="divide-y md:hidden">{mobile}</div> : null}
+          <div className={mobile ? "hidden overflow-auto md:block" : "overflow-auto"}>
+            <table className="data-table">
+              <thead className="bg-navy-900 text-xs uppercase tracking-wide text-gold-300">
+                <tr>
+                  {headers.map((h) => (
+                    <th key={h}>
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>{children}</tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );

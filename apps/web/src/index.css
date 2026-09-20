@@ -25,11 +25,26 @@ body {
 }
 
 .portal-shell {
-  background-color: #f3eee6;
+  color: #1f3d38;
+  background-color: #d8ebe4;
   background-image:
-    radial-gradient(ellipse 80% 50% at 12% 0%, rgba(196, 160, 74, 0.22), transparent 55%),
-    radial-gradient(ellipse 70% 45% at 100% 100%, rgba(26, 47, 82, 0.08), transparent 50%),
-    linear-gradient(180deg, #f7f3ea 0%, #efe7da 100%);
+    radial-gradient(ellipse 80% 45% at 0% -10%, #f7d7c4 0%, transparent 52%),
+    radial-gradient(ellipse 55% 40% at 100% 8%, #9fd4c8 0%, transparent 48%),
+    linear-gradient(180deg, #e6f4ef 0%, #d4e8e0 55%, #cfe3db 100%);
+}
+
+.portal-header {
+  background: linear-gradient(165deg, #164843 0%, #1f5c55 58%, #2a6a5c 100%);
+}
+
+.portal-stat {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.portal-shell .panel {
+  border-color: rgba(22, 72, 67, 0.08);
+  box-shadow: 0 18px 40px -24px rgba(22, 72, 67, 0.35);
 }
 
 @layer components {

@@ -1,4 +1,5 @@
-import type { FormEvent, InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from "react";
+import { useEffect, type FormEvent, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from "react";
+import { createPortal } from "react-dom";
 import {
   formatCedula,
   formatCity,
@@ -22,18 +23,29 @@ export function Modal({
   children: ReactNode;
   onClose: () => void;
 }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy-950/50 p-4">
-      <div className="panel w-full max-w-lg overflow-hidden">
-        <div className="flex items-center justify-between bg-navy-900 px-5 py-4 text-white">
-          <h3 className="font-display text-lg">{title}</h3>
+  useEffect(() => {
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, []);
+
+  return createPortal(
+    <div className="modal-overlay z-[100]" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div className="modal-panel">
+        <div className="flex shrink-0 items-center justify-between bg-navy-900 px-5 py-4 text-white">
+          <h3 id="modal-title" className="font-display text-lg">
+            {title}
+          </h3>
           <button type="button" onClick={onClose} className="text-gold-300">
             Cerrar
           </button>
         </div>
-        <div className="p-5">{children}</div>
+        <div className="modal-body">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

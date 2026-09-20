@@ -29,6 +29,40 @@ body {
     @apply rounded-2xl border border-slate-100 bg-white shadow-card;
   }
 
+  .modal-overlay {
+    @apply fixed inset-0 flex items-end justify-center sm:items-center;
+    background: rgb(15 23 42 / 0.5);
+    padding-top: 4rem;
+    padding-right: 0;
+    padding-bottom: 0;
+    padding-left: 0;
+  }
+
+  .modal-panel {
+    @apply panel flex w-full max-w-lg flex-col overflow-hidden rounded-b-none;
+    height: 100%;
+    max-height: 100%;
+  }
+
+  @media (min-width: 640px) {
+    .modal-overlay {
+      padding: 5rem 1rem 1.5rem;
+    }
+
+    .modal-panel {
+      height: auto;
+      max-height: min(90vh, 44rem);
+      max-height: min(90dvh, 44rem);
+      @apply rounded-2xl;
+    }
+  }
+
+  .modal-body {
+    @apply min-h-0 flex-1 overflow-y-auto overscroll-contain p-5;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+  }
+
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 rounded-xl bg-navy-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-navy-800 disabled:opacity-50;
   }

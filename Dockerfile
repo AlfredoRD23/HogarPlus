@@ -20,5 +20,6 @@ RUN npx prisma generate --schema=apps/api/prisma/schema.prisma \
   && cp -R apps/web/dist/. apps/api/public/
 
 ENV NODE_ENV=production
+ENV UPLOAD_DIR=/data/uploads
 EXPOSE 8080
-CMD ["sh", "-c", "npx prisma db push --schema=apps/api/prisma/schema.prisma --skip-generate && node apps/api/dist/src/main.js"]
+CMD ["sh", "-c", "mkdir -p \"$UPLOAD_DIR\" && npx prisma db push --schema=apps/api/prisma/schema.prisma --skip-generate && node apps/api/dist/src/main.js"]

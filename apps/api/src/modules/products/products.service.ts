@@ -58,11 +58,20 @@ export class ProductsService {
       throw new AppError(400, "INVALID_PRICE", "El precio de venta debe ser mayor al costo");
     }
 
+    const name = input.name.trim();
+    const duplicate = await prisma.product.findFirst({
+      where: { name, status: "ACTIVE" },
+      select: { id: true },
+    });
+    if (duplicate) {
+      throw new AppError(409, "DUPLICATE", "Ese producto ya está en el catálogo. Edítalo, no lo vuelvas a guardar.");
+    }
+
     const sku = input.sku || (await nextCode("product", "HP"));
     const product = await prisma.product.create({
       data: {
         sku,
-        name: input.name,
+        name,
         description: input.description,
         category: input.category,
         catalogTier: input.catalogTier,

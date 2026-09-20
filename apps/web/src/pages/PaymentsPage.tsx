@@ -12,6 +12,7 @@ import { RowActions } from "../components/RowActions";
 import { openInvoice, type InvoiceData } from "../lib/invoice";
 import { TableCard } from "../components/TableCard";
 import { FileText, Wallet } from "lucide-react";
+import { useOnceSubmit } from "../hooks/useOnceSubmit";
 import { PAYMENT_TYPE_LABELS, firstError, moneyError, parseMoney, referenceError, type PaymentMethod, type PaymentType } from "@hogarplus/shared";
 
 type Payment = {
@@ -92,6 +93,7 @@ export function PaymentsPage() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+  const submit = useOnceSubmit(create.isPending);
 
   const rows = q.data?.data ?? [];
 
@@ -126,7 +128,7 @@ export function PaymentsPage() {
           setErrors(next);
           const message = firstError(Object.values(next));
           if (message) return;
-          create.mutate();
+          submit.guard(() => create.mutate());
         }}
       >
         <h2 className="font-display text-2xl">Registrar pago</h2>
@@ -160,8 +162,8 @@ export function PaymentsPage() {
         <Field label="Referencia" hint={form.method === "CASH" ? "Opcional en efectivo" : fieldHint("reference")} error={errors.reference}>
           <FormattedInput kind="reference" value={form.reference} error={Boolean(errors.reference)} onValue={(v) => setForm({ ...form, reference: v })} />
         </Field>
-        <button className="btn-primary w-full" disabled={create.isPending}>
-          <WaitLabel waiting={create.isPending} idle="Aplicar pago" busy="Aplicando..." />
+        <button className="btn-primary w-full" disabled={submit.blocked}>
+          <WaitLabel waiting={submit.blocked} idle="Aplicar pago" busy="Aplicando..." />
         </button>
       </form>
       <DataTable

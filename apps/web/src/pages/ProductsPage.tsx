@@ -11,6 +11,7 @@ import { Package, Plus } from "lucide-react";
 import { CATEGORY_LABELS, CATALOG_TIER_LABELS, CATALOG_TIERS, firstError, integerError, moneyError, parseInteger, parseMoney, productNameError, type CatalogTier, type ProductCategory } from "@hogarplus/shared";
 import { CatalogBadge } from "../components/Badges";
 import { WaitLabel } from "../components/Loader";
+import { useOnceSubmit } from "../hooks/useOnceSubmit";
 
 type ProductImage = { id: string; path: string };
 
@@ -232,6 +233,7 @@ function ProductForm({
   const [removing, setRemoving] = useState<ProductImage | null>(null);
   const [removeError, setRemoveError] = useState<string | undefined>();
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const submit = useOnceSubmit(saving);
   const set = (key: keyof typeof f, value: string) => {
     setF((current) => ({ ...current, [key]: value }));
     setErrors((current) => ({ ...current, [key]: "" }));
@@ -251,7 +253,7 @@ function ProductForm({
         };
         setErrors(next);
         if (firstError(Object.values(next))) return;
-        onSave(
+        submit.guard(() => onSave(
           {
             name: f.name.trim(),
             description: f.description.trim() || undefined,
@@ -262,7 +264,7 @@ function ProductForm({
             ...(editing ? {} : { stock: parseInteger(f.stock) }),
           },
           pending,
-        );
+        ));
       }}
     >
       <p className="sm:col-span-2 text-xs text-slate-400">Los campos con * son obligatorios. La foto es la cara del catálogo.</p>
@@ -322,9 +324,9 @@ function ProductForm({
         />
       </div>
       <div className="sm:col-span-2 flex justify-end gap-2">
-        <button type="button" className="btn-ghost" disabled={saving} onClick={onCancel}>Cancelar</button>
-        <button className="btn-primary" disabled={saving}>
-          <WaitLabel waiting={saving} idle="Guardar" busy="Guardando..." />
+        <button type="button" className="btn-ghost" disabled={submit.blocked} onClick={onCancel}>Cancelar</button>
+        <button className="btn-primary" disabled={submit.blocked}>
+          <WaitLabel waiting={submit.blocked} idle="Guardar" busy="Guardando..." />
         </button>
       </div>
       {removing && initial?.id && (

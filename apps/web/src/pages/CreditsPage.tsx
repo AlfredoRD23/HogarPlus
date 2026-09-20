@@ -9,6 +9,7 @@ import { PageHeader } from "../components/PageHeader";
 import { DataTable } from "../components/DataTable";
 import { TableCard } from "../components/TableCard";
 import { Loader, WaitLabel } from "../components/Loader";
+import { useOnceSubmit } from "../hooks/useOnceSubmit";
 import { ArrowLeft, FileText, Package, Pencil, Plus } from "lucide-react";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { InfoModal } from "../components/InfoModal";
@@ -340,6 +341,7 @@ function CreditEditForm({
   const [startDate, setStartDate] = useState(isoDay(credit.startDate));
   const [notes, setNotes] = useState(credit.notes ?? "");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const submit = useOnceSubmit(saving);
 
   return (
     <form
@@ -348,7 +350,7 @@ function CreditEditForm({
       onSubmit={(e) => {
         e.preventDefault();
         if (locked) {
-          onSave({ notes: notes.trim() || undefined });
+          submit.guard(() => onSave({ notes: notes.trim() || undefined }));
           return;
         }
         const next = {
@@ -363,14 +365,14 @@ function CreditEditForm({
           toast.error(message);
           return;
         }
-        onSave({
+        submit.guard(() => onSave({
           weeklyQuota: parseMoney(weeklyQuota),
           weeks: parseInteger(weeks),
           downPayment: parseMoney(downPayment) || 0,
           frequency,
           startDate,
           notes: notes.trim() || undefined,
-        });
+        }));
       }}
     >
       <p className="text-sm text-slate-500">Producto: <b>{credit.product.name}</b> · {money(credit.price)}</p>
@@ -402,8 +404,8 @@ function CreditEditForm({
       </Field>
       <div className="flex justify-end gap-2">
         <button type="button" className="btn-ghost" onClick={onCancel}>Cancelar</button>
-        <button className="btn-primary" disabled={saving}>
-          <WaitLabel waiting={saving} idle="Guardar cambios" busy="Guardando..." />
+        <button className="btn-primary" disabled={submit.blocked}>
+          <WaitLabel waiting={submit.blocked} idle="Guardar cambios" busy="Guardando..." />
         </button>
       </div>
     </form>
@@ -550,6 +552,7 @@ export function NewCreditPage() {
       toast.error(e.message);
     },
   });
+  const submit = useOnceSubmit(create.isPending);
 
   return (
     <div className="space-y-4">
@@ -581,7 +584,7 @@ export function NewCreditPage() {
             toast.error(message);
             return;
           }
-          create.mutate();
+          submit.guard(() => create.mutate());
         }}
       >
         <Field label="Cliente" error={errors.clientId} required>
@@ -663,9 +666,9 @@ export function NewCreditPage() {
             Elige cliente y producto para ver el precio, el inicial y las cuotas.
           </p>
         ) : null}
-        <button className="btn-primary" disabled={create.isPending || Boolean(openDebt) || !productId}>
+        <button className="btn-primary" disabled={submit.blocked || Boolean(openDebt) || !productId}>
           <WaitLabel
-            waiting={create.isPending}
+            waiting={submit.blocked}
             idle={openDebt ? "Saldar el anterior primero" : productId ? "Crear y entregar" : "Elige un producto para calcular"}
             busy="Creando crédito..."
           />

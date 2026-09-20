@@ -15,6 +15,7 @@ import { PageHeader, type HeaderAction } from "../components/PageHeader";
 import { DataTable } from "../components/DataTable";
 import { Loader, WaitLabel } from "../components/Loader";
 import { TableCard } from "../components/TableCard";
+import { useOnceSubmit } from "../hooks/useOnceSubmit";
 import {
   cityError,
   cedulaError,
@@ -367,6 +368,7 @@ function ClientForm({
   const [removing, setRemoving] = useState(false);
   const [removeError, setRemoveError] = useState<string | undefined>();
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const submit = useOnceSubmit(saving);
   const products = useQuery({
     queryKey: ["products"],
     queryFn: () =>
@@ -413,9 +415,9 @@ function ClientForm({
             type="submit"
             form="client-form"
             className="btn-primary"
-            disabled={saving || (!editing && products.isFetched && starterProducts.length === 0)}
+            disabled={submit.blocked || (!editing && products.isFetched && starterProducts.length === 0)}
           >
-            <WaitLabel waiting={saving} idle="Guardar" busy="Guardando..." />
+            <WaitLabel waiting={submit.blocked} idle="Guardar" busy="Guardando..." />
           </button>
         </div>
       }
@@ -462,7 +464,7 @@ function ClientForm({
               referredById: form.referredById || match.data?.data?.referrer.id,
             });
           }
-          onSave(payload, pending);
+          submit.guard(() => onSave(payload, pending));
         }}
       >
         <FormSection title="Datos personales">

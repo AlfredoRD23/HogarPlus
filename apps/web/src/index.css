@@ -24,6 +24,30 @@ body {
   background: linear-gradient(90deg, #c4a04a, #f4ebd3, #c4a04a);
 }
 
+.portal-shell {
+  background-color: #efe6d8;
+  background-image:
+    linear-gradient(180deg, rgba(255, 248, 238, 0.62) 0%, rgba(247, 237, 223, 0.82) 100%),
+    url("/portal-hogar.jpg");
+  background-size: cover;
+  background-position: center top;
+  background-attachment: fixed;
+}
+
+.portal-hero {
+  background-image:
+    linear-gradient(160deg, rgba(26, 47, 82, 0.78) 0%, rgba(26, 47, 82, 0.52) 100%),
+    url("/portal-hogar.jpg");
+  background-size: cover;
+  background-position: center;
+}
+
+@media (max-width: 640px) {
+  .portal-shell {
+    background-attachment: scroll;
+  }
+}
+
 @layer components {
   .panel {
     @apply rounded-2xl border border-slate-200 bg-white shadow-card;

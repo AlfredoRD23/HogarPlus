@@ -208,8 +208,8 @@ export function PortalPage() {
   })).filter((group) => group.items.length > 0);
 
   return (
-    <div className="min-h-screen bg-slate-100 text-navy-900">
-      <header className="bg-navy-900 text-white">
+    <div className="portal-shell min-h-screen text-navy-900">
+      <header className="bg-navy-900/90 text-white backdrop-blur-sm">
         <div className="flex items-center justify-between px-4 py-4 sm:px-8">
           <Logo />
           <div className="flex items-center gap-3 text-sm">
@@ -227,28 +227,38 @@ export function PortalPage() {
             </button>
           </div>
         </div>
-        <div className="flex flex-col gap-5 px-4 pb-8 sm:flex-row sm:items-end sm:justify-between sm:px-8">
-          <div className="flex items-center gap-4">
+        <div className="px-4 pb-8 sm:px-8">
+          <div className="flex items-start gap-4">
             <ProfilePhoto name={data.client.name} photoUrl={data.client.photoUrl} />
-            <div>
-              <h1 className="font-display text-3xl capitalize tracking-tight">{data.client.name.toLowerCase()}</h1>
+            <div className="min-w-0">
+              <p className="text-sm text-gold-300">Mi cuenta</p>
+              <h1 className="font-display text-4xl font-semibold capitalize tracking-tight text-white">{data.client.name.toLowerCase()}</h1>
               <p className="mt-1 text-sm text-slate-300">
                 {data.client.code} · {catalogAccessLabel(data.client.level)}
               </p>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
+              <div className="mt-3 flex flex-wrap items-center gap-2">
                 <LevelBadge level={data.client.level} />
                 <span className="rounded-full bg-navy-800 px-3 py-1 text-xs text-gold-100">
                   {data.client.points} pts
                   {progress.next ? ` · ${progress.remaining} para ${LEVEL_LABELS[progress.next]}` : ""}
                 </span>
               </div>
-              <p className="mt-3 text-sm text-slate-200">
-                Saldo {money(totalBalance)}
-                {nextDue ? ` · Próxima ${money(nextDue.amount)} · ${formatDate(nextDue.dueDate)}` : " · Al día"}
-              </p>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            <HeaderStat label="Saldo" value={money(totalBalance)} hint="Lo que falta por pagar" />
+            <HeaderStat
+              label="Próxima cuota"
+              value={nextDue ? money(nextDue.amount) : "Al día"}
+              hint={nextDue ? formatDate(nextDue.dueDate) : "No tienes cuotas pendientes"}
+            />
+            <HeaderStat
+              label="Puntos"
+              value={String(data.client.points)}
+              hint={progress.next ? `Faltan ${progress.remaining} para ${LEVEL_LABELS[progress.next]}` : "Nivel máximo"}
+            />
+          </div>
+          <div className="mt-5 flex flex-wrap gap-2">
             <button
               type="button"
               className="btn-gold"
@@ -262,6 +272,7 @@ export function PortalPage() {
               className="btn-ghost border-white/15 bg-transparent text-white hover:bg-navy-800"
               disabled={busy === "collect"}
               onClick={async () => {
+                if (busy) return;
                 setBusy("collect");
                 try {
                   await api("/api/portal/collect-me", { method: "POST", body: JSON.stringify(identity()) });
@@ -538,10 +549,20 @@ function activityPanel(
 function ProfilePhoto({ name, photoUrl }: { name: string; photoUrl?: string | null }) {
   const initial = name.trim().slice(0, 1).toUpperCase() || "C";
   return photoUrl ? (
-    <img src={mediaUrl(photoUrl)} alt={name} className="h-20 w-20 rounded-full object-cover ring-2 ring-gold-500/40" />
+    <img src={mediaUrl(photoUrl)} alt={name} className="h-24 w-24 rounded-full object-cover ring-2 ring-gold-400" />
   ) : (
-    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-navy-800 text-2xl font-semibold text-gold-300 ring-2 ring-gold-500/40">
+    <div className="flex h-24 w-24 items-center justify-center rounded-full bg-navy-800 text-3xl font-semibold text-gold-300 ring-2 ring-gold-400">
       {initial}
+    </div>
+  );
+}
+
+function HeaderStat({ label, value, hint }: { label: string; value: string; hint: string }) {
+  return (
+    <div className="rounded-2xl bg-navy-800 px-4 py-3">
+      <p className="text-xs text-slate-300">{label}</p>
+      <p className="mt-1 font-display text-xl text-white">{value}</p>
+      <p className="mt-0.5 text-xs text-slate-400">{hint}</p>
     </div>
   );
 }
@@ -549,8 +570,9 @@ function ProfilePhoto({ name, photoUrl }: { name: string; photoUrl?: string | nu
 function SectionHead({ title, hint }: { title: string; hint: string }) {
   return (
     <div className="mb-3">
-      <h2 className="font-display text-2xl">{title}</h2>
-      <p className="mt-1 text-sm text-slate-500">{hint}</p>
+      <h2 className="font-display text-3xl font-semibold tracking-tight text-navy-900">{title}</h2>
+      <div className="mt-1.5 h-1 w-11 rounded-full bg-gold-500" />
+      <p className="mt-2 text-sm font-medium text-navy-800/70">{hint}</p>
     </div>
   );
 }
@@ -780,17 +802,17 @@ function PortalGate({
 }) {
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
-      <section className="relative hidden overflow-hidden bg-navy-900 p-10 text-white lg:flex lg:flex-col lg:justify-between">
+      <section className="portal-hero relative hidden overflow-hidden p-10 text-white lg:flex lg:flex-col lg:justify-between">
         <Logo />
         <div>
           <p className="text-gold-300">Tu cuenta · Tus cuotas · Tus facturas</p>
-          <h2 className="mt-4 font-display text-4xl font-semibold leading-tight">
+          <h2 className="mt-4 font-display text-5xl font-semibold leading-tight">
             Consulta tu saldo, sube el comprobante y descarga tu factura.
           </h2>
         </div>
         <p className="text-sm text-slate-300">Entra con tu cédula y el teléfono registrado.</p>
       </section>
-      <section className="flex items-center justify-center bg-slate-100 p-6">
+      <section className="portal-shell flex items-center justify-center p-6">
         <form
           className="panel w-full max-w-md p-8"
           noValidate
@@ -802,7 +824,7 @@ function PortalGate({
           <div className="lg:hidden">
             <Logo light />
           </div>
-          <h1 className="mt-4 font-display text-3xl font-semibold text-navy-900">Soy cliente</h1>
+          <h1 className="mt-4 font-display text-4xl font-semibold tracking-tight text-navy-900">Soy cliente</h1>
           <p className="mt-2 text-sm text-slate-500">
             Ingresa con tu cédula y teléfono para ver cuotas, enviar un pago y descargar facturas.
           </p>

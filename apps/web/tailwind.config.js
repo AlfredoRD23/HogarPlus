@@ -21,7 +21,7 @@ export default {
       },
       fontFamily: {
         sans: ["Inter", "Segoe UI", "sans-serif"],
-        display: ["Inter", "Segoe UI", "sans-serif"],
+        display: ["Fraunces", "Georgia", "serif"],
       },
       boxShadow: {
         card: "0 14px 32px -20px rgba(26, 47, 82, 0.28)",

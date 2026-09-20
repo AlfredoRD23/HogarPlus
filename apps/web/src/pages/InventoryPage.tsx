@@ -9,6 +9,7 @@ import { TableCard } from "../components/TableCard";
 import { WaitLabel } from "../components/Loader";
 import { Plus, Warehouse } from "lucide-react";
 import { firstError, INVENTORY_MOVEMENT_LABELS, integerError, noteError, parseInteger, type InventoryMovementType } from "@hogarplus/shared";
+import { useOnceSubmit } from "../hooks/useOnceSubmit";
 
 type InventoryPayload = {
   movements: Array<{
@@ -137,6 +138,7 @@ function MoveForm({
 }) {
   const [f, setF] = useState({ productId: products[0]?.id ?? "", type: "IN", quantity: "1", reason: "Reposición" });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const submit = useOnceSubmit(saving);
   return (
     <form
       className="grid gap-3"
@@ -154,12 +156,12 @@ function MoveForm({
           toast.error(message);
           return;
         }
-        onSave({
+        submit.guard(() => onSave({
           productId: f.productId,
           type: f.type,
           quantity: parseInteger(f.quantity),
           reason: f.reason.trim(),
-        });
+        }));
       }}
     >
       <Field label="Producto" error={errors.productId} required>
@@ -184,9 +186,9 @@ function MoveForm({
         <FormattedInput kind="text" required value={f.reason} error={Boolean(errors.reason)} onValue={(v) => setF({ ...f, reason: v })} />
       </Field>
       <div className="flex justify-end gap-2">
-        <button type="button" className="btn-ghost" disabled={saving} onClick={onCancel}>Cancelar</button>
-        <button className="btn-primary" disabled={saving}>
-          <WaitLabel waiting={saving} idle="Guardar" busy="Guardando..." />
+        <button type="button" className="btn-ghost" disabled={submit.blocked} onClick={onCancel}>Cancelar</button>
+        <button className="btn-primary" disabled={submit.blocked}>
+          <WaitLabel waiting={submit.blocked} idle="Guardar" busy="Guardando..." />
         </button>
       </div>
     </form>

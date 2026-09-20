@@ -3,8 +3,8 @@ import toast from "react-hot-toast";
 import { api } from "../lib/api";
 import { Field, FormattedInput, fieldHint } from "../components/Form";
 import { PageHeader } from "../components/PageHeader";
-import { Settings } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Building2, Settings, Wallet } from "lucide-react";
+import { useState, useEffect, type ReactNode } from "react";
 import { cityError, firstError, formatCity, formatProductName, integerError, moneyError, parseInteger, parseMoney, percentError, productNameError } from "@hogarplus/shared";
 
 type Settings = {
@@ -61,6 +61,8 @@ export function SettingsPage() {
     onSuccess: () => {
       toast.success("Configuración actualizada");
       qc.invalidateQueries({ queryKey: ["settings"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["reports"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -70,13 +72,11 @@ export function SettingsPage() {
   return (
     <div className="space-y-4">
       <PageHeader title="Reglas de negocio" description="Afiliación, cuota semanal y reserva de caja" icon={Settings} />
-      <div className="panel max-w-2xl p-6">
       <form
-        className="mt-4 grid gap-3 sm:grid-cols-2"
+        className="space-y-4"
         noValidate
         onSubmit={(e) => {
           e.preventDefault();
-          if (!form) return;
           const next = {
             companyName: productNameError(form.companyName) ? "El nombre debe tener al menos 2 caracteres" : "",
             companyCity: cityError(form.companyCity) ?? "",
@@ -94,29 +94,66 @@ export function SettingsPage() {
           save.mutate();
         }}
       >
-        <Field label="Nombre" hint={fieldHint("text")} error={errors.companyName} required>
-          <FormattedInput kind="productName" required value={form.companyName} error={Boolean(errors.companyName)} onValue={(v) => setForm({ ...form, companyName: formatProductName(v) })} />
-        </Field>
-        <Field label="Ubicación" hint={fieldHint("city")} error={errors.companyCity} required>
-          <FormattedInput kind="city" required value={form.companyCity} error={Boolean(errors.companyCity)} onValue={(v) => setForm({ ...form, companyCity: formatCity(v) })} />
-        </Field>
-        <Field label="Afiliación" hint={fieldHint("money")} error={errors.affiliationFee} required>
-          <FormattedInput kind="money" required value={form.affiliationFee} error={Boolean(errors.affiliationFee)} onValue={(v) => setForm({ ...form, affiliationFee: v })} />
-        </Field>
-        <Field label="Cuota semanal" hint={fieldHint("money")} error={errors.weeklyQuota} required>
-          <FormattedInput kind="money" required value={form.weeklyQuota} error={Boolean(errors.weeklyQuota)} onValue={(v) => setForm({ ...form, weeklyQuota: v })} />
-        </Field>
-        <Field label="Semanas" hint="Entre 1 y 104" error={errors.defaultWeeks} required>
-          <FormattedInput kind="integer" required value={form.defaultWeeks} error={Boolean(errors.defaultWeeks)} onValue={(v) => setForm({ ...form, defaultWeeks: v })} />
-        </Field>
-        <Field label="Reserva de caja %" hint={fieldHint("percent")} error={errors.cashReservePercent} required>
-          <FormattedInput kind="percent" required value={form.cashReservePercent} error={Boolean(errors.cashReservePercent)} onValue={(v) => setForm({ ...form, cashReservePercent: v })} />
-        </Field>
-        <div className="sm:col-span-2">
-          <button className="btn-primary">Guardar</button>
+        <div className="grid gap-4 lg:grid-cols-3">
+          <RuleCard title="Empresa" description="Nombre y lugar que usa el sistema." icon={Building2}>
+            <Field label="Nombre" hint={fieldHint("text")} error={errors.companyName} required>
+              <FormattedInput kind="productName" required value={form.companyName} error={Boolean(errors.companyName)} onValue={(v) => setForm({ ...form, companyName: formatProductName(v) })} />
+            </Field>
+            <Field label="Ubicación" hint={fieldHint("city")} error={errors.companyCity} required>
+              <FormattedInput kind="city" required value={form.companyCity} error={Boolean(errors.companyCity)} onValue={(v) => setForm({ ...form, companyCity: formatCity(v) })} />
+            </Field>
+          </RuleCard>
+          <RuleCard title="Créditos" description="Se usa al entrar un cliente y al armar un crédito." icon={Wallet}>
+            <Field label="Afiliación" hint={fieldHint("money")} error={errors.affiliationFee} required>
+              <FormattedInput kind="money" required value={form.affiliationFee} error={Boolean(errors.affiliationFee)} onValue={(v) => setForm({ ...form, affiliationFee: v })} />
+            </Field>
+            <Field label="Cuota semanal" hint={fieldHint("money")} error={errors.weeklyQuota} required>
+              <FormattedInput kind="money" required value={form.weeklyQuota} error={Boolean(errors.weeklyQuota)} onValue={(v) => setForm({ ...form, weeklyQuota: v })} />
+            </Field>
+            <Field label="Semanas" hint="Entre 1 y 104" error={errors.defaultWeeks} required>
+              <FormattedInput kind="integer" required value={form.defaultWeeks} error={Boolean(errors.defaultWeeks)} onValue={(v) => setForm({ ...form, defaultWeeks: v })} />
+            </Field>
+          </RuleCard>
+          <RuleCard title="Caja" description="Del cobro se aparta este porcentaje y no se trata como ganancia." icon={Settings}>
+            <Field label="Reserva de caja %" hint={fieldHint("percent")} error={errors.cashReservePercent} required>
+              <FormattedInput kind="percent" required value={form.cashReservePercent} error={Boolean(errors.cashReservePercent)} onValue={(v) => setForm({ ...form, cashReservePercent: v })} />
+            </Field>
+          </RuleCard>
+        </div>
+        <div className="panel flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-slate-500">Al guardar, estos números se usan en clientes, créditos, pagos y el dashboard.</p>
+          <button className="btn-primary" disabled={save.isPending}>
+            {save.isPending ? "Guardando..." : "Guardar"}
+          </button>
         </div>
       </form>
-      </div>
     </div>
+  );
+}
+
+function RuleCard({
+  title,
+  description,
+  icon: Icon,
+  children,
+}: {
+  title: string;
+  description: string;
+  icon: typeof Settings;
+  children: ReactNode;
+}) {
+  return (
+    <section className="panel flex flex-col p-6">
+      <div className="mb-5 flex items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-navy-900 text-gold-300">
+          <Icon size={18} />
+        </div>
+        <div>
+          <h2 className="text-lg font-semibold text-navy-900">{title}</h2>
+          <p className="mt-0.5 text-sm text-slate-500">{description}</p>
+        </div>
+      </div>
+      <div className="grid flex-1 gap-4">{children}</div>
+    </section>
   );
 }

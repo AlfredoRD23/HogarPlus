@@ -30,6 +30,9 @@ type CollectionCard = {
   balance: number;
   dueDate: string | null;
   daysLate: number;
+  overdueCount?: number;
+  overdueTotal?: number;
+  lastNote?: string | null;
 };
 
 type Board = {
@@ -128,14 +131,21 @@ function Bucket({
               </span>
             </div>
             <p className="mt-3 text-sm text-navy-800">{item.product}</p>
+            <p className="mt-1 text-xs text-slate-500">{item.creditCode}</p>
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600">
               <span>Cuota {money(item.amount)}</span>
               <span>Saldo {money(item.balance)}</span>
               {item.dueDate && <span>Vence {formatDate(item.dueDate)}</span>}
             </div>
-            {item.daysLate > 0 && (
-              <p className="mt-2 text-xs font-semibold text-rose-700">Atraso {slaDelayLabel(item.daysLate)}</p>
+            {item.overdueCount && item.overdueCount > 1 && item.overdueTotal != null && (
+              <p className="mt-2 text-xs font-semibold text-rose-700">
+                {item.overdueCount} cuotas atrasadas · {money(item.overdueTotal)}
+              </p>
             )}
+            {item.daysLate > 0 && (
+              <p className="mt-1 text-xs font-semibold text-rose-700">Atraso {slaDelayLabel(item.daysLate)}</p>
+            )}
+            {item.lastNote && <p className="mt-2 line-clamp-2 text-xs text-slate-500">{item.lastNote}</p>}
           </button>
         ))}
         {items.length === 0 && <p className="py-8 text-center text-sm text-slate-400">Sin cuentas en este estado</p>}

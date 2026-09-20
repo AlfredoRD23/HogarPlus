@@ -38,10 +38,62 @@ export type CollectionCard = {
   balance: number;
   dueDate: string | null;
   daysLate: number;
+  overdueCount?: number;
+  overdueTotal?: number;
+  lastNote?: string | null;
 };
 
 function nameOf(client: { firstName: string; lastName: string }) {
   return `${client.firstName} ${client.lastName}`;
+}
+
+function cardFromClientCredit(
+  client: {
+    id: string;
+    code: string;
+    firstName: string;
+    lastName: string;
+    phone: string;
+    city: string | null;
+    level: ClientLevel;
+  },
+  credit: { id: string; code: string; balance: Prisma.Decimal | number; weeklyQuota?: Prisma.Decimal | number },
+  productName: string,
+  extra: { amount: number; dueDate: Date | null; daysLate: number; overdueCount?: number; overdueTotal?: number },
+): CollectionCard {
+  return {
+    id: `${credit.id}-${extra.dueDate?.toISOString() ?? "open"}`,
+    clientId: client.id,
+    creditId: credit.id,
+    name: nameOf(client),
+    code: client.code,
+    phone: client.phone,
+    city: client.city,
+    level: client.level,
+    product: productName,
+    creditCode: credit.code,
+    amount: extra.amount,
+    balance: money(credit.balance),
+    dueDate: extra.dueDate ? extra.dueDate.toISOString() : null,
+    daysLate: extra.daysLate,
+    overdueCount: extra.overdueCount,
+    overdueTotal: extra.overdueTotal,
+  };
+}
+
+async function attachLatestNotes(cards: CollectionCard[]): Promise<CollectionCard[]> {
+  const ids = [...new Set(cards.map((card) => card.clientId))];
+  if (ids.length === 0) return cards;
+  const notes = await prisma.collectionNote.findMany({
+    where: { clientId: { in: ids } },
+    orderBy: { createdAt: "desc" },
+    select: { clientId: true, note: true },
+  });
+  const latest = new Map<string, string>();
+  for (const note of notes) {
+    if (!latest.has(note.clientId)) latest.set(note.clientId, note.note);
+  }
+  return cards.map((card) => ({ ...card, lastNote: latest.get(card.clientId) ?? null }));
 }
 
 export class CollectionsService {
@@ -126,78 +178,63 @@ export class CollectionsService {
     const received = money(receivedAgg._sum.amount ?? 0);
     const pending = Math.max(0, expected - received);
 
+    const overdueByCredit = new Map<
+      string,
+      { inst: (typeof overdue)[number]; count: number; total: Prisma.Decimal; oldest: Date }
+    >();
+    for (const inst of overdue) {
+      const current = overdueByCredit.get(inst.creditId);
+      if (!current) {
+        overdueByCredit.set(inst.creditId, { inst, count: 1, total: inst.amount, oldest: inst.dueDate });
+        continue;
+      }
+      current.count += 1;
+      current.total = current.total.plus(inst.amount);
+      if (inst.dueDate < current.oldest) {
+        current.oldest = inst.dueDate;
+        current.inst = inst;
+      }
+    }
+
+    const buckets = {
+      onTime: onTime.map((credit) =>
+        cardFromClientCredit(credit.client, credit, credit.product.name, {
+          amount: money(credit.installments[0]?.amount ?? credit.weeklyQuota),
+          dueDate: credit.installments[0]?.dueDate ?? null,
+          daysLate: 0,
+        }),
+      ),
+      dueToday: dueToday.map((inst) =>
+        cardFromClientCredit(inst.credit.client, inst.credit, inst.credit.product.name, {
+          amount: money(inst.amount),
+          dueDate: inst.dueDate,
+          daysLate: 0,
+        }),
+      ),
+      overdue: [...overdueByCredit.values()].map(({ inst, count, total, oldest }) =>
+        cardFromClientCredit(inst.credit.client, inst.credit, inst.credit.product.name, {
+          amount: money(inst.amount),
+          dueDate: oldest,
+          daysLate: calendarDaysLate(oldest),
+          overdueCount: count,
+          overdueTotal: money(total),
+        }),
+      ),
+      advanced: advanced.map((credit) =>
+        cardFromClientCredit(credit.client, credit, credit.product.name, {
+          amount: money(credit.installments[0]?.amount ?? credit.weeklyQuota),
+          dueDate: credit.installments[0]?.dueDate ?? null,
+          daysLate: 0,
+        }),
+      ),
+    };
+
     return {
       buckets: {
-        onTime: onTime.map((credit): CollectionCard => {
-          const next = credit.installments[0];
-          return {
-            id: credit.id,
-            clientId: credit.client.id,
-            creditId: credit.id,
-            name: nameOf(credit.client),
-            code: credit.client.code,
-            phone: credit.client.phone,
-            city: credit.client.city,
-            level: credit.client.level,
-            product: credit.product.name,
-            creditCode: credit.code,
-            amount: money(next?.amount ?? credit.weeklyQuota),
-            balance: money(credit.balance),
-            dueDate: next?.dueDate.toISOString() ?? null,
-            daysLate: 0,
-          };
-        }),
-        dueToday: dueToday.map((inst): CollectionCard => ({
-          id: inst.id,
-          clientId: inst.credit.client.id,
-          creditId: inst.credit.id,
-          name: nameOf(inst.credit.client),
-          code: inst.credit.client.code,
-          phone: inst.credit.client.phone,
-          city: inst.credit.client.city,
-          level: inst.credit.client.level,
-          product: inst.credit.product.name,
-          creditCode: inst.credit.code,
-          amount: money(inst.amount),
-          balance: money(inst.credit.balance),
-          dueDate: inst.dueDate.toISOString(),
-          daysLate: 0,
-        })),
-        overdue: overdue.map((inst): CollectionCard => ({
-          id: inst.id,
-          clientId: inst.credit.client.id,
-          creditId: inst.credit.id,
-          name: nameOf(inst.credit.client),
-          code: inst.credit.client.code,
-          phone: inst.credit.client.phone,
-          city: inst.credit.client.city,
-          level: inst.credit.client.level,
-          product: inst.credit.product.name,
-          creditCode: inst.credit.code,
-          amount: money(inst.amount),
-          balance: money(inst.credit.balance),
-          dueDate: inst.dueDate.toISOString(),
-          daysLate: calendarDaysLate(inst.dueDate),
-        })),
-        advanced: advanced.map((credit): CollectionCard => {
-          const next = credit.installments[0];
-          return {
-            id: credit.id,
-            clientId: credit.client.id,
-            creditId: credit.id,
-            name: nameOf(credit.client),
-            code: credit.client.code,
-            phone: credit.client.phone,
-            city: credit.client.city,
-            level: credit.client.level,
-            product: credit.product.name,
-            creditCode: credit.code,
-            amount: money(next?.amount ?? credit.weeklyQuota),
-            balance: money(credit.balance),
-            dueDate: next?.dueDate.toISOString() ?? null,
-            daysLate: 0,
-          };
-        }),
+        onTime: await attachLatestNotes(buckets.onTime),
+        dueToday: await attachLatestNotes(buckets.dueToday),
+        overdue: await attachLatestNotes(buckets.overdue),
+        advanced: await attachLatestNotes(buckets.advanced),
       },
       kpis: {
         expected,

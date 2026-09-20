@@ -171,12 +171,6 @@ export function productRequestAccess(
   catalogApproved: boolean,
   hasDebt = false,
 ): { canRequest: boolean; lockReason: string | null } {
-  if (hasDebt) {
-    return {
-      canRequest: false,
-      lockReason: "Debes saldar tu producto anterior antes de pedir otro",
-    };
-  }
   if (!catalogsForLevel(level).includes(tier)) {
     const need = requiredLevelForTier(tier);
     return {
@@ -188,6 +182,12 @@ export function productRequestAccess(
     return {
       canRequest: false,
       lockReason: "No puedes solicitarlo hasta que aprueben tu categoría Oro",
+    };
+  }
+  if (hasDebt) {
+    return {
+      canRequest: false,
+      lockReason: "Debes saldar tu producto anterior antes de pedir otro",
     };
   }
   return { canRequest: true, lockReason: null };

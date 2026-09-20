@@ -309,7 +309,14 @@ export function PortalPage() {
             </>
           ) : (
             <>
-              <Carousel title="Tus productos" hint="Toca uno para ver su plan de cuotas">
+              <Carousel
+                title="Tus productos"
+                hint={
+                  data.credits.length > 1
+                    ? `${data.credits.length} productos · toca uno para ver sus cuotas`
+                    : "Toca uno para ver su plan de cuotas"
+                }
+              >
                 {data.credits.map((credit) => (
                   <CreditSlide
                     key={credit.id}
@@ -321,13 +328,24 @@ export function PortalPage() {
                   />
                 ))}
               </Carousel>
-              {selected ? <InstallmentPlan credit={selected} /> : null}
+              {selected ? (
+                <InstallmentPlan
+                  credit={selected}
+                  credits={data.credits}
+                  onSelect={setActiveCreditId}
+                />
+              ) : null}
             </>
           )}
         </section>
 
         <section className="space-y-6">
           <SectionHead title="Catálogo" hint="Ves todo. Los de tu categoría se pueden pedir; el resto queda a la vista, bloqueado." />
+          {data.debt?.[0] ? (
+            <div className="panel px-5 py-3 text-sm text-navy-800">
+              Tienes saldo en <b>{data.debt[0].productName}</b>. Saldalo para pedir otro producto.
+            </div>
+          ) : null}
           {catalogByCategory.length === 0 ? (
             <EmptyStrip text="No hay productos en catálogo." />
           ) : (
@@ -622,7 +640,15 @@ function Carousel({ title, hint, children }: { title: string; hint: string; chil
   );
 }
 
-function InstallmentPlan({ credit }: { credit: PortalCredit }) {
+function InstallmentPlan({
+  credit,
+  credits,
+  onSelect,
+}: {
+  credit: PortalCredit;
+  credits: PortalCredit[];
+  onSelect: (id: string) => void;
+}) {
   const pending = credit.installments.filter((item) => item.status !== "PAID");
   const next = pending[0];
   const paidCount = credit.installments.length - pending.length;
@@ -630,12 +656,28 @@ function InstallmentPlan({ credit }: { credit: PortalCredit }) {
 
   return (
     <div className="panel mt-4 overflow-hidden">
+      {credits.length > 1 ? (
+        <div className="flex gap-2 overflow-x-auto border-b border-slate-100 px-4 py-3">
+          {credits.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
+                item.id === credit.id ? "bg-navy-900 text-white" : "bg-slate-100 text-navy-800"
+              }`}
+              onClick={() => onSelect(item.id)}
+            >
+              {item.product.name}
+            </button>
+          ))}
+        </div>
+      ) : null}
       <div className="flex flex-wrap items-end justify-between gap-3 border-b border-slate-100 px-5 py-4">
         <div>
           <p className="text-sm text-slate-500">Plan de cuotas</p>
-          <h3 className="font-display text-xl">{credit.product.name}</h3>
+          <h3 className="font-display text-xl font-semibold">{credit.product.name}</h3>
         </div>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm font-medium text-navy-800">
           {paidCount} de {credit.installments.length} pagadas
         </p>
       </div>
@@ -644,7 +686,7 @@ function InstallmentPlan({ credit }: { credit: PortalCredit }) {
           <div className="h-full rounded-full bg-gold-500" style={{ width: `${percent}%` }} />
         </div>
       </div>
-      <ul className="divide-y divide-slate-100">
+      <ul className={`divide-y divide-slate-100 ${credit.installments.length > 8 ? "max-h-[28rem] overflow-y-auto" : ""}`}>
         {credit.installments.map((item) => {
           const status = effectiveInstallmentStatus(item.status, item.dueDate);
           const isNext = next?.id === item.id;
@@ -771,8 +813,8 @@ function CatalogSlide({
               {product.requested ? "Ya solicitado" : "Solicitar"}
             </button>
           ) : product.lockReason?.includes("saldar") ? (
-            <button type="button" className="btn-ghost w-full btn-compact" onClick={onDebt}>
-              Ver deuda
+            <button type="button" className="btn-gold w-full btn-compact" onClick={onDebt}>
+              Solicitar
             </button>
           ) : (
             <p className="text-xs font-medium text-rose-700">{product.lockReason || "Bloqueado para tu nivel"}</p>
@@ -802,7 +844,7 @@ function PortalGate({
 }) {
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
-      <section className="portal-hero relative hidden overflow-hidden p-10 text-white lg:flex lg:flex-col lg:justify-between">
+      <section className="relative hidden overflow-hidden bg-navy-900 p-10 text-white lg:flex lg:flex-col lg:justify-between">
         <Logo />
         <div>
           <p className="text-gold-300">Tu cuenta · Tus cuotas · Tus facturas</p>
@@ -812,7 +854,7 @@ function PortalGate({
         </div>
         <p className="text-sm text-slate-300">Entra con tu cédula y el teléfono registrado.</p>
       </section>
-      <section className="portal-shell flex items-center justify-center p-6">
+      <section className="flex items-center justify-center bg-slate-100 p-6">
         <form
           className="panel w-full max-w-md p-8"
           noValidate

@@ -202,9 +202,9 @@ export function PortalPage() {
     .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())[0];
   const progress = progressToNextLevel(data.client.points);
   const selected = data.credits.find((credit) => credit.id === activeCreditId) ?? data.credits[0] ?? null;
-  const availableByCategory = PRODUCT_CATEGORIES.map((category) => ({
+  const catalogByCategory = PRODUCT_CATEGORIES.map((category) => ({
     category,
-    items: data.catalog.filter((product) => product.canRequest && product.category === category),
+    items: data.catalog.filter((product) => product.category === category),
   })).filter((group) => group.items.length > 0);
 
   return (
@@ -316,12 +316,16 @@ export function PortalPage() {
         </section>
 
         <section className="space-y-6">
-          <SectionHead title="Disponibles para ti" hint="Solo lo que puedes pedir, por categoría." />
-          {availableByCategory.length === 0 ? (
-            <EmptyStrip text="Ahora mismo no hay productos disponibles para tu nivel." />
+          <SectionHead title="Catálogo" hint="Ves todo. Los de tu categoría se pueden pedir; el resto queda a la vista, bloqueado." />
+          {catalogByCategory.length === 0 ? (
+            <EmptyStrip text="No hay productos en catálogo." />
           ) : (
-            availableByCategory.map((group) => (
-              <Carousel key={group.category} title={CATEGORY_LABELS[group.category]} hint={`${group.items.length} disponible${group.items.length === 1 ? "" : "s"}`}>
+            catalogByCategory.map((group) => (
+              <Carousel
+                key={group.category}
+                title={CATEGORY_LABELS[group.category]}
+                hint={`${group.items.length} producto${group.items.length === 1 ? "" : "s"}`}
+              >
                 {group.items.map((product) => (
                   <CatalogSlide
                     key={product.id}
@@ -720,7 +724,9 @@ function CatalogSlide({
   onDebt: () => void;
 }) {
   return (
-    <article className="carousel-item flex h-full w-64 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white">
+    <article className={`carousel-item flex h-full w-64 flex-col overflow-hidden rounded-2xl border ${
+      product.canRequest ? "border-slate-200 bg-white" : "border-slate-200 bg-slate-50"
+    }`}>
       <div className="relative h-36 bg-slate-100">
         {product.imageUrl ? (
           <img src={mediaUrl(product.imageUrl)} alt={product.name} className="h-full w-full object-cover" />
@@ -747,7 +753,7 @@ function CatalogSlide({
               Ver deuda
             </button>
           ) : (
-            <p className="text-xs font-medium text-rose-700">{product.lockReason}</p>
+            <p className="text-xs font-medium text-rose-700">{product.lockReason || "Bloqueado para tu nivel"}</p>
           )}
         </div>
       </div>

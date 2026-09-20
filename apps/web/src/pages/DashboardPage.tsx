@@ -7,6 +7,7 @@ import { KpiCard } from "../components/KpiCard";
 import { PageHeader } from "../components/PageHeader";
 import { DataTable } from "../components/DataTable";
 import { TableCard } from "../components/TableCard";
+import { Loader } from "../components/Loader";
 import { LEVEL_LABELS, type ClientLevel } from "@hogarplus/shared";
 
 type Dashboard = {
@@ -52,6 +53,7 @@ export function DashboardPage() {
           { label: "Cobranza", icon: Bell, variant: "ghost", onClick: () => navigate("/cobranza") },
         ]}
       />
+      {isLoading ? <Loader label="Cargando dashboard..." /> : null}
 
       {pendingSetup && (
         <div className="panel p-5">

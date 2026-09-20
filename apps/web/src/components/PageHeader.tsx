@@ -54,7 +54,7 @@ export function PageHeader({
         {actions.map((action) => {
           const ActionIcon = action.icon;
           const cls =
-            action.variant === "primary" ? "btn-primary" : action.variant === "gold" ? "btn-gold" : "btn-ghost";
+            action.variant === "ghost" ? "btn-ghost" : action.variant === "primary" ? "btn-primary" : "btn-gold";
           if (action.href) {
             return (
               <Link key={action.label} className={cls} to={action.href}>

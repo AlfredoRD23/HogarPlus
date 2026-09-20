@@ -19,11 +19,12 @@ import { PortalPage } from "./pages/PortalPage";
 import { RoutesPage } from "./pages/RoutesPage";
 import { RequestsPage } from "./pages/RequestsPage";
 import type { ReactNode } from "react";
+import { Loader } from "./components/Loader";
 
 function Guard({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const location = useLocation();
-  if (loading) return <div className="grid min-h-screen place-items-center text-navy-900">Cargando HogarPlus...</div>;
+  if (loading) return <div className="grid min-h-screen place-items-center"><Loader label="Cargando HogarPlus..." /></div>;
   if (!user) return <Navigate to="/login" replace />;
   if (!canAccessPath(user.role, location.pathname)) {
     return <Navigate to={homePathFor(user.role)} replace />;

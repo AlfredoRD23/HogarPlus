@@ -7,6 +7,7 @@ import { api } from "../lib/api";
 import { Field, FormattedInput, Modal } from "../components/Form";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { PageHeader } from "../components/PageHeader";
+import { Loader, WaitLabel } from "../components/Loader";
 import { RowActions } from "../components/RowActions";
 import { formatPhoneRD } from "@hogarplus/shared";
 
@@ -115,7 +116,8 @@ export function RoutesPage() {
       />
       <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
         <div className="panel overflow-hidden">
-          {rows.length === 0 && <p className="p-5 text-sm text-slate-500">Todavía no hay rutas.</p>}
+          {list.isLoading ? <Loader label="Cargando rutas..." /> : null}
+          {!list.isLoading && rows.length === 0 && <p className="p-5 text-sm text-slate-500">Todavía no hay rutas.</p>}
           {rows.map((item) => (
             <button
               key={item.id}
@@ -128,7 +130,8 @@ export function RoutesPage() {
           ))}
         </div>
         <div className="panel p-5">
-          {!route && <p className="text-sm text-slate-500">Elige una ruta para ver y enlazar clientes.</p>}
+          {selected && detail.isLoading ? <Loader label="Cargando ruta..." /> : null}
+          {!selected && <p className="text-sm text-slate-500">Elige una ruta para ver y enlazar clientes.</p>}
           {route && (
             <>
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -171,8 +174,8 @@ export function RoutesPage() {
                     </option>
                   ))}
                 </select>
-                <button className="btn-primary mt-3" disabled={pick.length === 0} onClick={() => assign.mutate()}>
-                  Agregar a esta ruta
+                <button className="btn-primary mt-3" disabled={assign.isPending || pick.length === 0} onClick={() => assign.mutate()}>
+                  <WaitLabel waiting={assign.isPending} idle="Agregar a esta ruta" busy="Enlazando..." />
                 </button>
               </div>
             </>
@@ -199,8 +202,10 @@ export function RoutesPage() {
               <FormattedInput kind="text" value={form.notes} onValue={(v) => setForm({ ...form, notes: v })} />
             </Field>
             <div className="flex justify-end gap-2">
-              <button type="button" className="btn-ghost" onClick={() => setOpen(false)}>Cancelar</button>
-              <button className="btn-primary">Guardar</button>
+              <button type="button" className="btn-ghost" disabled={create.isPending} onClick={() => setOpen(false)}>Cancelar</button>
+              <button className="btn-primary" disabled={create.isPending}>
+                <WaitLabel waiting={create.isPending} idle="Guardar" busy="Guardando..." />
+              </button>
             </div>
           </form>
         </Modal>
@@ -225,8 +230,10 @@ export function RoutesPage() {
               <FormattedInput kind="text" value={form.notes} onValue={(v) => setForm({ ...form, notes: v })} />
             </Field>
             <div className="flex justify-end gap-2">
-              <button type="button" className="btn-ghost" onClick={() => setEditing(false)}>Cancelar</button>
-              <button className="btn-primary">Guardar</button>
+              <button type="button" className="btn-ghost" disabled={update.isPending} onClick={() => setEditing(false)}>Cancelar</button>
+              <button className="btn-primary" disabled={update.isPending}>
+                <WaitLabel waiting={update.isPending} idle="Guardar" busy="Guardando..." />
+              </button>
             </div>
           </form>
         </Modal>

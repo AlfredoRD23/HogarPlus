@@ -13,6 +13,7 @@ import { ReferClientForm } from "../components/ReferClientForm";
 import { RowActions } from "../components/RowActions";
 import { PageHeader, type HeaderAction } from "../components/PageHeader";
 import { DataTable } from "../components/DataTable";
+import { Loader, WaitLabel } from "../components/Loader";
 import { TableCard } from "../components/TableCard";
 import {
   cityError,
@@ -176,7 +177,7 @@ export function ClientsPage() {
         rows={rows.length}
         emptyTitle="Sin clientes"
         emptyDescription="Crea el primer cliente para comenzar la cartera."
-        emptyAction={<button className="btn-ghost" onClick={() => setOpen(true)}>Nuevo cliente</button>}
+        emptyAction={<button className="btn-gold" onClick={() => setOpen(true)}>Nuevo cliente</button>}
         headers={["Cliente", "Contacto", "Referencia", "Inicio", "Próxima cuota", "Saldo", "Acciones"]}
         mobile={rows.map((c) => {
           const credit = c.credits?.[0];
@@ -279,6 +280,7 @@ export function ClientsPage() {
       {open && (
         <ClientForm
           affiliationFee={settings.data?.data.affiliationFee ?? 0}
+          saving={create.isPending}
           onClose={() => setOpen(false)}
           onSave={(body, files) => create.mutate({ body, files })}
         />
@@ -287,6 +289,7 @@ export function ClientsPage() {
         <ClientForm
           affiliationFee={0}
           initial={editing}
+          saving={updateRow.isPending}
           onClose={() => setEditing(null)}
           onSave={(body, files) => updateRow.mutate({ id: editing.id, body, files })}
         />
@@ -332,11 +335,13 @@ function ClientForm({
   onSave,
   affiliationFee,
   initial,
+  saving,
 }: {
   onClose: () => void;
   onSave: (body: Record<string, unknown>, files: File[]) => void;
   affiliationFee: number;
   initial?: Partial<Client>;
+  saving?: boolean;
 }) {
   const editing = Boolean(initial?.id);
   const [form, setForm] = useState({
@@ -408,9 +413,9 @@ function ClientForm({
             type="submit"
             form="client-form"
             className="btn-primary"
-            disabled={!editing && products.isFetched && starterProducts.length === 0}
+            disabled={saving || (!editing && products.isFetched && starterProducts.length === 0)}
           >
-            Guardar
+            <WaitLabel waiting={saving} idle="Guardar" busy="Guardando..." />
           </button>
         </div>
       }
@@ -738,7 +743,7 @@ export function ClientDetailPage() {
     }>;
   } | undefined;
 
-  if (!c) return <p>Cargando...</p>;
+  if (!c) return <Loader label="Cargando cliente..." />;
   const progress = progressToNextLevel(c.points);
   const openCredit = c.credits.find((item) => item.status === "ACTIVE" && Number(item.balance) > 0);
   const openDebt: OutstandingCredit | null = openCredit
@@ -933,6 +938,7 @@ export function ClientDetailPage() {
         <ClientForm
           affiliationFee={0}
           initial={c}
+          saving={update.isPending}
           onClose={() => setEditing(false)}
           onSave={(body, files) => update.mutate({ body, files })}
         />

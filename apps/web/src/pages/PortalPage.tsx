@@ -4,6 +4,7 @@ import { Bell, CalendarClock, CheckCircle2, Package, Star, UserPlus, Wallet } fr
 import { api, formatDate, mediaUrl, money } from "../lib/api";
 import { creditsFromDebtError, debtFacts, debtNotes, isDebtError } from "../lib/debt";
 import { Logo } from "../components/Logo";
+import { WaitLabel } from "../components/Loader";
 import { CatalogBadge, InstallmentBadge, LevelBadge } from "../components/Badges";
 import { Field, FormattedInput, Modal } from "../components/Form";
 import { InfoModal } from "../components/InfoModal";
@@ -154,17 +155,22 @@ export function PortalPage() {
               setError(message);
               return;
             }
+            setBusy("lookup");
             try {
               await lookup();
             } catch (err) {
               setData(null);
               setError(err instanceof Error ? err.message : "No encontrado");
+            } finally {
+              setBusy("");
             }
           }}
         >
           <FormattedInput kind="cedula" required className="input text-navy-900" value={documentId} onValue={setDocumentId} placeholder="000-0000000-0" />
           <FormattedInput kind="phone" required className="input text-navy-900" value={phone} onValue={setPhone} placeholder="809-000-0000" />
-          <button className="btn-gold md:min-w-40">Consultar</button>
+          <button className="btn-gold md:min-w-40" disabled={busy === "lookup"}>
+            <WaitLabel waiting={busy === "lookup"} idle="Consultar" busy="Buscando..." />
+          </button>
         </form>
         {error && <p className="mt-4 text-rose-300">{error}</p>}
         {data && (
@@ -708,8 +714,10 @@ function PayClaimForm({
       </Field>
       {error ? <p className="text-sm font-medium text-rose-700">{error}</p> : null}
       <div className="flex justify-end gap-2">
-        <button type="button" className="btn-ghost" onClick={onCancel}>Cancelar</button>
-        <button className="btn-primary" disabled={saving}>{saving ? "Enviando..." : "Enviar aviso"}</button>
+        <button type="button" className="btn-ghost" disabled={saving} onClick={onCancel}>Cancelar</button>
+        <button className="btn-primary" disabled={saving}>
+          <WaitLabel waiting={saving} idle="Enviar aviso" busy="Enviando..." />
+        </button>
       </div>
     </form>
   );

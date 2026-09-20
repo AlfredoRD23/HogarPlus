@@ -8,6 +8,7 @@ import { RowActions } from "../components/RowActions";
 import { PageHeader } from "../components/PageHeader";
 import { DataTable } from "../components/DataTable";
 import { TableCard } from "../components/TableCard";
+import { WaitLabel } from "../components/Loader";
 import { Plus, Shield } from "lucide-react";
 import { ROLE_DESCRIPTIONS, ROLE_LABELS, ROLES, emailError, firstError, passwordError, personNameError, type Role } from "@hogarplus/shared";
 
@@ -115,12 +116,12 @@ export function UsersPage() {
       </DataTable>
       {open && (
         <Modal title="Nuevo usuario" onClose={() => setOpen(false)}>
-          <UserForm onCancel={() => setOpen(false)} onSave={(b) => create.mutate(b)} />
+          <UserForm saving={create.isPending} onCancel={() => setOpen(false)} onSave={(b) => create.mutate(b)} />
         </Modal>
       )}
       {editing && (
         <Modal title="Editar usuario" onClose={() => setEditing(null)}>
-          <UserForm initial={editing} onCancel={() => setEditing(null)} onSave={(b) => update.mutate({ id: editing.id, body: b })} />
+          <UserForm saving={update.isPending} initial={editing} onCancel={() => setEditing(null)} onSave={(b) => update.mutate({ id: editing.id, body: b })} />
         </Modal>
       )}
       {confirm && (
@@ -153,10 +154,12 @@ function UserForm({
   onSave,
   onCancel,
   initial,
+  saving,
 }: {
   onSave: (b: Record<string, unknown>) => void;
   onCancel: () => void;
   initial?: StaffUser;
+  saving?: boolean;
 }) {
   const editing = Boolean(initial);
   const [f, setF] = useState({ name: initial?.name ?? "", email: initial?.email ?? "", password: "", role: initial?.role ?? "VENTAS" });
@@ -204,8 +207,10 @@ function UserForm({
         </select>
       </Field>
       <div className="flex justify-end gap-2">
-        <button type="button" className="btn-ghost" onClick={onCancel}>Cancelar</button>
-        <button className="btn-primary">Guardar</button>
+        <button type="button" className="btn-ghost" disabled={saving} onClick={onCancel}>Cancelar</button>
+        <button className="btn-primary" disabled={saving}>
+          <WaitLabel waiting={saving} idle="Guardar" busy="Guardando..." />
+        </button>
       </div>
     </form>
   );

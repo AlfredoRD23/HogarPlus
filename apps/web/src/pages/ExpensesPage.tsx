@@ -8,6 +8,7 @@ import { RowActions } from "../components/RowActions";
 import { PageHeader } from "../components/PageHeader";
 import { DataTable } from "../components/DataTable";
 import { TableCard } from "../components/TableCard";
+import { WaitLabel } from "../components/Loader";
 import { Plus, Receipt } from "lucide-react";
 import { dateError, firstError, moneyError, noteError, parseMoney } from "@hogarplus/shared";
 
@@ -80,7 +81,7 @@ export function ExpensesPage() {
         rows={rows.length}
         emptyTitle="Sin gastos"
         emptyDescription="Registra nómina, transporte u otros gastos."
-        emptyAction={<button className="btn-ghost" onClick={() => setOpen(true)}>Nuevo gasto</button>}
+        emptyAction={<button className="btn-gold" onClick={() => setOpen(true)}>Nuevo gasto</button>}
         headers={["Fecha", "Categoría", "Descripción", "Monto", "Acciones"]}
         mobile={rows.map((e) => (
           <TableCard
@@ -126,12 +127,12 @@ export function ExpensesPage() {
       </DataTable>
       {open && (
         <Modal title="Registrar gasto" onClose={() => setOpen(false)}>
-          <ExpenseForm onCancel={() => setOpen(false)} onSave={(b) => create.mutate(b)} />
+          <ExpenseForm saving={create.isPending} onCancel={() => setOpen(false)} onSave={(b) => create.mutate(b)} />
         </Modal>
       )}
       {editing && (
         <Modal title="Editar gasto" onClose={() => setEditing(null)}>
-          <ExpenseForm initial={editing} onCancel={() => setEditing(null)} onSave={(b) => update.mutate({ id: editing.id, body: b })} />
+          <ExpenseForm saving={update.isPending} initial={editing} onCancel={() => setEditing(null)} onSave={(b) => update.mutate({ id: editing.id, body: b })} />
         </Modal>
       )}
       {voiding && (
@@ -160,10 +161,12 @@ function ExpenseForm({
   onSave,
   onCancel,
   initial,
+  saving,
 }: {
   onSave: (b: Record<string, unknown>) => void;
   onCancel: () => void;
   initial?: { category: string; amount: number; description: string; incurredOn: string };
+  saving?: boolean;
 }) {
   const today = new Date().toISOString().slice(0, 10);
   const [f, setF] = useState({
@@ -211,8 +214,10 @@ function ExpenseForm({
         <FormattedInput kind="date" required max={today} value={f.incurredOn} error={Boolean(errors.incurredOn)} onValue={(v) => setF({ ...f, incurredOn: v })} />
       </Field>
       <div className="flex justify-end gap-2">
-        <button type="button" className="btn-ghost" onClick={onCancel}>Cancelar</button>
-        <button className="btn-primary">Guardar</button>
+        <button type="button" className="btn-ghost" disabled={saving} onClick={onCancel}>Cancelar</button>
+        <button className="btn-primary" disabled={saving}>
+          <WaitLabel waiting={saving} idle="Guardar" busy="Guardando..." />
+        </button>
       </div>
     </form>
   );

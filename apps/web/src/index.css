@@ -86,7 +86,7 @@ body {
   }
 
   .btn-gold {
-    @apply inline-flex h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-slate-200 bg-white px-5 text-sm font-medium text-navy-800 transition hover:bg-slate-50 disabled:opacity-50;
+    @apply inline-flex h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-gold-500 px-5 text-sm font-medium text-navy-950 transition hover:bg-gold-600 disabled:opacity-50;
   }
 
   .btn-ghost {

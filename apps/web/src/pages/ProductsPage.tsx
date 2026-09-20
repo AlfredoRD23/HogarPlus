@@ -10,6 +10,7 @@ import { PageHeader } from "../components/PageHeader";
 import { Package, Plus } from "lucide-react";
 import { CATEGORY_LABELS, CATALOG_TIER_LABELS, CATALOG_TIERS, firstError, integerError, moneyError, parseInteger, parseMoney, productNameError, type CatalogTier, type ProductCategory } from "@hogarplus/shared";
 import { CatalogBadge } from "../components/Badges";
+import { WaitLabel } from "../components/Loader";
 
 type ProductImage = { id: string; path: string };
 
@@ -118,7 +119,7 @@ export function ProductsPage() {
         <div className="panel p-8 text-center">
           <p className="font-display text-xl">Catálogo vacío</p>
           <p className="mt-1 text-sm text-slate-500">Agrega el primer producto con su foto.</p>
-          <button className="btn-ghost mt-4" onClick={() => setOpen(true)}>Nuevo producto</button>
+          <button className="btn-gold mt-4" onClick={() => setOpen(true)}>Nuevo producto</button>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -166,13 +167,14 @@ export function ProductsPage() {
       )}
       {open && (
         <Modal title="Nuevo producto" onClose={() => setOpen(false)} size="lg">
-          <ProductForm onCancel={() => setOpen(false)} onSave={(body, files) => create.mutate({ body, files })} />
+          <ProductForm saving={create.isPending} onCancel={() => setOpen(false)} onSave={(body, files) => create.mutate({ body, files })} />
         </Modal>
       )}
       {editing && (
         <Modal title="Editar producto" onClose={() => setEditing(null)} size="lg">
           <ProductForm
             initial={editing}
+            saving={update.isPending}
             onCancel={() => setEditing(null)}
             onSave={(body, files) => update.mutate({ id: editing.id, body, files })}
           />
@@ -208,10 +210,12 @@ function ProductForm({
   onSave,
   onCancel,
   initial,
+  saving,
 }: {
   onSave: (b: Record<string, unknown>, files: File[]) => void;
   onCancel: () => void;
   initial?: Product;
+  saving?: boolean;
 }) {
   const editing = Boolean(initial);
   const [f, setF] = useState({
@@ -318,8 +322,10 @@ function ProductForm({
         />
       </div>
       <div className="sm:col-span-2 flex justify-end gap-2">
-        <button type="button" className="btn-ghost" onClick={onCancel}>Cancelar</button>
-        <button className="btn-primary">Guardar</button>
+        <button type="button" className="btn-ghost" disabled={saving} onClick={onCancel}>Cancelar</button>
+        <button className="btn-primary" disabled={saving}>
+          <WaitLabel waiting={saving} idle="Guardar" busy="Guardando..." />
+        </button>
       </div>
       {removing && initial?.id && (
         <ConfirmModal

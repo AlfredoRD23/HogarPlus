@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { Logo } from "../components/Logo";
+import { WaitLabel } from "../components/Loader";
 import { useAuth } from "../auth/AuthContext";
 import { Field, FormattedInput, fieldHint } from "../components/Form";
 import { emailError, firstError, homePathFor } from "@hogarplus/shared";
@@ -78,7 +79,7 @@ export function LoginPage() {
             Recordar correo en este equipo
           </label>
           <button className="btn-gold mt-6 w-full" disabled={loading}>
-            {loading ? "Entrando..." : "Entrar"}
+            <WaitLabel waiting={loading} idle="Entrar" busy="Entrando..." />
           </button>
       <p className="mt-4 text-center text-xs text-slate-500">
             <a className="text-navy-700 underline" href="/">Inicio</a>

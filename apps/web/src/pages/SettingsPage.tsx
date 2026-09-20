@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import { api } from "../lib/api";
 import { Field, FormattedInput, fieldHint } from "../components/Form";
 import { PageHeader } from "../components/PageHeader";
+import { Loader, WaitLabel } from "../components/Loader";
 import { Building2, Settings, Wallet } from "lucide-react";
 import { useState, useEffect, type ReactNode } from "react";
 import { cityError, firstError, formatCity, formatProductName, integerError, moneyError, parseInteger, parseMoney, percentError, productNameError } from "@hogarplus/shared";
@@ -67,7 +68,7 @@ export function SettingsPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  if (!form) return <p>Cargando...</p>;
+  if (!form) return <Loader label="Cargando reglas..." />;
 
   return (
     <div className="space-y-4">
@@ -122,8 +123,8 @@ export function SettingsPage() {
         </div>
         <div className="panel flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-slate-500">Al guardar, estos números se usan en clientes, créditos, pagos y el dashboard.</p>
-          <button className="btn-primary" disabled={save.isPending}>
-            {save.isPending ? "Guardando..." : "Guardar"}
+          <button className="btn-gold" disabled={save.isPending}>
+            <WaitLabel waiting={save.isPending} idle="Guardar" busy="Guardando..." />
           </button>
         </div>
       </form>

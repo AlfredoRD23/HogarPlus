@@ -4,6 +4,7 @@ import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recha
 import { api, money, formatDate } from "../lib/api";
 import { KpiCard } from "../components/KpiCard";
 import { PageHeader } from "../components/PageHeader";
+import { Loader } from "../components/Loader";
 import { PAYMENT_METHOD_LABELS, type PaymentMethod } from "@hogarplus/shared";
 
 type Finance = {
@@ -33,6 +34,7 @@ export function ReportsPage() {
         description="Resumen de créditos, pagos y gastos"
         icon={BarChart3}
       />
+      {q.isLoading ? <Loader label="Cargando reportes..." /> : null}
       <div className="grid gap-4 md:grid-cols-4">
         <KpiCard tone="navy" label="Ventas a precio" value={q.isLoading ? "..." : money(d?.salesPrice ?? 0)} />
         <KpiCard tone="gold" label="Costo mercancía" value={money(d?.merchandiseCost ?? 0)} />

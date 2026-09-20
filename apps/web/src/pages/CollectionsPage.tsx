@@ -5,6 +5,7 @@ import { api, formatDate, money } from "../lib/api";
 import { KpiCard } from "../components/KpiCard";
 import { Field, FormattedTextarea, Modal } from "../components/Form";
 import { PageHeader } from "../components/PageHeader";
+import { Loader, WaitLabel } from "../components/Loader";
 import { Bell } from "lucide-react";
 import {
   firstError,
@@ -67,6 +68,10 @@ export function CollectionsPage() {
         description="SLA real: al día, pendiente hoy y atrasados por días o semanas"
         icon={Bell}
       />
+      {q.isLoading ? (
+        <Loader label="Cargando cobranza..." />
+      ) : (
+      <>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <KpiCard tone="navy" label="Cobro esperado hoy" value={money(d?.kpis.expected ?? 0)} />
         <KpiCard tone="gold" label="Cobrado hoy" value={money(d?.kpis.received ?? 0)} />
@@ -82,10 +87,13 @@ export function CollectionsPage() {
       {noteFor && (
         <Modal title={`Gestión · ${noteFor.name}`} onClose={() => setNoteFor(null)}>
           <NoteForm
+            saving={addNote.isPending}
             onCancel={() => setNoteFor(null)}
             onSave={(note, channel) => addNote.mutate({ clientId: noteFor.clientId, creditId: noteFor.creditId, note, channel })}
           />
         </Modal>
+      )}
+      </>
       )}
     </div>
   );
@@ -154,7 +162,7 @@ function Bucket({
   );
 }
 
-function NoteForm({ onSave, onCancel }: { onSave: (note: string, channel: string) => void; onCancel: () => void }) {
+function NoteForm({ onSave, onCancel, saving }: { onSave: (note: string, channel: string) => void; onCancel: () => void; saving?: boolean }) {
   const [note, setNote] = useState("");
   const [channel, setChannel] = useState("WHATSAPP");
   const [error, setError] = useState("");
@@ -185,8 +193,10 @@ function NoteForm({ onSave, onCancel }: { onSave: (note: string, channel: string
         <FormattedTextarea required value={note} error={Boolean(error)} onValue={(v) => { setNote(v); setError(""); }} />
       </Field>
       <div className="flex justify-end gap-2">
-        <button type="button" className="btn-ghost" onClick={onCancel}>Cancelar</button>
-        <button className="btn-primary">Guardar</button>
+        <button type="button" className="btn-ghost" disabled={saving} onClick={onCancel}>Cancelar</button>
+        <button className="btn-primary" disabled={saving}>
+          <WaitLabel waiting={saving} idle="Guardar" busy="Guardando..." />
+        </button>
       </div>
     </form>
   );

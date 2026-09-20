@@ -8,6 +8,7 @@ import { Field, FormattedInput, FormattedTextarea, Modal } from "../components/F
 import { PageHeader } from "../components/PageHeader";
 import { DataTable } from "../components/DataTable";
 import { TableCard } from "../components/TableCard";
+import { Loader, WaitLabel } from "../components/Loader";
 import { ArrowLeft, FileText, Package, Pencil, Plus } from "lucide-react";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { InfoModal } from "../components/InfoModal";
@@ -112,7 +113,7 @@ export function CreditsPage() {
         rows={rows.length}
         emptyTitle="Sin créditos"
         emptyDescription="Entrega el primer producto a crédito para abrir cartera."
-        emptyAction={<a className="btn-ghost" href="/creditos/nuevo">Nuevo crédito</a>}
+        emptyAction={<a className="btn-gold" href="/creditos/nuevo">Nuevo crédito</a>}
         headers={["Código", "Cliente", "Producto", "Inicial", "Cuota", "Saldo", "Estado", "Acciones"]}
         mobile={rows.map((c) => (
           <TableCard
@@ -401,7 +402,9 @@ function CreditEditForm({
       </Field>
       <div className="flex justify-end gap-2">
         <button type="button" className="btn-ghost" onClick={onCancel}>Cancelar</button>
-        <button className="btn-primary" disabled={saving}>{saving ? "Guardando..." : "Guardar cambios"}</button>
+        <button className="btn-primary" disabled={saving}>
+          <WaitLabel waiting={saving} idle="Guardar cambios" busy="Guardando..." />
+        </button>
       </div>
     </form>
   );
@@ -660,8 +663,12 @@ export function NewCreditPage() {
             Elige cliente y producto para ver el precio, el inicial y las cuotas.
           </p>
         ) : null}
-        <button className="btn-primary" disabled={Boolean(openDebt) || !productId}>
-          {openDebt ? "Saldar el anterior primero" : productId ? "Crear y entregar" : "Elige un producto para calcular"}
+        <button className="btn-primary" disabled={create.isPending || Boolean(openDebt) || !productId}>
+          <WaitLabel
+            waiting={create.isPending}
+            idle={openDebt ? "Saldar el anterior primero" : productId ? "Crear y entregar" : "Elige un producto para calcular"}
+            busy="Creando crédito..."
+          />
         </button>
       </form>
       {debt && (
@@ -731,7 +738,7 @@ export function CreditDetailPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  if (!c) return <p>Cargando...</p>;
+  if (!c) return <Loader label="Cargando crédito..." />;
   const nextOpen = c.installments.find((item) => item.status !== "PAID");
   const canEditPlan = c.installments.every((item) => Number(item.paidAmount) === 0);
   const initialPaid = (c.payments ?? []).find((item) => item.type === "DOWN_PAYMENT");

@@ -7,6 +7,7 @@ import { Field, FormattedInput, fieldHint } from "../components/Form";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { PageHeader } from "../components/PageHeader";
 import { DataTable } from "../components/DataTable";
+import { WaitLabel } from "../components/Loader";
 import { RowActions } from "../components/RowActions";
 import { TableCard } from "../components/TableCard";
 import { Wallet } from "lucide-react";
@@ -149,7 +150,9 @@ export function PaymentsPage() {
         <Field label="Referencia" hint={form.method === "CASH" ? "Opcional en efectivo" : fieldHint("reference")} error={errors.reference}>
           <FormattedInput kind="reference" value={form.reference} error={Boolean(errors.reference)} onValue={(v) => setForm({ ...form, reference: v })} />
         </Field>
-        <button className="btn-primary w-full">Aplicar pago</button>
+        <button className="btn-primary w-full" disabled={create.isPending}>
+          <WaitLabel waiting={create.isPending} idle="Aplicar pago" busy="Aplicando..." />
+        </button>
       </form>
       <DataTable
         title="Historial de pagos"

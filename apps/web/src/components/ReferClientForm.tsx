@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { POINTS_RULES, firstError, personNameError, phoneError } from "@hogarplus/shared";
 import { Field, FormattedInput, fieldHint } from "./Form";
+import { WaitLabel } from "./Loader";
 
 export function ReferClientForm({
   onSave,
@@ -49,8 +50,10 @@ export function ReferClientForm({
       </Field>
       {error ? <p className="text-sm font-medium text-rose-700">{error}</p> : null}
       <div className="flex justify-end gap-2">
-        <button type="button" className="btn-ghost" onClick={onCancel}>Cancelar</button>
-        <button className="btn-primary" disabled={loading}>{loading ? "Enviando..." : "Enviar referido"}</button>
+        <button type="button" className="btn-ghost" disabled={loading} onClick={onCancel}>Cancelar</button>
+        <button className="btn-primary" disabled={loading}>
+          <WaitLabel waiting={loading} idle="Enviar referido" busy="Enviando..." />
+        </button>
       </div>
     </form>
   );

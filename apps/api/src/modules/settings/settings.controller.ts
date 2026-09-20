@@ -18,6 +18,18 @@ export class SettingsController {
     res.json({ success: true, data });
   }
 
+  async public(_req: Request, res: Response) {
+    const all = await settingsService.getAll();
+    res.json({
+      success: true,
+      data: {
+        companyName: all.companyName,
+        companyCity: all.companyCity,
+        affiliationFee: all.affiliationFee,
+      },
+    });
+  }
+
   async update(req: Request, res: Response) {
     const body = schema.parse(req.body);
     const data = await settingsService.upsert(body, (req as AuthedRequest).user.id);

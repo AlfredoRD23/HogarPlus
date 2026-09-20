@@ -7,6 +7,7 @@ import { creditsFromDebtError, debtFacts, debtNotes, isDebtError } from "../lib/
 import { Field, FormattedInput, FormattedTextarea, Modal } from "../components/Form";
 import { PageHeader } from "../components/PageHeader";
 import { DataTable } from "../components/DataTable";
+import { TableCard } from "../components/TableCard";
 import { ArrowLeft, FileText, Package, Pencil, Plus } from "lucide-react";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { InfoModal } from "../components/InfoModal";
@@ -111,8 +112,33 @@ export function CreditsPage() {
         rows={rows.length}
         emptyTitle="Sin créditos"
         emptyDescription="Entrega el primer producto a crédito para abrir cartera."
-        emptyAction={<a className="btn-gold" href="/creditos/nuevo">Nuevo crédito</a>}
+        emptyAction={<a className="btn-ghost" href="/creditos/nuevo">Nuevo crédito</a>}
         headers={["Código", "Cliente", "Producto", "Inicial", "Cuota", "Saldo", "Estado", "Acciones"]}
+        mobile={rows.map((c) => (
+          <TableCard
+            key={c.id}
+            title={<Link to={`/creditos/${c.id}`}>{c.code}</Link>}
+            subtitle={`${c.client.firstName} ${c.client.lastName}`}
+            photo={c.product.imageUrl ? mediaUrl(c.product.imageUrl) : null}
+            initials={c.client.firstName}
+            muted={c.status === "CANCELLED"}
+            badge={<CreditBadge status={c.status} />}
+            fields={[
+              { label: "Producto", value: c.product.name },
+              { label: "Inicial", value: money(c.downPayment ?? 0) },
+              { label: "Cuota", value: money(c.weeklyQuota), hint: `${PAYMENT_FREQUENCY_LABELS[c.frequency ?? "WEEKLY"]} · ${c.weeks}` },
+              { label: "Saldo", value: money(c.balance) },
+            ]}
+            actions={
+              <RowActions
+                active={c.status === "ACTIVE"}
+                onEdit={c.status === "ACTIVE" ? () => setEditing(c) : undefined}
+                onDeactivate={c.status === "ACTIVE" ? () => setConfirm({ credit: c, activate: false }) : undefined}
+                onActivate={c.status === "CANCELLED" ? () => setConfirm({ credit: c, activate: true }) : undefined}
+              />
+            }
+          />
+        ))}
       >
         {rows.map((c) => (
           <tr key={c.id} className={`border-t ${c.status === "CANCELLED" ? "opacity-60" : ""}`}>
@@ -784,28 +810,37 @@ export function CreditDetailPage() {
           />
         </Modal>
       )}
-      <div className="panel overflow-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-navy-900 text-xs uppercase text-gold-300">
-            <tr>
-              {["#", "Vence", "Cuota", "Pagado", "Estado"].map((h) => (
-                <th key={h} className="px-5 py-3.5 text-left">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {c.installments.map((i) => (
-              <tr key={i.id} className="border-t">
-                <td className="px-5 py-3.5">{i.number}</td>
-                <td className="px-5 py-3.5">{formatDate(i.dueDate)}</td>
-                <td className="px-5 py-3.5">{money(i.amount)}</td>
-                <td className="px-5 py-3.5">{money(i.paidAmount)}</td>
-                <td className="px-5 py-3.5"><InstallmentBadge status={i.status} dueDate={i.dueDate} /></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        title="Cuotas"
+        count={c.installments.length}
+        rows={c.installments.length}
+        emptyTitle="Sin cuotas"
+        emptyDescription="Este crédito no tiene cuotas programadas."
+        headers={["#", "Vence", "Cuota", "Pagado", "Estado"]}
+        mobile={c.installments.map((i) => (
+          <TableCard
+            key={i.id}
+            title={`Cuota ${i.number}`}
+            subtitle={formatDate(i.dueDate)}
+            initials={String(i.number)}
+            badge={<InstallmentBadge status={i.status} dueDate={i.dueDate} />}
+            fields={[
+              { label: "Cuota", value: money(i.amount) },
+              { label: "Pagado", value: money(i.paidAmount) },
+            ]}
+          />
+        ))}
+      >
+        {c.installments.map((i) => (
+          <tr key={i.id} className="border-t">
+            <td className="px-5 py-3.5">{i.number}</td>
+            <td className="px-5 py-3.5">{formatDate(i.dueDate)}</td>
+            <td className="px-5 py-3.5">{money(i.amount)}</td>
+            <td className="px-5 py-3.5">{money(i.paidAmount)}</td>
+            <td className="px-5 py-3.5"><InstallmentBadge status={i.status} dueDate={i.dueDate} /></td>
+          </tr>
+        ))}
+      </DataTable>
       {confirmOff && (
         <ConfirmModal
           title={c.status === "ACTIVE" ? "Desactivar crédito" : "Reactivar crédito"}

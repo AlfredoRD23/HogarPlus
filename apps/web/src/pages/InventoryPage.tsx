@@ -4,6 +4,8 @@ import toast from "react-hot-toast";
 import { api, money, formatDate } from "../lib/api";
 import { Field, FormattedInput, Modal, fieldHint } from "../components/Form";
 import { PageHeader } from "../components/PageHeader";
+import { DataTable } from "../components/DataTable";
+import { TableCard } from "../components/TableCard";
 import { Plus, Warehouse } from "lucide-react";
 import { firstError, INVENTORY_MOVEMENT_LABELS, integerError, noteError, parseInteger, type InventoryMovementType } from "@hogarplus/shared";
 
@@ -48,44 +50,70 @@ export function InventoryPage() {
         icon={Warehouse}
         actions={[{ label: "Registrar movimiento", icon: Plus, onClick: () => setOpen(true) }]}
       />
-      <div className="panel overflow-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-navy-900 text-xs uppercase text-gold-300">
-            <tr>
-              <th className="px-5 py-3.5 text-left">Producto</th>
-              <th className="px-5 py-3.5">Stock</th>
-              <th className="px-5 py-3.5">Mínimo</th>
-              <th className="px-5 py-3.5">Valor costo</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(data?.summary ?? []).map((p) => (
-              <tr key={p.id} className="border-t">
-                <td className="px-5 py-3.5">{p.name} <span className="text-slate-400">{p.sku}</span></td>
-                <td className="px-5 py-3.5 text-center">{p.stock}</td>
-                <td className="px-5 py-3.5 text-center">{p.minStock}</td>
-                <td className="px-5 py-3.5 text-center">{money(Number(p.cost) * p.stock)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="panel overflow-auto">
-        <div className="border-b px-5 py-3.5 font-display text-lg">Kardex reciente</div>
-        <table className="w-full text-sm">
-          <tbody>
-            {(data?.movements ?? []).map((m) => (
-              <tr key={m.id} className="border-t">
-                <td className="px-5 py-3.5">{formatDate(m.createdAt)}</td>
-                <td className="px-5 py-3.5">{m.product.name}</td>
-                <td className="px-5 py-3.5">{INVENTORY_MOVEMENT_LABELS[m.type]}</td>
-                <td className="px-5 py-3.5">{m.quantity}</td>
-                <td className="px-5 py-3.5 text-slate-500">{m.reason}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        title="Stock por producto"
+        count={(data?.summary ?? []).length}
+        loading={q.isLoading}
+        rows={(data?.summary ?? []).length}
+        emptyTitle="Sin inventario"
+        emptyDescription="Carga productos para ver el stock valorizado."
+        headers={["Producto", "Stock", "Mínimo", "Valor costo"]}
+        mobile={(data?.summary ?? []).map((p) => (
+          <TableCard
+            key={p.id}
+            title={p.name}
+            subtitle={p.sku}
+            initials={p.name}
+            fields={[
+              { label: "Stock", value: p.stock },
+              { label: "Mínimo", value: p.minStock },
+              { label: "Valor costo", value: money(Number(p.cost) * p.stock) },
+            ]}
+          />
+        ))}
+      >
+        {(data?.summary ?? []).map((p) => (
+          <tr key={p.id} className="border-t">
+            <td className="px-5 py-3.5">{p.name} <span className="text-slate-400">{p.sku}</span></td>
+            <td className="px-5 py-3.5">{p.stock}</td>
+            <td className="px-5 py-3.5">{p.minStock}</td>
+            <td className="px-5 py-3.5">{money(Number(p.cost) * p.stock)}</td>
+          </tr>
+        ))}
+      </DataTable>
+      <DataTable
+        title="Kardex reciente"
+        count={(data?.movements ?? []).length}
+        loading={q.isLoading}
+        rows={(data?.movements ?? []).length}
+        emptyTitle="Sin movimientos"
+        emptyDescription="Los movimientos de entrada y salida aparecen aquí."
+        headers={["Fecha", "Producto", "Tipo", "Cantidad", "Motivo"]}
+        mobile={(data?.movements ?? []).map((m) => (
+          <TableCard
+            key={m.id}
+            title={m.product.name}
+            subtitle={m.product.sku}
+            initials={m.product.name}
+            fields={[
+              { label: "Fecha", value: formatDate(m.createdAt) },
+              { label: "Tipo", value: INVENTORY_MOVEMENT_LABELS[m.type] },
+              { label: "Cantidad", value: m.quantity },
+              { label: "Motivo", value: m.reason || "—" },
+            ]}
+          />
+        ))}
+      >
+        {(data?.movements ?? []).map((m) => (
+          <tr key={m.id} className="border-t">
+            <td className="px-5 py-3.5">{formatDate(m.createdAt)}</td>
+            <td className="px-5 py-3.5">{m.product.name}</td>
+            <td className="px-5 py-3.5">{INVENTORY_MOVEMENT_LABELS[m.type]}</td>
+            <td className="px-5 py-3.5">{m.quantity}</td>
+            <td className="px-5 py-3.5 text-slate-500">{m.reason}</td>
+          </tr>
+        ))}
+      </DataTable>
       {open && data && (
         <Modal title="Movimiento de inventario" onClose={() => setOpen(false)}>
           <MoveForm products={data.summary} onCancel={() => setOpen(false)} onSave={(b) => move.mutate(b)} />

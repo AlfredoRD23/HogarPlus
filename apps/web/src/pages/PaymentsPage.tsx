@@ -7,6 +7,8 @@ import { Field, FormattedInput, fieldHint } from "../components/Form";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { PageHeader } from "../components/PageHeader";
 import { DataTable } from "../components/DataTable";
+import { RowActions } from "../components/RowActions";
+import { TableCard } from "../components/TableCard";
 import { Wallet } from "lucide-react";
 import { PAYMENT_TYPE_LABELS, firstError, moneyError, parseMoney, referenceError, type PaymentMethod, type PaymentType } from "@hogarplus/shared";
 
@@ -157,6 +159,31 @@ export function PaymentsPage() {
         emptyTitle="Sin pagos"
         emptyDescription="Los cobros aparecerán aquí al registrar la primera cuota."
         headers={["Código", "Cliente", "Tipo", "Monto", "Inicial / Resta", "Fecha", "Acciones"]}
+        mobile={rows.map((p) => (
+          <TableCard
+            key={p.id}
+            title={`${p.client.firstName} ${p.client.lastName}`}
+            subtitle={p.credit?.code ? `${p.code} · ${p.credit.code}` : p.code}
+            initials={p.client.firstName}
+            muted={Boolean(p.voidedAt)}
+            badge={p.voidedAt ? <span className="text-[11px] font-bold uppercase text-rose-700">Anulado</span> : null}
+            fields={[
+              { label: "Tipo", value: PAYMENT_TYPE_LABELS[p.type] },
+              { label: "Monto", value: money(p.amount) },
+              {
+                label: "Inicial / Resta",
+                value: p.credit ? `Inicial ${money(p.credit.downPayment ?? 0)}` : "—",
+                hint: p.credit ? `Resta ${money(p.credit.balance)}` : undefined,
+              },
+              { label: "Fecha", value: formatDate(p.createdAt) },
+            ]}
+            actions={
+              !p.voidedAt && p.type !== "AFFILIATION" ? (
+                <RowActions onDeactivate={() => setVoiding(p)} deactivateLabel="Anular" />
+              ) : undefined
+            }
+          />
+        ))}
       >
         {rows.map((p) => (
           <tr key={p.id} className={`border-t ${p.voidedAt ? "opacity-40" : ""}`}>
@@ -178,9 +205,9 @@ export function PaymentsPage() {
             <td className="px-5 py-3.5">{formatDate(p.createdAt)}</td>
             <td className="px-5 py-3.5">
               {!p.voidedAt && p.type !== "AFFILIATION" ? (
-                <button type="button" className="btn-danger btn-compact" onClick={() => setVoiding(p)}>Anular</button>
+                <RowActions onDeactivate={() => setVoiding(p)} deactivateLabel="Anular" />
               ) : p.voidedAt ? (
-                <span className="text-xs font-bold uppercase text-rose-700">Anulado</span>
+                <span className="text-xs font-medium text-rose-700">Anulado</span>
               ) : "—"}
             </td>
           </tr>

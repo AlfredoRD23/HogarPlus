@@ -1,6 +1,7 @@
 import { prisma } from "../../lib/prisma";
 import { markOverdueInstallments } from "../../shared/sla";
 import { addDays, money, startOfDay } from "../../shared/utils";
+import { settingsService } from "../settings/settings.service";
 
 export class DashboardService {
   async summary() {
@@ -58,7 +59,10 @@ export class DashboardService {
     const grossMargin = soldPrice - merchandiseCost;
     const stockValue = products.reduce((acc, p) => acc + p.stock * money(p.cost), 0);
     const weeklyExpenses = money(expensesWeek._sum.amount ?? 0);
-    const netHint = collectedWeekly - weeklyExpenses;
+    const settings = await settingsService.getAll();
+    const cashReservePercent = settings.cashReservePercent;
+    const cashReserveAmount = Number(((collectedWeekly * cashReservePercent) / 100).toFixed(2));
+    const netHint = collectedWeekly - weeklyExpenses - cashReserveAmount;
     const lowStock = products.filter((p) => p.stock <= p.minStock).slice(0, 6);
 
     return {
@@ -74,6 +78,9 @@ export class DashboardService {
         grossMargin,
         stockValue,
         weeklyExpenses,
+        cashReservePercent,
+        cashReserveAmount,
+        affiliationFee: settings.affiliationFee,
         availableCapitalHint: Number(Math.max(0, netHint).toFixed(2)),
       },
       levels: levelGroups.map((g) => ({ level: g.level, count: g._count._all })),

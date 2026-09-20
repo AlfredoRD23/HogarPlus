@@ -5,6 +5,8 @@ import { Bell, LayoutDashboard, Plus, Users, Wallet } from "lucide-react";
 import { api, money } from "../lib/api";
 import { KpiCard } from "../components/KpiCard";
 import { PageHeader } from "../components/PageHeader";
+import { DataTable } from "../components/DataTable";
+import { TableCard } from "../components/TableCard";
 import { LEVEL_LABELS, type ClientLevel } from "@hogarplus/shared";
 
 type Dashboard = {
@@ -100,42 +102,54 @@ export function DashboardPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="panel overflow-hidden">
-          <div className="border-b px-5 py-4 font-display text-xl">Pagos recientes</div>
-          {(d?.recentPayments ?? []).length === 0 ? (
-            <p className="p-5 text-sm text-slate-500">Todavía no hay cobros registrados.</p>
-          ) : (
-            <table className="w-full text-sm">
-              <tbody>
-                {(d?.recentPayments ?? []).map((p) => (
-                  <tr key={p.id} className="border-t">
-                    <td className="px-5 py-3.5">{p.client}</td>
-                    <td className="px-5 py-3.5 text-slate-500">{p.code}</td>
-                    <td className="px-5 py-3.5 text-right font-semibold">{money(p.amount)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-        <div className="panel overflow-hidden">
-          <div className="border-b px-5 py-4 font-display text-xl">Inventario bajo</div>
-          {(d?.lowStock ?? []).length === 0 ? (
-            <p className="p-5 text-sm text-slate-500">Ningún producto está bajo el mínimo.</p>
-          ) : (
-            <table className="w-full text-sm">
-              <tbody>
-                {(d?.lowStock ?? []).map((p) => (
-                  <tr key={p.sku} className="border-t">
-                    <td className="px-5 py-3.5">{p.name}</td>
-                    <td className="px-5 py-3.5 text-slate-500">{p.sku}</td>
-                    <td className="px-5 py-3.5 text-right font-semibold">{p.stock}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+        <DataTable
+          title="Pagos recientes"
+          rows={(d?.recentPayments ?? []).length}
+          emptyTitle="Sin cobros"
+          emptyDescription="Todavía no hay cobros registrados."
+          headers={["Cliente", "Código", "Monto"]}
+          mobile={(d?.recentPayments ?? []).map((p) => (
+            <TableCard
+              key={p.id}
+              title={p.client}
+              subtitle={p.code}
+              initials={p.client}
+              fields={[{ label: "Monto", value: money(p.amount) }]}
+            />
+          ))}
+        >
+          {(d?.recentPayments ?? []).map((p) => (
+            <tr key={p.id} className="border-t">
+              <td className="px-5 py-3.5">{p.client}</td>
+              <td className="px-5 py-3.5 text-slate-500">{p.code}</td>
+              <td className="px-5 py-3.5 text-right font-semibold">{money(p.amount)}</td>
+            </tr>
+          ))}
+        </DataTable>
+        <DataTable
+          title="Inventario bajo"
+          rows={(d?.lowStock ?? []).length}
+          emptyTitle="Stock en orden"
+          emptyDescription="Ningún producto está bajo el mínimo."
+          headers={["Producto", "SKU", "Stock"]}
+          mobile={(d?.lowStock ?? []).map((p) => (
+            <TableCard
+              key={p.sku}
+              title={p.name}
+              subtitle={p.sku}
+              initials={p.name}
+              fields={[{ label: "Stock", value: p.stock }]}
+            />
+          ))}
+        >
+          {(d?.lowStock ?? []).map((p) => (
+            <tr key={p.sku} className="border-t">
+              <td className="px-5 py-3.5">{p.name}</td>
+              <td className="px-5 py-3.5 text-slate-500">{p.sku}</td>
+              <td className="px-5 py-3.5 text-right font-semibold">{p.stock}</td>
+            </tr>
+          ))}
+        </DataTable>
       </div>
     </div>
   );

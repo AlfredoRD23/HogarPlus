@@ -62,6 +62,8 @@ export class ReportsService {
       weeklyCollection: weeklyExpected,
     };
 
+    const cashReserveAmount = Number(((collected * settings.cashReservePercent) / 100).toFixed(2));
+
     return {
       windowDays: 90,
       activeClients: clients,
@@ -72,8 +74,10 @@ export class ReportsService {
       affiliationIncome: affiliation,
       expenses: expenseTotal,
       pendingPortfolio: pending,
-      theoreticalNet: collected + affiliation - expenseTotal,
-      note: "La utilidad neta real exige conciliar caja, impuestos, garantías y morosidad.",
+      cashReservePercent: settings.cashReservePercent,
+      cashReserveAmount,
+      theoreticalNet: collected + affiliation - expenseTotal - cashReserveAmount,
+      note: `Del cobro se aparta ${settings.cashReservePercent}% como reserva de caja y no se cuenta como dinero libre.`,
       byMethod,
       weeklyExpected,
       weeklySeries,

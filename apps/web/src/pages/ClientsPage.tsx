@@ -13,6 +13,7 @@ import { ReferClientForm } from "../components/ReferClientForm";
 import { RowActions } from "../components/RowActions";
 import { PageHeader, type HeaderAction } from "../components/PageHeader";
 import { DataTable } from "../components/DataTable";
+import { TableCard } from "../components/TableCard";
 import {
   cityError,
   cedulaError,
@@ -175,65 +176,41 @@ export function ClientsPage() {
         rows={rows.length}
         emptyTitle="Sin clientes"
         emptyDescription="Crea el primer cliente para comenzar la cartera."
-        emptyAction={<button className="btn-gold" onClick={() => setOpen(true)}>Nuevo cliente</button>}
+        emptyAction={<button className="btn-ghost" onClick={() => setOpen(true)}>Nuevo cliente</button>}
         headers={["Cliente", "Contacto", "Referencia", "Inicio", "Próxima cuota", "Saldo", "Acciones"]}
         mobile={rows.map((c) => {
           const credit = c.credits?.[0];
           const due = nextDue(c.credits);
           const photo = c.images?.[0];
           return (
-            <article key={c.id} className={`px-4 py-4 ${c.status !== "ACTIVE" ? "opacity-60" : ""}`}>
-              <div className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-3">
-                {photo ? (
-                  <img src={mediaUrl(photo.path)} alt="" className="h-[4.5rem] w-[4.5rem] shrink-0 rounded-2xl object-cover object-top" />
-                ) : (
-                  <div className="flex h-[4.5rem] w-[4.5rem] shrink-0 items-center justify-center rounded-2xl bg-navy-900 text-lg font-bold text-gold-300">
-                    {c.firstName.slice(0, 1)}
-                  </div>
-                )}
-                <div className="min-w-0">
-                  <Link className="block truncate font-semibold text-navy-800" to={`/clientes/${c.id}`}>
-                    {c.firstName} {c.lastName}
-                  </Link>
-                  <p className="truncate text-xs text-slate-500">{c.code} · {formatCedula(c.documentId)}</p>
-                  <div className="mt-1 flex flex-wrap items-center gap-2">
-                    <LevelBadge level={c.level} />
-                    {c.status !== "ACTIVE" ? <span className="text-[11px] font-bold uppercase text-rose-700">Inactivo</span> : null}
-                  </div>
-                </div>
-              </div>
-              <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
-                <div>
-                  <dt className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Contacto</dt>
-                  <dd className="mt-0.5">{formatPhoneRD(c.phone)}</dd>
-                  <dd className="truncate text-xs text-slate-500">{c.email || c.city || "—"}</dd>
-                  {c.email && c.city ? <dd className="text-xs text-slate-500">{c.city}</dd> : null}
-                </div>
-                <div>
-                  <dt className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Referencia</dt>
-                  <dd className="mt-0.5">{c.referenceName || "—"}</dd>
-                  {c.referencePhone ? <dd className="text-xs text-slate-500">{formatPhoneRD(c.referencePhone)}</dd> : null}
-                </div>
-                <div>
-                  <dt className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Próxima cuota</dt>
-                  <dd className="mt-0.5">{due ? formatDate(due.dueDate) : "—"}</dd>
-                  {due ? <dd className="text-xs text-slate-500">{money(due.amount)}</dd> : null}
-                </div>
-                <div>
-                  <dt className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Saldo</dt>
-                  <dd className="mt-0.5 font-semibold">{credit ? money(credit.balance) : "—"}</dd>
-                  <dd className="text-xs text-slate-500">{credit ? formatDate(credit.startDate) : "Sin crédito"}</dd>
-                </div>
-              </dl>
-              <div className="mt-3">
+            <TableCard
+              key={c.id}
+              title={<Link to={`/clientes/${c.id}`}>{c.firstName} {c.lastName}</Link>}
+              subtitle={`${c.code} · ${formatCedula(c.documentId)}`}
+              photo={photo ? mediaUrl(photo.path) : null}
+              initials={c.firstName}
+              muted={c.status !== "ACTIVE"}
+              badge={
+                <>
+                  <LevelBadge level={c.level} />
+                  {c.status !== "ACTIVE" ? <span className="text-[11px] font-bold uppercase text-rose-700">Inactivo</span> : null}
+                </>
+              }
+              fields={[
+                { label: "Contacto", value: formatPhoneRD(c.phone), hint: c.email || c.city || "—" },
+                { label: "Referencia", value: c.referenceName || "—", hint: c.referencePhone ? formatPhoneRD(c.referencePhone) : undefined },
+                { label: "Próxima cuota", value: due ? formatDate(due.dueDate) : "—", hint: due ? money(due.amount) : undefined },
+                { label: "Saldo", value: credit ? money(credit.balance) : "—", hint: credit ? formatDate(credit.startDate) : "Sin crédito" },
+              ]}
+              actions={
                 <RowActions
                   active={c.status === "ACTIVE"}
                   onEdit={() => setEditing(c)}
                   onDeactivate={() => setConfirm({ client: c, activate: false })}
                   onActivate={() => setConfirm({ client: c, activate: true })}
                 />
-              </div>
-            </article>
+              }
+            />
           );
         })}
       >
@@ -878,7 +855,7 @@ export function ClientDetailPage() {
           </div>
           <button
             type="button"
-            className="btn-gold"
+            className="btn-ghost"
             onClick={() => {
               setReferError(undefined);
               setReferOpen(true);

@@ -49,7 +49,7 @@ export function DataTable({
           {mobile ? <div className="divide-y md:hidden">{mobile}</div> : null}
           <div className={mobile ? "hidden overflow-auto md:block" : "overflow-auto"}>
             <table className="data-table">
-              <thead className="bg-navy-900 text-xs font-medium text-gold-300">
+              <thead className="border-b border-slate-200 bg-white text-xs font-medium text-slate-500">
                 <tr>
                   {headers.map((h) => (
                     <th key={h}>

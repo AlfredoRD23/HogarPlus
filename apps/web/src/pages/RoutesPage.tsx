@@ -7,6 +7,7 @@ import { api } from "../lib/api";
 import { Field, FormattedInput, Modal } from "../components/Form";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { PageHeader } from "../components/PageHeader";
+import { RowActions } from "../components/RowActions";
 import { formatPhoneRD } from "@hogarplus/shared";
 
 type RouteRow = {
@@ -132,20 +133,15 @@ export function RoutesPage() {
             <>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h2 className="font-display text-2xl">{route.name}{route.active ? "" : " · inactiva"}</h2>
-                <div className="flex gap-2">
-                  <button
-                    className="btn-ghost btn-compact"
-                    onClick={() => {
-                      setForm({ name: route.name, area: route.area ?? "", notes: route.notes ?? "" });
-                      setEditing(true);
-                    }}
-                  >
-                    Editar
-                  </button>
-                  <button className="btn-danger btn-compact" onClick={() => setConfirmOff(true)}>
-                    {route.active ? "Desactivar" : "Reactivar"}
-                  </button>
-                </div>
+                <RowActions
+                  active={route.active}
+                  onEdit={() => {
+                    setForm({ name: route.name, area: route.area ?? "", notes: route.notes ?? "" });
+                    setEditing(true);
+                  }}
+                  onDeactivate={() => setConfirmOff(true)}
+                  onActivate={() => setConfirmOff(true)}
+                />
               </div>
               <p className="text-sm text-slate-500">{route.area || "Sin zona"} {route.notes ? `· ${route.notes}` : ""}</p>
               <ul className="mt-4 space-y-2">

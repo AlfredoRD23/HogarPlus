@@ -1,4 +1,14 @@
-export function Logo({ compact = false, light = false }: { compact?: boolean; light?: boolean }) {
+export function Logo({
+  compact = false,
+  light = false,
+  name = "HogarPlus",
+  city,
+}: {
+  compact?: boolean;
+  light?: boolean;
+  name?: string;
+  city?: string;
+}) {
   return (
     <div className="flex items-center gap-3">
       <svg viewBox="0 0 64 64" className={compact ? "h-9 w-9" : "h-12 w-12"}>
@@ -21,8 +31,10 @@ export function Logo({ compact = false, light = false }: { compact?: boolean; li
       </svg>
       {!compact && (
         <div>
-          <p className={`text-xl font-semibold leading-none ${light ? "text-navy-900" : "text-gold-100"}`}>HogarPlus</p>
-          <p className={`mt-1 text-[11px] ${light ? "text-navy-700" : "text-gold-300"}`}>Tu hogar, nuestro compromiso</p>
+          <p className={`text-xl font-semibold leading-none ${light ? "text-navy-900" : "text-gold-100"}`}>{name}</p>
+          <p className={`mt-1 text-[11px] ${light ? "text-navy-700" : "text-gold-300"}`}>
+            {city || "Tu hogar, nuestro compromiso"}
+          </p>
         </div>
       )}
     </div>

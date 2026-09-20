@@ -7,6 +7,7 @@ import { ConfirmModal } from "../components/ConfirmModal";
 import { RowActions } from "../components/RowActions";
 import { PageHeader } from "../components/PageHeader";
 import { DataTable } from "../components/DataTable";
+import { TableCard } from "../components/TableCard";
 import { Plus, Shield } from "lucide-react";
 import { ROLE_DESCRIPTIONS, ROLE_LABELS, ROLES, emailError, firstError, passwordError, personNameError, type Role } from "@hogarplus/shared";
 
@@ -69,6 +70,28 @@ export function UsersPage() {
         emptyTitle="Sin usuarios"
         emptyDescription="Crea un usuario operativo para ventas o cobranza."
         headers={["Nombre", "Correo", "Rol", "Estado", "Acciones"]}
+        mobile={rows.map((u) => (
+          <TableCard
+            key={u.id}
+            title={u.name}
+            subtitle={u.email}
+            initials={u.name}
+            muted={!u.active}
+            badge={u.active ? null : <span className="text-[11px] font-bold uppercase text-rose-700">Inactivo</span>}
+            fields={[
+              { label: "Rol", value: ROLE_LABELS[u.role], hint: ROLE_DESCRIPTIONS[u.role] },
+              { label: "Estado", value: u.active ? "Activo" : "Inactivo" },
+            ]}
+            actions={
+              <RowActions
+                active={u.active}
+                onEdit={() => setEditing(u)}
+                onDeactivate={() => setConfirm({ user: u, activate: false })}
+                onActivate={() => setConfirm({ user: u, activate: true })}
+              />
+            }
+          />
+        ))}
       >
         {rows.map((u) => (
           <tr key={u.id} className={`border-t ${u.active ? "" : "opacity-60"}`}>

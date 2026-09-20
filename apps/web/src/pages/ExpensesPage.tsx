@@ -7,6 +7,7 @@ import { ConfirmModal } from "../components/ConfirmModal";
 import { RowActions } from "../components/RowActions";
 import { PageHeader } from "../components/PageHeader";
 import { DataTable } from "../components/DataTable";
+import { TableCard } from "../components/TableCard";
 import { Plus, Receipt } from "lucide-react";
 import { dateError, firstError, moneyError, noteError, parseMoney } from "@hogarplus/shared";
 
@@ -79,8 +80,31 @@ export function ExpensesPage() {
         rows={rows.length}
         emptyTitle="Sin gastos"
         emptyDescription="Registra nómina, transporte u otros gastos."
-        emptyAction={<button className="btn-gold" onClick={() => setOpen(true)}>Nuevo gasto</button>}
+        emptyAction={<button className="btn-ghost" onClick={() => setOpen(true)}>Nuevo gasto</button>}
         headers={["Fecha", "Categoría", "Descripción", "Monto", "Acciones"]}
+        mobile={rows.map((e) => (
+          <TableCard
+            key={e.id}
+            title={CATEGORIES.find(([key]) => key === e.category)?.[1] ?? e.category}
+            subtitle={formatDate(e.incurredOn)}
+            initials={e.category}
+            muted={Boolean(e.voidedAt)}
+            badge={e.voidedAt ? <span className="text-[11px] font-bold uppercase text-rose-700">Anulado</span> : null}
+            fields={[
+              { label: "Descripción", value: e.description },
+              { label: "Monto", value: money(e.amount) },
+            ]}
+            actions={
+              !e.voidedAt ? (
+                <RowActions
+                  onEdit={() => setEditing(e)}
+                  onDeactivate={() => setVoiding({ id: e.id, description: e.description })}
+                  deactivateLabel="Anular"
+                />
+              ) : undefined
+            }
+          />
+        ))}
       >
         {rows.map((e) => (
           <tr key={e.id} className={`border-t ${e.voidedAt ? "opacity-40" : ""}`}>

@@ -118,7 +118,7 @@ export function ProductsPage() {
         <div className="panel p-8 text-center">
           <p className="font-display text-xl">Catálogo vacío</p>
           <p className="mt-1 text-sm text-slate-500">Agrega el primer producto con su foto.</p>
-          <button className="btn-gold mt-4" onClick={() => setOpen(true)}>Nuevo producto</button>
+          <button className="btn-ghost mt-4" onClick={() => setOpen(true)}>Nuevo producto</button>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

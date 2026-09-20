@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { Inbox } from "lucide-react";
@@ -7,6 +7,8 @@ import { api, formatDate, mediaUrl, money } from "../lib/api";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { PageHeader } from "../components/PageHeader";
 import { DataTable } from "../components/DataTable";
+import { RowActions } from "../components/RowActions";
+import { TableCard } from "../components/TableCard";
 import { CatalogBadge, LevelBadge } from "../components/Badges";
 import {
   PAYMENT_CLAIM_STATUS_LABELS,
@@ -63,6 +65,7 @@ export function RequestsPage() {
 }
 
 function ProductRequestsTable() {
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const [confirm, setConfirm] = useState<{ row: RequestRow; status: RequestStatus } | null>(null);
   const q = useQuery({
@@ -91,6 +94,32 @@ function ProductRequestsTable() {
         emptyTitle="Sin solicitudes"
         emptyDescription="Cuando un cliente pida un producto, aparece aquí y te llega un aviso."
         headers={["Cliente", "Producto", "Estado", "Acciones"]}
+        mobile={rows.map((row) => (
+          <TableCard
+            key={row.id}
+            title={<Link to={`/clientes/${row.client.id}`}>{row.client.firstName} {row.client.lastName}</Link>}
+            subtitle={row.client.code}
+            initials={row.client.firstName}
+            badge={<LevelBadge level={row.client.level} />}
+            fields={[
+              { label: "Producto", value: row.product.name, hint: money(row.product.price) },
+              { label: "Estado", value: REQUEST_STATUS_LABELS[row.status] },
+            ]}
+            actions={
+              row.status === "PENDING" ? (
+                <RowActions
+                  extra={[
+                    { label: "Crear crédito", onClick: () => navigate(`/creditos/nuevo?clientId=${row.client.id}`) },
+                    { label: "Aprobar", onClick: () => setConfirm({ row, status: "APPROVED" }) },
+                    { label: "Rechazar", onClick: () => setConfirm({ row, status: "REJECTED" }), danger: true },
+                  ]}
+                />
+              ) : (
+                <Link className="font-semibold text-navy-800" to={`/creditos/nuevo?clientId=${row.client.id}`}>Ir a crédito</Link>
+              )
+            }
+          />
+        ))}
       >
         {rows.map((row) => (
           <tr key={row.id} className="border-t">
@@ -110,11 +139,13 @@ function ProductRequestsTable() {
             <td className="px-5 py-3.5">{REQUEST_STATUS_LABELS[row.status]}</td>
             <td className="px-5 py-3.5">
               {row.status === "PENDING" ? (
-                <div className="flex flex-wrap gap-2">
-                  <Link className="btn-gold" to={`/creditos/nuevo?clientId=${row.client.id}`}>Crear crédito</Link>
-                  <button className="btn-primary" onClick={() => setConfirm({ row, status: "APPROVED" })}>Aprobar</button>
-                  <button className="btn-ghost" onClick={() => setConfirm({ row, status: "REJECTED" })}>Rechazar</button>
-                </div>
+                <RowActions
+                  extra={[
+                    { label: "Crear crédito", onClick: () => navigate(`/creditos/nuevo?clientId=${row.client.id}`) },
+                    { label: "Aprobar", onClick: () => setConfirm({ row, status: "APPROVED" }) },
+                    { label: "Rechazar", onClick: () => setConfirm({ row, status: "REJECTED" }), danger: true },
+                  ]}
+                />
               ) : (
                 <Link className="font-semibold text-navy-800" to={`/creditos/nuevo?clientId=${row.client.id}`}>Ir a crédito</Link>
               )}
@@ -182,6 +213,38 @@ function PaymentClaimsTable() {
         emptyTitle="Sin avisos de pago"
         emptyDescription="Cuando un cliente avise efectivo o suba un comprobante, aparece aquí."
         headers={["Cliente", "Producto", "Monto", "Comprobante", "Estado", "Acciones"]}
+        mobile={rows.map((row) => (
+          <TableCard
+            key={row.id}
+            title={<Link to={`/clientes/${row.client.id}`}>{row.client.firstName} {row.client.lastName}</Link>}
+            subtitle={row.client.phone}
+            photo={row.credit.product.imageUrl ? mediaUrl(row.credit.product.imageUrl) : null}
+            initials={row.client.firstName}
+            fields={[
+              { label: "Producto", value: row.credit.product.name, hint: `${row.credit.code} · ${formatDate(row.createdAt)}` },
+              { label: "Monto", value: money(row.amount), hint: PAYMENT_METHOD_LABELS[row.method] },
+              {
+                label: "Comprobante",
+                value: row.receiptPath ? (
+                  <a className="font-semibold text-navy-800" href={mediaUrl(row.receiptPath)} target="_blank" rel="noreferrer">Ver foto</a>
+                ) : "Sin foto",
+              },
+              { label: "Estado", value: PAYMENT_CLAIM_STATUS_LABELS[row.status] },
+            ]}
+            actions={
+              row.status === "PENDING" ? (
+                <RowActions
+                  extra={[
+                    { label: "Recibir pago", onClick: () => setConfirm({ row, action: "approve" }) },
+                    { label: "Rechazar", onClick: () => setConfirm({ row, action: "reject" }), danger: true },
+                  ]}
+                />
+              ) : row.payment ? (
+                <Link className="font-semibold" to={`/pagos?creditId=${row.credit.id}&clientId=${row.client.id}`}>{row.payment.code}</Link>
+              ) : undefined
+            }
+          />
+        ))}
       >
         {rows.map((row) => (
           <tr key={row.id} className="border-t">
@@ -218,10 +281,12 @@ function PaymentClaimsTable() {
             <td className="px-5 py-3.5">{PAYMENT_CLAIM_STATUS_LABELS[row.status]}</td>
             <td className="px-5 py-3.5">
               {row.status === "PENDING" ? (
-                <div className="flex flex-wrap gap-2">
-                  <button className="btn-primary" onClick={() => setConfirm({ row, action: "approve" })}>Recibir pago</button>
-                  <button className="btn-ghost" onClick={() => setConfirm({ row, action: "reject" })}>Rechazar</button>
-                </div>
+                <RowActions
+                  extra={[
+                    { label: "Recibir pago", onClick: () => setConfirm({ row, action: "approve" }) },
+                    { label: "Rechazar", onClick: () => setConfirm({ row, action: "reject" }), danger: true },
+                  ]}
+                />
               ) : row.payment ? (
                 <Link className="font-semibold" to={`/pagos?creditId=${row.credit.id}&clientId=${row.client.id}`}>{row.payment.code}</Link>
               ) : (

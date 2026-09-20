@@ -39,9 +39,9 @@ export function PageHeader({
           <p className="mt-1 text-sm text-slate-500 sm:text-base">{description}</p>
         </div>
       </div>
-      <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+      <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
         {onSearchChange && (
-          <div className="relative w-full min-w-[260px] sm:max-w-sm">
+          <div className="relative w-full min-w-0 sm:w-72">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
               className="search-input"
@@ -54,7 +54,7 @@ export function PageHeader({
         {actions.map((action) => {
           const ActionIcon = action.icon;
           const cls =
-            action.variant === "ghost" ? "btn-ghost" : action.variant === "primary" ? "btn-primary" : "btn-gold";
+            action.variant === "primary" ? "btn-primary" : action.variant === "gold" ? "btn-gold" : "btn-ghost";
           if (action.href) {
             return (
               <Link key={action.label} className={cls} to={action.href}>

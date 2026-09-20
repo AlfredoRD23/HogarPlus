@@ -11,13 +11,13 @@ const levelClass: Record<ClientLevel, string> = {
 const creditClass: Record<CreditStatus, string> = {
   DRAFT: "bg-slate-100 text-slate-600",
   ACTIVE: "bg-emerald-50 text-emerald-700",
-  COMPLETED: "bg-navy-900 text-gold-300",
+  COMPLETED: "bg-slate-100 text-slate-700",
   DEFAULTED: "bg-rose-50 text-rose-700",
   CANCELLED: "bg-slate-100 text-slate-500",
 };
 
 export function Badge({ children, className }: { children: string; className: string }) {
-  return <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide ${className}`}>{children}</span>;
+  return <span className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${className}`}>{children}</span>;
 }
 
 export function LevelBadge({ level }: { level: ClientLevel }) {

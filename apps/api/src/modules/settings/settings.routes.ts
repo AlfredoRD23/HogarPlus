@@ -9,6 +9,6 @@ settingsRouter.use(authenticate);
 settingsRouter.get("/", asyncHandler((req, res) => settingsController.get(req, res)));
 settingsRouter.put(
   "/",
-  authorize("DIRECCION"),
+  authorize("TECNOLOGIA"),
   asyncHandler((req, res) => settingsController.update(req, res)),
 );

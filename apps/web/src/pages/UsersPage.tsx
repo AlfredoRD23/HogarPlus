@@ -8,7 +8,7 @@ import { RowActions } from "../components/RowActions";
 import { PageHeader } from "../components/PageHeader";
 import { DataTable } from "../components/DataTable";
 import { Plus, Shield } from "lucide-react";
-import { ROLE_LABELS, ROLES, emailError, firstError, passwordError, personNameError, type Role } from "@hogarplus/shared";
+import { ROLE_DESCRIPTIONS, ROLE_LABELS, ROLES, emailError, firstError, passwordError, personNameError, type Role } from "@hogarplus/shared";
 
 type StaffUser = { id: string; name: string; email: string; role: Role; active: boolean };
 
@@ -74,7 +74,10 @@ export function UsersPage() {
           <tr key={u.id} className={`border-t ${u.active ? "" : "opacity-60"}`}>
             <td className="px-5 py-3.5 font-semibold">{u.name}</td>
             <td className="px-5 py-3.5">{u.email}</td>
-            <td className="px-5 py-3.5">{ROLE_LABELS[u.role]}</td>
+            <td className="px-5 py-3.5">
+              <p>{ROLE_LABELS[u.role]}</p>
+              <p className="text-xs text-slate-500">{ROLE_DESCRIPTIONS[u.role]}</p>
+            </td>
             <td className="px-5 py-3.5">{u.active ? "Activo" : "Inactivo"}</td>
             <td className="px-5 py-3.5">
               <RowActions
@@ -170,10 +173,10 @@ function UserForm({
       <Field label={editing ? "Nueva contraseña (opcional)" : "Contraseña"} hint={fieldHint("password")} error={errors.password} required={!editing}>
         <FormattedInput kind="password" required={!editing} value={f.password} error={Boolean(errors.password)} onValue={(v) => set("password", v)} />
       </Field>
-      <Field label="Rol" required>
+      <Field label="Rol" hint={ROLE_DESCRIPTIONS[f.role as Role]} required>
         <select className="input" value={f.role} onChange={(e) => set("role", e.target.value)}>
           {ROLES.map((r) => (
-            <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+            <option key={r} value={r}>{ROLE_LABELS[r]} — {ROLE_DESCRIPTIONS[r]}</option>
           ))}
         </select>
       </Field>

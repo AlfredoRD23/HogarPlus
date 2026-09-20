@@ -5,6 +5,6 @@ import { collectionsController } from "./collections.controller";
 
 export const collectionsRouter = Router();
 
-collectionsRouter.use(authenticate, authorize("COBRANZA", "ADMINISTRACION", "VENTAS"));
+collectionsRouter.use(authenticate, authorize("ADMINISTRACION"));
 collectionsRouter.get("/", asyncHandler((req, res) => collectionsController.board(req, res)));
 collectionsRouter.post("/notes", asyncHandler((req, res) => collectionsController.addNote(req, res)));

@@ -7,7 +7,7 @@ import { prisma } from "../../lib/prisma";
 import { AppError, pagination } from "../../shared/utils";
 
 export const requestsRouter = Router();
-requestsRouter.use(authenticate, authorize("VENTAS", "COBRANZA", "ADMINISTRACION"));
+requestsRouter.use(authenticate, authorize("VENTAS"));
 
 requestsRouter.get(
   "/",

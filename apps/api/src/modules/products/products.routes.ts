@@ -7,21 +7,21 @@ import { asUploadError, productImageUpload } from "../../lib/upload";
 export const productsRouter = Router();
 
 productsRouter.use(authenticate);
-productsRouter.get("/", asyncHandler((req, res) => productsController.list(req, res)));
-productsRouter.get("/:id", asyncHandler((req, res) => productsController.get(req, res)));
+productsRouter.get("/", authorize("VENTAS", "INVENTARIO"), asyncHandler((req, res) => productsController.list(req, res)));
+productsRouter.get("/:id", authorize("VENTAS", "INVENTARIO"), asyncHandler((req, res) => productsController.get(req, res)));
 productsRouter.post(
   "/",
-  authorize("INVENTARIO", "ADMINISTRACION"),
+  authorize("INVENTARIO"),
   asyncHandler((req, res) => productsController.create(req, res)),
 );
 productsRouter.patch(
   "/:id",
-  authorize("INVENTARIO", "ADMINISTRACION"),
+  authorize("INVENTARIO"),
   asyncHandler((req, res) => productsController.update(req, res)),
 );
 productsRouter.post(
   "/:id/images",
-  authorize("INVENTARIO", "ADMINISTRACION"),
+  authorize("INVENTARIO"),
   (req, res, next) => {
     productImageUpload.array("images", 6)(req, res, (error) => {
       if (error) {
@@ -35,6 +35,6 @@ productsRouter.post(
 );
 productsRouter.delete(
   "/:id/images/:imageId",
-  authorize("INVENTARIO", "ADMINISTRACION"),
+  authorize("INVENTARIO"),
   asyncHandler((req, res) => productsController.removeImage(req, res)),
 );

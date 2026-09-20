@@ -6,7 +6,7 @@ import { prisma } from "../../lib/prisma";
 import { AppError } from "../../shared/utils";
 
 export const routesRouter = Router();
-routesRouter.use(authenticate, authorize("COBRANZA", "VENTAS", "ADMINISTRACION"));
+routesRouter.use(authenticate);
 
 const routeSchema = z.object({
   name: z.string().trim().min(2, "El nombre de la ruta debe tener al menos 2 letras").max(80),
@@ -17,6 +17,7 @@ const routeSchema = z.object({
 
 routesRouter.get(
   "/",
+  authorize("VENTAS"),
   asyncHandler(async (_req, res) => {
     const items = await prisma.collectionRoute.findMany({
       orderBy: { name: "asc" },
@@ -28,6 +29,7 @@ routesRouter.get(
 
 routesRouter.get(
   "/:id",
+  authorize("ADMINISTRACION"),
   asyncHandler(async (req, res) => {
     const route = await prisma.collectionRoute.findUnique({
       where: { id: req.params.id },
@@ -54,6 +56,7 @@ routesRouter.get(
 
 routesRouter.post(
   "/",
+  authorize("ADMINISTRACION"),
   asyncHandler(async (req, res) => {
     const body = routeSchema.parse(req.body);
     const exists = await prisma.collectionRoute.findUnique({ where: { name: body.name } });
@@ -65,6 +68,7 @@ routesRouter.post(
 
 routesRouter.patch(
   "/:id",
+  authorize("ADMINISTRACION"),
   asyncHandler(async (req, res) => {
     const body = routeSchema.partial().parse(req.body);
     const existing = await prisma.collectionRoute.findUnique({ where: { id: req.params.id } });
@@ -76,6 +80,7 @@ routesRouter.patch(
 
 routesRouter.post(
   "/:id/clients",
+  authorize("ADMINISTRACION"),
   asyncHandler(async (req, res) => {
     const body = z.object({ clientIds: z.array(z.string().min(1)).min(1, "Elige al menos un cliente") }).parse(req.body);
     const existing = await prisma.collectionRoute.findUnique({ where: { id: req.params.id } });

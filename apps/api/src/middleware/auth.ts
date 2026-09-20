@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
-import type { AuthUser, Role } from "@hogarplus/shared";
+import { hasFullAccess, type AuthUser, type Role } from "@hogarplus/shared";
 import { config } from "../config/env";
 import { prisma } from "../lib/prisma";
 import { AppError } from "../shared/utils";
@@ -35,7 +35,7 @@ export function authorize(...roles: Role[]) {
       next(new AppError(401, "UNAUTHENTICATED", "Debe iniciar sesión"));
       return;
     }
-    if (roles.length && !roles.includes(user.role) && user.role !== "DIRECCION") {
+    if (roles.length && !roles.includes(user.role) && !hasFullAccess(user.role)) {
       next(new AppError(403, "FORBIDDEN", "No tiene permiso para esta acción"));
       return;
     }

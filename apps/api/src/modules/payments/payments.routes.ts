@@ -5,12 +5,11 @@ import { paymentsController } from "./payments.controller";
 
 export const paymentsRouter = Router();
 
-paymentsRouter.use(authenticate);
+paymentsRouter.use(authenticate, authorize("VENTAS", "COBRANZA"));
 paymentsRouter.get("/", asyncHandler((req, res) => paymentsController.list(req, res)));
 paymentsRouter.get("/:id", asyncHandler((req, res) => paymentsController.get(req, res)));
 paymentsRouter.post(
   "/",
-  authorize("COBRANZA", "ADMINISTRACION", "VENTAS"),
   asyncHandler((req, res) => paymentsController.create(req, res)),
 );
 paymentsRouter.post(

@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { digitsOnly } from "@hogarplus/shared";
-import { authenticate } from "../../middleware/auth";
+import { canAccessModule, digitsOnly } from "@hogarplus/shared";
+import { authenticate, type AuthedRequest } from "../../middleware/auth";
 import { asyncHandler } from "../../shared/http";
 import { prisma } from "../../lib/prisma";
 
@@ -17,6 +17,7 @@ searchRouter.get(
       return;
     }
 
+    const role = (req as AuthedRequest).user.role;
     const [clients, products, credits] = await Promise.all([
       prisma.client.findMany({
         where: {
@@ -55,6 +56,13 @@ searchRouter.get(
       }),
     ]);
 
-    res.json({ success: true, data: { clients, products, credits } });
+    res.json({
+      success: true,
+      data: {
+        clients: canAccessModule(role, "clientes") || canAccessModule(role, "pagos") ? clients : [],
+        products: canAccessModule(role, "productos") || canAccessModule(role, "creditos") ? products : [],
+        credits: canAccessModule(role, "creditos") || canAccessModule(role, "pagos") ? credits : [],
+      },
+    });
   }),
 );

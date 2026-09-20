@@ -292,6 +292,89 @@ export const ROLE_LABELS: Record<Role, string> = {
   TECNOLOGIA: "Tecnología",
 };
 
+export const APP_MODULES = [
+  "dashboard",
+  "clientes",
+  "productos",
+  "creditos",
+  "pagos",
+  "cobranza",
+  "rutas",
+  "solicitudes",
+  "inventario",
+  "gastos",
+  "reportes",
+  "usuarios",
+  "configuracion",
+] as const;
+
+export type AppModule = (typeof APP_MODULES)[number];
+
+export const ROLE_HOME: Record<Role, string> = {
+  DIRECCION: "/dashboard",
+  ADMINISTRACION: "/dashboard",
+  VENTAS: "/clientes",
+  COBRANZA: "/pagos",
+  INVENTARIO: "/productos",
+  TECNOLOGIA: "/usuarios",
+};
+
+export const ROLE_DESCRIPTIONS: Record<Role, string> = {
+  DIRECCION: "Ve y gestiona todo el sistema",
+  ADMINISTRACION: "Ve y gestiona todo el sistema",
+  VENTAS: "Clientes, créditos y pagos",
+  COBRANZA: "Solo pagos",
+  INVENTARIO: "Catálogo e inventario",
+  TECNOLOGIA: "Usuarios y configuración",
+};
+
+const ROLE_MODULES: Record<Role, readonly AppModule[]> = {
+  DIRECCION: APP_MODULES,
+  ADMINISTRACION: APP_MODULES,
+  VENTAS: ["clientes", "creditos", "pagos"],
+  COBRANZA: ["pagos"],
+  INVENTARIO: ["productos", "inventario"],
+  TECNOLOGIA: ["usuarios", "configuracion"],
+};
+
+const PATH_MODULES: Array<[string, AppModule]> = [
+  ["/dashboard", "dashboard"],
+  ["/clientes", "clientes"],
+  ["/productos", "productos"],
+  ["/inventario", "inventario"],
+  ["/creditos", "creditos"],
+  ["/pagos", "pagos"],
+  ["/cobranza", "cobranza"],
+  ["/rutas", "rutas"],
+  ["/solicitudes", "solicitudes"],
+  ["/reportes", "reportes"],
+  ["/gastos", "gastos"],
+  ["/usuarios", "usuarios"],
+  ["/configuracion", "configuracion"],
+];
+
+export function hasFullAccess(role: Role): boolean {
+  return role === "DIRECCION" || role === "ADMINISTRACION";
+}
+
+export function canAccessModule(role: Role, moduleId: AppModule): boolean {
+  return ROLE_MODULES[role].includes(moduleId);
+}
+
+export function homePathFor(role: Role): string {
+  return ROLE_HOME[role];
+}
+
+export function canAccessPath(role: Role, pathname: string): boolean {
+  const match = PATH_MODULES.find(([prefix]) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+  if (!match) return true;
+  return canAccessModule(role, match[1]);
+}
+
+export function rolesForModule(moduleId: AppModule): Role[] {
+  return ROLES.filter((role) => canAccessModule(role, moduleId));
+}
+
 export const CATEGORY_LABELS: Record<ProductCategory, string> = {
   SALUD_BIENESTAR: "Salud y bienestar",
   BELLEZA: "Belleza y cuidado personal",

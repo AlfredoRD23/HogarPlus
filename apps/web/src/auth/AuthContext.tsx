@@ -5,7 +5,7 @@ import { api, getToken, setToken } from "../lib/api";
 type AuthState = {
   user: AuthUser | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<AuthUser>;
   logout: () => void;
 };
 
@@ -38,6 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
         setToken(res.data.token);
         setUser(res.data.user);
+        return res.data.user;
       },
       logout: () => {
         setToken(null);

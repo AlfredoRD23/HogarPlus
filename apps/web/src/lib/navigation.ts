@@ -1,4 +1,4 @@
-import type { Role } from "@hogarplus/shared";
+import { canAccessModule, type AppModule, type Role } from "@hogarplus/shared";
 import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard,
@@ -17,24 +17,14 @@ import {
 } from "lucide-react";
 
 export type NavItem = {
-  id: string;
+  id: AppModule;
   to: string;
   label: string;
   description: string;
   icon: LucideIcon;
   end?: boolean;
-  roles: Role[];
   keywords: string[];
 };
-
-export const ALL_ROLES: Role[] = [
-  "DIRECCION",
-  "VENTAS",
-  "COBRANZA",
-  "INVENTARIO",
-  "ADMINISTRACION",
-  "TECNOLOGIA",
-];
 
 export const NAV_GROUPS: { id: string; label: string; items: NavItem[] }[] = [
   {
@@ -48,7 +38,6 @@ export const NAV_GROUPS: { id: string; label: string; items: NavItem[] }[] = [
         description: "Cartera, cobros e inventario",
         icon: LayoutDashboard,
         end: true,
-        roles: ALL_ROLES,
         keywords: ["inicio", "panel", "resumen"],
       },
     ],
@@ -63,7 +52,6 @@ export const NAV_GROUPS: { id: string; label: string; items: NavItem[] }[] = [
         label: "Clientes",
         description: "Afiliación, puntos y créditos",
         icon: Users,
-        roles: ["DIRECCION", "VENTAS", "COBRANZA", "ADMINISTRACION"],
         keywords: ["cliente", "afiliación", "cedula"],
       },
       {
@@ -72,7 +60,6 @@ export const NAV_GROUPS: { id: string; label: string; items: NavItem[] }[] = [
         label: "Catálogo",
         description: "Productos Bronce, Plata y Oro",
         icon: Package,
-        roles: ["DIRECCION", "VENTAS", "INVENTARIO", "ADMINISTRACION"],
         keywords: ["producto", "catalogo", "sku"],
       },
       {
@@ -81,7 +68,6 @@ export const NAV_GROUPS: { id: string; label: string; items: NavItem[] }[] = [
         label: "Créditos",
         description: "Contratos, cuotas y saldo",
         icon: FileText,
-        roles: ["DIRECCION", "VENTAS", "ADMINISTRACION"],
         keywords: ["credito", "contrato", "entrega"],
       },
     ],
@@ -96,7 +82,6 @@ export const NAV_GROUPS: { id: string; label: string; items: NavItem[] }[] = [
         label: "Pagos",
         description: "Registrar cobros y adelantos",
         icon: Wallet,
-        roles: ["DIRECCION", "COBRANZA", "VENTAS", "ADMINISTRACION"],
         keywords: ["pago", "abono", "cuota"],
       },
       {
@@ -105,7 +90,6 @@ export const NAV_GROUPS: { id: string; label: string; items: NavItem[] }[] = [
         label: "Cobranza",
         description: "Al día, pendientes y atrasados",
         icon: Bell,
-        roles: ["DIRECCION", "COBRANZA", "ADMINISTRACION"],
         keywords: ["mora", "vencido", "seguimiento"],
       },
       {
@@ -114,7 +98,6 @@ export const NAV_GROUPS: { id: string; label: string; items: NavItem[] }[] = [
         label: "Rutas",
         description: "Zonas de cobro y clientes de cada ruta",
         icon: MapPinned,
-        roles: ["DIRECCION", "COBRANZA", "VENTAS", "ADMINISTRACION"],
         keywords: ["ruta", "zona", "villamella", "barrio"],
       },
       {
@@ -123,7 +106,6 @@ export const NAV_GROUPS: { id: string; label: string; items: NavItem[] }[] = [
         label: "Solicitudes",
         description: "Pedidos y avisos de pago del portal",
         icon: Inbox,
-        roles: ["DIRECCION", "VENTAS", "COBRANZA", "ADMINISTRACION"],
         keywords: ["solicitud", "pedido", "portal"],
       },
     ],
@@ -138,7 +120,6 @@ export const NAV_GROUPS: { id: string; label: string; items: NavItem[] }[] = [
         label: "Inventario",
         description: "Entradas, salidas y stock",
         icon: Warehouse,
-        roles: ["DIRECCION", "INVENTARIO", "ADMINISTRACION"],
         keywords: ["stock", "almacen", "kardex"],
       },
       {
@@ -147,7 +128,6 @@ export const NAV_GROUPS: { id: string; label: string; items: NavItem[] }[] = [
         label: "Gastos",
         description: "Costos operativos separados del cobro",
         icon: Receipt,
-        roles: ["DIRECCION", "ADMINISTRACION"],
         keywords: ["gasto", "nomina", "transporte"],
       },
     ],
@@ -162,7 +142,6 @@ export const NAV_GROUPS: { id: string; label: string; items: NavItem[] }[] = [
         label: "Reportes",
         description: "Caja, margen y tendencia real",
         icon: BarChart3,
-        roles: ["DIRECCION", "ADMINISTRACION"],
         keywords: ["reporte", "finanzas", "margen"],
       },
       {
@@ -171,7 +150,6 @@ export const NAV_GROUPS: { id: string; label: string; items: NavItem[] }[] = [
         label: "Usuarios",
         description: "Roles y acceso al sistema",
         icon: Shield,
-        roles: ["DIRECCION", "TECNOLOGIA", "ADMINISTRACION"],
         keywords: ["usuario", "rol", "permiso"],
       },
       {
@@ -180,7 +158,6 @@ export const NAV_GROUPS: { id: string; label: string; items: NavItem[] }[] = [
         label: "Configuración",
         description: "Cuotas, afiliación y reserva",
         icon: Settings,
-        roles: ["DIRECCION", "TECNOLOGIA"],
         keywords: ["ajuste", "cuota", "afiliacion"],
       },
     ],
@@ -188,5 +165,5 @@ export const NAV_GROUPS: { id: string; label: string; items: NavItem[] }[] = [
 ];
 
 export function flatNav(role: Role): NavItem[] {
-  return NAV_GROUPS.flatMap((g) => g.items.filter((i) => i.roles.includes(role) || role === "DIRECCION"));
+  return NAV_GROUPS.flatMap((g) => g.items.filter((i) => canAccessModule(role, i.id)));
 }

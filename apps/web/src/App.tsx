@@ -1,4 +1,5 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { canAccessPath, homePathFor } from "@hogarplus/shared";
 import { useAuth } from "./auth/AuthContext";
 import { AppLayout } from "./components/AppLayout";
 import { HomePage } from "./pages/HomePage";
@@ -21,8 +22,12 @@ import type { ReactNode } from "react";
 
 function Guard({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
+  const location = useLocation();
   if (loading) return <div className="grid min-h-screen place-items-center text-navy-900">Cargando HogarPlus...</div>;
   if (!user) return <Navigate to="/login" replace />;
+  if (!canAccessPath(user.role, location.pathname)) {
+    return <Navigate to={homePathFor(user.role)} replace />;
+  }
   return children;
 }
 
@@ -32,7 +37,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
-      <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
+      <Route path="/login" element={user ? <Navigate to={homePathFor(user.role)} replace /> : <LoginPage />} />
       <Route path="/portal" element={<PortalPage />} />
       <Route
         element={

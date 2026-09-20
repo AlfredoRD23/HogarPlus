@@ -8,6 +8,6 @@ export const referralsRouter = Router();
 referralsRouter.use(authenticate);
 referralsRouter.get(
   "/match",
-  authorize("VENTAS", "COBRANZA", "ADMINISTRACION", "DIRECCION"),
+  authorize("VENTAS"),
   asyncHandler((req, res) => referralsController.match(req, res)),
 );

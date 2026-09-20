@@ -41,10 +41,10 @@ export function NotificationCenter() {
 
   return (
     <div className="relative" onClick={(e) => e.stopPropagation()}>
-      <button className="relative rounded-xl bg-navy-800 p-2 text-gold-300" onClick={() => setOpen((v) => !v)} aria-label="Notificaciones">
+      <button className="relative rounded-xl border border-slate-200 bg-white p-2 text-slate-600" onClick={() => setOpen((v) => !v)} aria-label="Notificaciones">
         <Bell size={18} />
         {unread > 0 && (
-          <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-gold-500 px-1 text-[10px] font-bold text-navy-950">
+          <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-slate-900 px-1 text-[10px] font-semibold text-white">
             {unread > 9 ? "9+" : unread}
           </span>
         )}

@@ -1,7 +1,18 @@
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { Download, Facebook, HeartPulse, Home, Instagram, Package, Share, Sparkles, Wallet } from "lucide-react";
+import {
+  ArrowRight,
+  Download,
+  Facebook,
+  HeartPulse,
+  Home,
+  Instagram,
+  Package,
+  Share,
+  Sparkles,
+  Wallet,
+} from "lucide-react";
 import { Logo } from "../components/Logo";
 import { CatalogBadge } from "../components/Badges";
 import { homePathFor, CATEGORY_LABELS, PRODUCT_CATEGORIES, type CatalogTier, type ProductCategory } from "@hogarplus/shared";
@@ -10,7 +21,6 @@ import { usePwaInstall } from "../hooks/usePwaInstall";
 import { api, mediaUrl, money } from "../lib/api";
 
 const WHATSAPP_NUMBER = "18298819361";
-const WHATSAPP_TEXT = "Hola, quiero ser cliente de HogarPlus.";
 
 type PublicProduct = {
   id: string;
@@ -22,9 +32,12 @@ type PublicProduct = {
   imageUrl?: string | null;
 };
 
-function openWhatsApp() {
+function openWhatsApp(productName?: string) {
+  const text = productName
+    ? `Hola, quiero ser cliente de HogarPlus. Me interesa ${productName}.`
+    : "Hola, quiero ser cliente de HogarPlus.";
   window.open(
-    `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_TEXT)}`,
+    `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`,
     "_blank",
     "noopener,noreferrer",
   );
@@ -65,111 +78,124 @@ export function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-navy-950 text-white">
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
-        <Logo />
-        <nav className="flex items-center gap-2 text-sm">
-          <Link className="hidden rounded-xl px-3 py-2 text-gold-100 sm:inline" to="/portal">
-            Soy cliente
-          </Link>
-          {user ? (
-            <Link className="btn-gold" to={homePathFor(user.role)}>
-              Ir al panel
+    <div className="min-h-screen bg-[#122033] text-white">
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#122033]/90 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-8">
+          <Logo />
+          <nav className="hidden items-center gap-5 text-sm font-medium text-slate-300 lg:flex">
+            <button type="button" className="hover:text-white" onClick={scrollToCatalog}>Catálogo</button>
+            <Link className="hover:text-white" to="/portal">Soy cliente</Link>
+          </nav>
+          <div className="flex items-center gap-2">
+            <Link
+              className="inline-flex h-10 items-center rounded-full border border-gold-500/40 px-4 text-sm font-semibold text-gold-100 hover:bg-white/5"
+              to="/portal"
+            >
+              Soy cliente
             </Link>
-          ) : (
-            <Link className="btn-gold" to="/login">
-              Entrar
-            </Link>
-          )}
-        </nav>
-      </header>
-
-      <main className="mx-auto max-w-6xl px-5 pb-20">
-        <section className="grid items-center gap-10 py-10 lg:grid-cols-2 lg:py-16">
-          <div>
-            <p className="text-sm font-medium text-gold-300">Catálogo a crédito</p>
-            <h1 className="mt-3 text-4xl font-semibold leading-tight sm:text-5xl">
-              Productos para el hogar, con pagos semanales que sí se entienden.
-            </h1>
-            <p className="mt-4 max-w-xl text-base text-slate-300 sm:text-lg">
-              HogarPlus acerca salud, belleza y artículos del hogar con afiliación simple, cuotas claras y un sistema de puntos que premia el buen pago. Instala la app para consultar o gestionar desde el teléfono.
-            </p>
-            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-              <button type="button" className="btn-gold" onClick={openWhatsApp}>
-                Quiero ser cliente
-              </button>
-              <button
-                type="button"
-                className="btn-ghost border-white/20 bg-transparent text-white hover:bg-navy-800"
-                onClick={scrollToCatalog}
-              >
-                Ver catálogo
-              </button>
-            </div>
-            <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-              <button type="button" className="btn-ghost border-white/20 bg-transparent text-white hover:bg-navy-800" onClick={() => void handleInstall()}>
-                <Download size={18} />
-                {pwa.installed ? "Ya está instalada" : "Descargar app"}
-              </button>
-              <Link className="btn-ghost border-white/20 bg-transparent text-white hover:bg-navy-800" to="/portal">
-                Soy cliente
+            {user ? (
+              <Link className="inline-flex h-10 items-center rounded-full bg-gold-500 px-4 text-sm font-semibold text-navy-950 hover:bg-gold-600" to={homePathFor(user.role)}>
+                Ir al panel
               </Link>
-            </div>
-            {pwa.ios && !pwa.installed && (
-              <p className="mt-4 flex items-start gap-2 text-sm text-gold-100">
-                <Share size={16} className="mt-0.5 shrink-0" />
-                En iPhone o iPad: Compartir → Añadir a pantalla de inicio.
-              </p>
+            ) : (
+              <Link className="inline-flex h-10 items-center rounded-full bg-gold-500 px-4 text-sm font-semibold text-navy-950 hover:bg-gold-600" to="/login">
+                Entrar
+              </Link>
             )}
           </div>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <Pillar icon={HeartPulse} title="Salud" text="Bienestar y cuidado frecuente." />
-            <Pillar icon={Sparkles} title="Belleza" text="Skincare, maquillaje y recompra." />
-            <Pillar icon={Home} title="Hogar" text="Electrodomésticos y artículos prácticos." />
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-6xl px-4 pb-16 pt-8 sm:px-8">
+        <section className="relative overflow-hidden rounded-[32px] border border-white/10 bg-navy-900/80 px-5 py-10 shadow-[0_30px_90px_rgba(0,0,0,0.25)] sm:px-10 sm:py-14">
+          <div className="pointer-events-none absolute -right-24 -top-28 h-80 w-80 rounded-full bg-gold-500/15 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-32 left-10 h-80 w-80 rounded-full bg-sky-400/10 blur-3xl" />
+          <div className="relative grid items-center gap-10 lg:grid-cols-2">
+            <div>
+              <p className="inline-flex items-center gap-2 rounded-full border border-gold-500/30 bg-gold-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-gold-300">
+                <Sparkles size={14} /> Catálogo a crédito
+              </p>
+              <h1 className="mt-5 font-display text-4xl font-semibold leading-tight sm:text-5xl">
+                Productos para el hogar, con cuotas que sí se entienden.
+              </h1>
+              <p className="mt-4 max-w-xl text-base leading-7 text-slate-300">
+                Salud, belleza y hogar. Te afilias, eliges el artículo y pagas semanal. El buen pago sube de Bronce a Plata y Oro.
+              </p>
+              <div className="mt-8 grid gap-3 sm:grid-cols-2">
+                <button type="button" className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-gold-500 px-5 text-sm font-semibold text-navy-950 hover:bg-gold-600" onClick={() => openWhatsApp()}>
+                  Quiero ser cliente <ArrowRight size={16} />
+                </button>
+                <button type="button" className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/20 bg-white/5 px-5 text-sm font-semibold text-white hover:bg-white/10" onClick={scrollToCatalog}>
+                  Ver catálogo
+                </button>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs font-semibold text-slate-400">
+                <button type="button" className="hover:text-gold-200" onClick={() => void handleInstall()}>
+                  <Download size={14} className="mr-1 inline" />
+                  {pwa.installed ? "App instalada" : "Instalar app"}
+                </button>
+                {pwa.ios && !pwa.installed ? (
+                  <span className="inline-flex items-center gap-1">
+                    <Share size={14} /> iPhone: Compartir → Añadir a inicio
+                  </span>
+                ) : null}
+              </div>
+            </div>
+            <div className="grid gap-3">
+              <Pillar icon={HeartPulse} title="Salud" text="Bienestar y cuidado frecuente." />
+              <Pillar icon={Sparkles} title="Belleza" text="Skincare, maquillaje y recompra." />
+              <Pillar icon={Home} title="Hogar" text="Electrodomésticos y artículos prácticos." />
+            </div>
           </div>
         </section>
 
-        <section id="catalogo" className="scroll-mt-6 rounded-3xl bg-white p-6 text-navy-900 sm:p-8">
-          <p className="text-sm font-medium text-gold-600">Catálogo</p>
-          <h2 className="mt-1 font-display text-3xl font-semibold">Lo que puedes pedir</h2>
-          <p className="mt-2 max-w-2xl text-sm text-slate-600">
-            Bronce, Plata y Oro. Si quieres alguno, pulsa Quiero ser cliente y te atendemos por WhatsApp.
-          </p>
+        <section id="catalogo" className="mt-16 scroll-mt-24">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="text-sm font-semibold uppercase tracking-wide text-gold-300">Catálogo</p>
+            <h2 className="mt-2 font-display text-3xl font-semibold sm:text-4xl">Lo que puedes pedir</h2>
+            <p className="mt-3 text-sm leading-7 text-slate-300">
+              Bronce, Plata y Oro. Si te gusta uno, te escribimos por WhatsApp y te afiliamos.
+            </p>
+          </div>
           {catalog.isLoading ? (
-            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="h-64 animate-pulse rounded-2xl bg-slate-100" />
+                <div key={i} className="h-80 animate-pulse rounded-3xl bg-navy-900" />
               ))}
             </div>
           ) : groups.length === 0 ? (
-            <p className="mt-6 text-sm text-slate-500">Pronto verás los productos aquí.</p>
+            <p className="mt-8 text-center text-sm text-slate-400">Pronto verás los productos aquí.</p>
           ) : (
-            <div className="mt-8 space-y-10">
+            <div className="mt-10 space-y-12">
               {groups.map((group) => (
                 <div key={group.category}>
-                  <h3 className="font-display text-2xl font-semibold">{CATEGORY_LABELS[group.category]}</h3>
-                  <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <h3 className="font-display text-2xl font-semibold text-gold-100">{CATEGORY_LABELS[group.category]}</h3>
+                  <div className="mt-5 grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {group.items.map((product) => (
-                      <article key={product.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-                        <div className="relative h-40 bg-slate-100">
+                      <article key={product.id} className="flex h-full flex-col overflow-hidden rounded-3xl border border-white/10 bg-navy-900">
+                        <div className="relative h-44 shrink-0 bg-navy-800">
                           {product.imageUrl ? (
                             <img src={mediaUrl(product.imageUrl)} alt={product.name} className="h-full w-full object-cover" />
                           ) : (
-                            <div className="flex h-full items-center justify-center text-slate-400">
-                              <Package size={28} />
+                            <div className="flex h-full items-center justify-center text-slate-500">
+                              <Package size={32} />
                             </div>
                           )}
                           <div className="absolute left-3 top-3">
                             <CatalogBadge tier={product.catalogTier} />
                           </div>
                         </div>
-                        <div className="p-4">
-                          <p className="font-semibold leading-tight">{product.name}</p>
-                          {product.description ? (
-                            <p className="mt-1 line-clamp-2 text-sm text-slate-500">{product.description}</p>
-                          ) : null}
-                          <p className="mt-2 font-display text-xl">{money(product.price)}</p>
-                          <button type="button" className="btn-gold mt-3 w-full btn-compact" onClick={openWhatsApp}>
+                        <div className="flex flex-1 flex-col p-5">
+                          <h4 className="line-clamp-1 text-lg font-semibold">{product.name}</h4>
+                          <p className="mt-1 line-clamp-2 min-h-10 text-sm text-slate-400">
+                            {product.description || "Producto HogarPlus"}
+                          </p>
+                          <p className="mt-3 font-display text-2xl text-gold-100">{money(product.price)}</p>
+                          <button
+                            type="button"
+                            className="mt-auto inline-flex h-11 w-full items-center justify-center rounded-xl bg-gold-500 text-sm font-semibold text-navy-950 hover:bg-gold-600"
+                            onClick={() => openWhatsApp(product.name)}
+                          >
                             Quiero este
                           </button>
                         </div>
@@ -182,83 +208,70 @@ export function HomePage() {
           )}
         </section>
 
-        <section className="mt-10 grid gap-4 rounded-3xl bg-navy-900 p-6 sm:grid-cols-3 sm:p-8">
-          <Step n="1" title="Afiliación" text="Un pago de entrada y las condiciones claras desde el primer día." />
-          <Step n="2" title="Cuota semanal" text="El cliente ve su saldo, las fechas de pago y cada cobro aplicado." />
-          <Step n="3" title="Puntos y niveles" text="El buen pago sube de Inicial a Bronce, Plata y Oro, y abre más productos." />
+        <section className="mt-16 grid gap-4 rounded-[32px] border border-white/10 bg-navy-900/80 p-6 sm:grid-cols-3 sm:p-8">
+          <Step n="01" title="Afiliación" text="Un pago de entrada y las condiciones claras desde el primer día." />
+          <Step n="02" title="Cuota semanal" text="Ves tu saldo, las fechas y cada cobro aplicado." />
+          <Step n="03" title="Puntos y niveles" text="El buen pago sube de Inicial a Bronce, Plata y Oro." />
         </section>
 
         <section className="mt-10 grid gap-4 md:grid-cols-2">
-          <div className="rounded-3xl bg-white p-6 text-navy-900">
-            <Wallet className="text-gold-600" />
+          <div className="rounded-[28px] border border-white/10 bg-navy-900 p-6">
+            <Wallet className="text-gold-300" />
             <h2 className="mt-3 text-2xl font-semibold">Para el equipo</h2>
-            <p className="mt-2 text-sm text-slate-600">
+            <p className="mt-2 text-sm leading-6 text-slate-300">
               Clientes, inventario, créditos, cobranza y reportes en un solo panel.
             </p>
-            <Link className="btn-primary mt-5" to={user ? homePathFor(user.role) : "/login"}>
+            <Link className="mt-5 inline-flex h-11 items-center rounded-xl bg-white px-5 text-sm font-semibold text-navy-900 hover:bg-slate-100" to={user ? homePathFor(user.role) : "/login"}>
               {user ? "Abrir panel" : "Entrar al panel"}
             </Link>
           </div>
-          <div className="rounded-3xl border border-gold-500/25 bg-navy-900 p-6">
+          <div className="rounded-[28px] border border-gold-500/25 bg-navy-900 p-6">
             <h2 className="text-2xl font-semibold text-gold-100">Para el cliente</h2>
-            <p className="mt-2 text-sm text-slate-300">
-              Consulta tu nivel, puntos, productos de tu categoría y si las cuotas están pendientes o atrasadas.
+            <p className="mt-2 text-sm leading-6 text-slate-300">
+              Consulta tu nivel, puntos, productos de tu categoría y si las cuotas están pendientes.
             </p>
-            <Link className="btn-gold mt-5" to="/portal">
-              Soy cliente
+            <Link className="mt-5 inline-flex h-11 items-center rounded-xl bg-gold-500 px-5 text-sm font-semibold text-navy-950 hover:bg-gold-600" to="/portal">
+              Entrar a mi cuenta
             </Link>
           </div>
         </section>
       </main>
 
-      <footer className="border-t border-white/10 bg-navy-900">
-        <div className="mx-auto grid max-w-6xl gap-8 px-5 py-10 sm:grid-cols-3">
-          <div>
-            <Logo />
-            <p className="mt-3 max-w-sm text-sm text-slate-300">
-              Productos para el hogar con cuotas semanales. Escríbenos y te afiliamos.
-            </p>
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-gold-100">Contacto</p>
-            <button type="button" className="mt-3 text-left text-sm text-slate-300 hover:text-white" onClick={openWhatsApp}>
-              WhatsApp 829-881-9361
-            </button>
-            <p className="mt-1 text-sm text-slate-400">info@hogarplus.do</p>
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-gold-100">Redes</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <a
-                href="https://www.facebook.com/hogarplus"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-2 text-sm text-slate-200 hover:bg-white/10"
-              >
-                <Facebook size={16} /> Facebook
-              </a>
-              <a
-                href="https://www.instagram.com/hogarplus"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-2 text-sm text-slate-200 hover:bg-white/10"
-              >
-                <Instagram size={16} /> Instagram
-              </a>
-              <a
-                href="https://www.tiktok.com/@hogarplus"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-2 text-sm text-slate-200 hover:bg-white/10"
-              >
-                TikTok
-              </a>
+      <footer className="px-4 pb-8 sm:px-8">
+        <div className="mx-auto max-w-6xl overflow-hidden rounded-[28px] border border-white/10 bg-navy-900">
+          <div className="grid gap-8 p-6 sm:grid-cols-3 sm:p-8">
+            <div>
+              <Logo />
+              <p className="mt-3 max-w-sm text-sm leading-6 text-slate-300">
+                Productos para el hogar con cuotas semanales. Escríbenos y te afiliamos.
+              </p>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gold-100">Contacto</p>
+              <button type="button" className="mt-3 text-left text-sm text-slate-300 hover:text-white" onClick={() => openWhatsApp()}>
+                WhatsApp 829-881-9361
+              </button>
+              <p className="mt-1 text-sm text-slate-400">info@hogarplus.do</p>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gold-100">Redes</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <a href="https://www.facebook.com/hogarplus" target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center gap-2 rounded-full border border-white/15 px-3 text-sm text-slate-200 hover:bg-white/10">
+                  <Facebook size={16} /> Facebook
+                </a>
+                <a href="https://www.instagram.com/hogarplus" target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center gap-2 rounded-full border border-white/15 px-3 text-sm text-slate-200 hover:bg-white/10">
+                  <Instagram size={16} /> Instagram
+                </a>
+                <a href="https://www.tiktok.com/@hogarplus" target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center gap-2 rounded-full border border-white/15 px-3 text-sm text-slate-200 hover:bg-white/10">
+                  TikTok
+                </a>
+              </div>
             </div>
           </div>
+          <p className="border-t border-white/10 px-6 py-4 text-xs text-slate-500 sm:px-8">
+            © {new Date().getFullYear()} HogarPlus. Todos los derechos reservados.
+          </p>
         </div>
-        <p className="border-t border-white/10 px-5 py-4 text-center text-xs text-slate-500">
-          © {new Date().getFullYear()} HogarPlus. Todos los derechos reservados.
-        </p>
       </footer>
     </div>
   );
@@ -266,10 +279,14 @@ export function HomePage() {
 
 function Pillar({ icon: Icon, title, text }: { icon: typeof Home; title: string; text: string }) {
   return (
-    <div className="rounded-2xl border border-gold-500/25 bg-navy-900 p-5">
-      <Icon className="text-gold-300" size={22} />
-      <p className="mt-3 text-xl font-semibold">{title}</p>
-      <p className="mt-1 text-sm text-slate-300">{text}</p>
+    <div className="flex gap-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+      <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gold-500 text-navy-950">
+        <Icon size={20} />
+      </span>
+      <div>
+        <p className="font-semibold">{title}</p>
+        <p className="mt-1 text-sm text-slate-300">{text}</p>
+      </div>
     </div>
   );
 }
@@ -277,9 +294,9 @@ function Pillar({ icon: Icon, title, text }: { icon: typeof Home; title: string;
 function Step({ n, title, text }: { n: string; title: string; text: string }) {
   return (
     <div>
-      <p className="text-gold-300">{n}</p>
+      <p className="text-sm font-semibold text-gold-300">{n}</p>
       <p className="mt-1 text-xl font-semibold">{title}</p>
-      <p className="mt-2 text-sm text-slate-300">{text}</p>
+      <p className="mt-2 text-sm leading-6 text-slate-300">{text}</p>
     </div>
   );
 }

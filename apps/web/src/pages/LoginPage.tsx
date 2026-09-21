@@ -18,24 +18,24 @@ export function LoginPage() {
 
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
-      <section className="relative hidden overflow-hidden bg-navy-900 p-10 text-white lg:flex lg:flex-col lg:justify-between">
+      <section className="login-brand relative hidden overflow-hidden p-10 text-white lg:flex lg:flex-col lg:justify-between">
         <Logo />
         <div>
           <p className="text-gold-300">Productos de calidad · Pago semanal · Más beneficios</p>
-          <h2 className="mt-4 text-4xl font-semibold leading-tight">Más que un catálogo, una oportunidad para tu hogar.</h2>
+          <h2 className="mt-4 font-display text-4xl font-semibold leading-tight">Más que un catálogo, una oportunidad para tu hogar.</h2>
           <div className="mt-8 grid max-w-md grid-cols-3 gap-3 text-center text-sm">
             {["Salud", "Belleza", "Hogar"].map((item) => (
-              <div key={item} className="rounded-2xl border border-gold-500/25 bg-navy-800 py-4">
+              <div key={item} className="rounded-2xl border border-white/15 bg-black/20 py-4 backdrop-blur-sm">
                 {item}
               </div>
             ))}
           </div>
         </div>
-        <p className="text-sm text-slate-300">Cartera · Cobranza · Inventario</p>
+        <p className="text-sm text-slate-200">Cartera · Cobranza · Inventario</p>
       </section>
-      <section className="flex items-center justify-center p-6">
+      <section className="login-panel flex items-center justify-center p-6">
         <form
-          className="panel w-full max-w-md p-8"
+          className="w-full max-w-md rounded-3xl border border-white/10 bg-white/95 p-8 shadow-[0_24px_70px_rgba(15,23,42,0.28)] backdrop-blur"
           noValidate
           onSubmit={async (e) => {
             e.preventDefault();

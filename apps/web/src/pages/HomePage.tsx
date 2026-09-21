@@ -84,11 +84,10 @@ export function HomePage() {
           <Logo />
           <nav className="hidden items-center gap-5 text-sm font-medium text-slate-300 lg:flex">
             <button type="button" className="hover:text-white" onClick={scrollToCatalog}>Catálogo</button>
-            <Link className="hover:text-white" to="/portal">Soy cliente</Link>
           </nav>
           <div className="flex items-center gap-2">
             <Link
-              className="inline-flex h-10 items-center rounded-full border border-gold-500/40 px-4 text-sm font-semibold text-gold-100 hover:bg-white/5"
+              className="inline-flex h-10 items-center rounded-full border border-white/20 px-4 text-sm font-semibold text-white hover:bg-white/10"
               to="/portal"
             >
               Soy cliente
@@ -121,11 +120,11 @@ export function HomePage() {
               <p className="mt-4 max-w-xl text-base leading-7 text-slate-300">
                 Salud, belleza y hogar. Te afilias, eliges el artículo y pagas semanal. El buen pago sube de Bronce a Plata y Oro.
               </p>
-              <div className="mt-8 grid gap-3 sm:grid-cols-2">
-                <button type="button" className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-gold-500 px-5 text-sm font-semibold text-navy-950 hover:bg-gold-600" onClick={() => openWhatsApp()}>
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <button type="button" className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-gold-500 px-5 text-sm font-semibold text-navy-950 hover:bg-gold-600" onClick={() => openWhatsApp()}>
                   Quiero ser cliente <ArrowRight size={16} />
                 </button>
-                <button type="button" className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/20 bg-white/5 px-5 text-sm font-semibold text-white hover:bg-white/10" onClick={scrollToCatalog}>
+                <button type="button" className="inline-flex h-12 flex-1 items-center justify-center rounded-2xl border border-white/20 bg-white/5 px-5 text-sm font-semibold text-white hover:bg-white/10" onClick={scrollToCatalog}>
                   Ver catálogo
                 </button>
               </div>

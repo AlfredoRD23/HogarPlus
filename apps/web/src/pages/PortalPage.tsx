@@ -847,8 +847,8 @@ function PortalGate({
   onSubmit: () => void;
 }) {
   return (
-    <div className="grid min-h-screen lg:grid-cols-2">
-      <section className="relative hidden overflow-hidden bg-navy-900 p-10 text-white lg:flex lg:flex-col lg:justify-between">
+    <div className="login-lock grid min-h-screen lg:grid-cols-2">
+      <section className="login-brand relative hidden overflow-hidden p-10 text-white lg:flex lg:flex-col lg:justify-between">
         <Logo />
         <div>
           <p className="text-gold-300">Tu cuenta · Tus cuotas · Tus facturas</p>
@@ -856,11 +856,11 @@ function PortalGate({
             Consulta tu saldo, sube el comprobante y descarga tu factura.
           </h2>
         </div>
-        <p className="text-sm text-slate-300">Entra con tu cédula y el teléfono registrado.</p>
+        <p className="text-sm text-slate-200">Entra con tu cédula y el teléfono registrado.</p>
       </section>
-      <section className="flex items-center justify-center bg-slate-100 p-6">
+      <section className="login-panel flex items-center justify-center p-4 lg:p-6">
         <form
-          className="panel w-full max-w-md p-8"
+          className="login-card w-full max-w-md rounded-3xl border border-white/10 bg-white/95 p-8 shadow-[0_24px_70px_rgba(15,23,42,0.28)] backdrop-blur"
           noValidate
           onSubmit={(event) => {
             event.preventDefault();
@@ -868,11 +868,11 @@ function PortalGate({
           }}
         >
           <div className="lg:hidden">
-            <Logo light />
+            <Logo light compact />
           </div>
-          <h1 className="mt-4 font-display text-4xl font-semibold tracking-tight text-navy-900">Soy cliente</h1>
+          <h1 className="mt-3 font-display text-2xl font-semibold tracking-tight text-navy-900 sm:mt-4 sm:text-4xl">Soy cliente</h1>
           <p className="mt-2 text-sm text-slate-500">
-            Ingresa con tu cédula y teléfono para ver cuotas, enviar un pago y descargar facturas.
+            Entra con tu cédula y teléfono.
           </p>
           <div className="mt-6">
             <Field label="Cédula" hint={fieldHint("cedula")} required>

@@ -17,7 +17,7 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-2">
+    <div className="login-lock grid min-h-screen lg:grid-cols-2">
       <section className="login-brand relative hidden overflow-hidden p-10 text-white lg:flex lg:flex-col lg:justify-between">
         <Logo />
         <div>
@@ -33,9 +33,9 @@ export function LoginPage() {
         </div>
         <p className="text-sm text-slate-200">Cartera · Cobranza · Inventario</p>
       </section>
-      <section className="login-panel flex items-center justify-center p-6">
+      <section className="login-panel flex items-center justify-center p-4 lg:p-6">
         <form
-          className="w-full max-w-md rounded-3xl border border-white/10 bg-white/95 p-8 shadow-[0_24px_70px_rgba(15,23,42,0.28)] backdrop-blur"
+          className="login-card w-full max-w-md rounded-3xl border border-white/10 bg-white/95 p-8 shadow-[0_24px_70px_rgba(15,23,42,0.28)] backdrop-blur"
           noValidate
           onSubmit={async (e) => {
             e.preventDefault();
@@ -59,9 +59,9 @@ export function LoginPage() {
           }}
         >
           <div className="lg:hidden">
-            <Logo light />
+            <Logo light compact />
           </div>
-          <h1 className="mt-4 text-3xl font-semibold text-navy-900">Iniciar sesión</h1>
+          <h1 className="mt-3 text-2xl font-semibold text-navy-900 sm:mt-4 sm:text-3xl">Iniciar sesión</h1>
           <p className="mt-2 text-sm text-slate-500">Ingresa con tu correo y contraseña.</p>
           <div className="mt-6">
             <Field label="Correo" hint={fieldHint("email")} required>

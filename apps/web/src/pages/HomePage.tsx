@@ -128,17 +128,20 @@ export function HomePage() {
                   Ver catálogo
                 </button>
               </div>
-              <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs font-semibold text-slate-400">
-                <button type="button" className="hover:text-gold-200" onClick={() => void handleInstall()}>
-                  <Download size={14} className="mr-1 inline" />
-                  {pwa.installed ? "App instalada" : "Instalar app"}
-                </button>
-                {pwa.ios && !pwa.installed ? (
-                  <span className="inline-flex items-center gap-1">
-                    <Share size={14} /> iPhone: Compartir → Añadir a inicio
-                  </span>
-                ) : null}
-              </div>
+              <button
+                type="button"
+                className="mt-3 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-gold-400 bg-gold-500/20 px-5 text-sm font-semibold text-gold-100 hover:bg-gold-500/30"
+                onClick={() => void handleInstall()}
+              >
+                <Download size={18} />
+                {pwa.installed ? "HogarPlus ya está instalada" : "Instalar aplicación"}
+              </button>
+              {pwa.ios && !pwa.installed ? (
+                <p className="mt-3 flex items-start gap-2 text-sm text-gold-100">
+                  <Share size={16} className="mt-0.5 shrink-0" />
+                  En iPhone: Compartir → Añadir a pantalla de inicio.
+                </p>
+              ) : null}
             </div>
             <div className="grid gap-3">
               <Pillar icon={HeartPulse} title="Salud" text="Bienestar y cuidado frecuente." />

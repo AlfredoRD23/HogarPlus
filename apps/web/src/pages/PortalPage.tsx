@@ -28,7 +28,6 @@ import {
   phoneError,
   POINTS_ACTION_LABELS,
   POINTS_RULES,
-  PRODUCT_CATEGORIES,
   progressToNextLevel,
   requiredLevelForTier,
   REFERRAL_STATUS_LABELS,
@@ -43,12 +42,6 @@ import {
   type ProductCategory,
   type ReferralStatus,
 } from "@hogarplus/shared";
-
-const CATEGORY_CHIPS: Record<ProductCategory, string> = {
-  SALUD_BIENESTAR: "Salud",
-  BELLEZA: "Belleza",
-  HOGAR: "Hogar",
-};
 
 type PortalInstallment = {
   id: string;
@@ -144,7 +137,6 @@ export function PortalPage() {
   const [payCredit, setPayCredit] = useState<PortalCredit | null>(null);
   const [activeCreditId, setActiveCreditId] = useState("");
   const [activity, setActivity] = useState<ActivityTab>("payments");
-  const [catalogFilter, setCatalogFilter] = useState<ProductCategory | "ALL">("ALL");
 
   const identity = () => ({ documentId: digitsOnly(documentId), phone: digitsOnly(phone) });
 
@@ -318,12 +310,13 @@ export function PortalPage() {
         <section>
           {data.credits.length === 0 ? (
             <>
-              <SectionHead title="Tus productos" hint="Aún no hay entregas" />
+              <SectionHead light title="Tus productos" hint="Aún no hay entregas" />
               <EmptyStrip text="Cuando te entreguen un artículo, sale aquí." />
             </>
           ) : (
             <>
               <Carousel
+                light
                 title="Tus productos"
                 hint={
                   data.credits.length > 1
@@ -353,46 +346,49 @@ export function PortalPage() {
           )}
         </section>
 
-        <section>
+        <section className="panel p-4 sm:p-5">
           {data.catalog.length === 0 ? (
             <>
               <SectionHead title="Catálogo" hint="Cuando haya productos, salen aquí." />
-              <EmptyStrip text="No hay productos en catálogo." />
+              <p className="text-sm text-slate-500">No hay productos en catálogo.</p>
             </>
           ) : (
-            <CatalogBrowse
-              products={data.catalog}
-              filter={catalogFilter}
-              onFilter={setCatalogFilter}
-              busyId={busy}
-              onAsk={async (product) => {
-                if (!product.canRequest && !product.lockReason?.includes("saldar")) {
-                  setLevelLock(product);
-                  return;
-                }
-                if (!product.canRequest && product.lockReason?.includes("saldar")) {
-                  setDebtModal(data.debt?.[0] ?? null);
-                  return;
-                }
-                setBusy(product.id);
-                try {
-                  await api("/api/portal/request", {
-                    method: "POST",
-                    body: JSON.stringify({ ...identity(), productId: product.id }),
-                  });
-                  toast.success("Solicitud enviada");
-                  await lookup();
-                } catch (err) {
-                  if (isDebtError(err)) {
-                    setDebtModal(creditsFromDebtError(err)[0] ?? data.debt?.[0] ?? null);
-                  } else {
-                    toast.error(err instanceof Error ? err.message : "No se pudo solicitar");
-                  }
-                } finally {
-                  setBusy("");
-                }
-              }}
-            />
+            <Carousel title="Catálogo" hint="Pide los de tu categoría. Si tocas otro, te explicamos.">
+              {data.catalog.map((product) => (
+                <CatalogSlide
+                  key={product.id}
+                  product={product}
+                  busy={busy === product.id}
+                  onAsk={async () => {
+                    if (!product.canRequest && !product.lockReason?.includes("saldar")) {
+                      setLevelLock(product);
+                      return;
+                    }
+                    if (!product.canRequest && product.lockReason?.includes("saldar")) {
+                      setDebtModal(data.debt?.[0] ?? null);
+                      return;
+                    }
+                    setBusy(product.id);
+                    try {
+                      await api("/api/portal/request", {
+                        method: "POST",
+                        body: JSON.stringify({ ...identity(), productId: product.id }),
+                      });
+                      toast.success("Solicitud enviada");
+                      await lookup();
+                    } catch (err) {
+                      if (isDebtError(err)) {
+                        setDebtModal(creditsFromDebtError(err)[0] ?? data.debt?.[0] ?? null);
+                      } else {
+                        toast.error(err instanceof Error ? err.message : "No se pudo solicitar");
+                      }
+                    } finally {
+                      setBusy("");
+                    }
+                  }}
+                />
+              ))}
+            </Carousel>
           )}
         </section>
 
@@ -606,12 +602,12 @@ function HeaderStat({ label, value, hint }: { label: string; value: string; hint
   );
 }
 
-function SectionHead({ title, hint }: { title: string; hint: string }) {
+function SectionHead({ title, hint, light }: { title: string; hint: string; light?: boolean }) {
   return (
     <div className="mb-3">
-      <h2 className="font-display text-3xl font-semibold tracking-tight text-white">{title}</h2>
+      <h2 className={`font-display text-3xl font-semibold tracking-tight ${light ? "text-white" : "text-navy-900"}`}>{title}</h2>
       <div className="mt-1.5 h-1 w-11 rounded-full bg-gold-500" />
-      <p className="mt-2 text-sm font-medium text-slate-300">{hint}</p>
+      <p className={`mt-2 text-sm font-medium ${light ? "text-slate-300" : "text-navy-800/70"}`}>{hint}</p>
     </div>
   );
 }
@@ -622,7 +618,7 @@ function EmptyStrip({ text }: { text: string }) {
   );
 }
 
-function Carousel({ title, hint, children }: { title: string; hint: string; children: ReactNode }) {
+function Carousel({ title, hint, children, light }: { title: string; hint: string; children: ReactNode; light?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
 
   function move(direction: number) {
@@ -634,12 +630,16 @@ function Carousel({ title, hint, children }: { title: string; hint: string; chil
   return (
     <div>
       <div className="mb-3 flex items-end justify-between gap-3">
-        <SectionHead title={title} hint={hint} />
+        <SectionHead title={title} hint={hint} light={light} />
         <div className="mb-3 hidden shrink-0 gap-2 sm:flex">
           <button
             type="button"
             aria-label="Anterior"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white hover:bg-white/20"
+            className={`inline-flex h-9 w-9 items-center justify-center rounded-full ${
+              light
+                ? "border border-white/20 bg-white/10 text-white hover:bg-white/20"
+                : "border border-slate-200 bg-white text-navy-900"
+            }`}
             onClick={() => move(-1)}
           >
             <ChevronLeft size={16} />
@@ -647,7 +647,11 @@ function Carousel({ title, hint, children }: { title: string; hint: string; chil
           <button
             type="button"
             aria-label="Siguiente"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white hover:bg-white/20"
+            className={`inline-flex h-9 w-9 items-center justify-center rounded-full ${
+              light
+                ? "border border-white/20 bg-white/10 text-white hover:bg-white/20"
+                : "border border-slate-200 bg-white text-navy-900"
+            }`}
             onClick={() => move(1)}
           >
             <ChevronRight size={16} />
@@ -797,84 +801,6 @@ function CreditSlide({
   );
 }
 
-function CatalogBrowse({
-  products,
-  filter,
-  onFilter,
-  busyId,
-  onAsk,
-}: {
-  products: CatalogProduct[];
-  filter: ProductCategory | "ALL";
-  onFilter: (value: ProductCategory | "ALL") => void;
-  busyId: string;
-  onAsk: (product: CatalogProduct) => void;
-}) {
-  const present = PRODUCT_CATEGORIES.filter((category) => products.some((item) => item.category === category));
-  const visible = filter === "ALL" ? products : products.filter((item) => item.category === filter);
-  const groups = (filter === "ALL" ? present : [filter]).map((category) => ({
-    category,
-    items: visible.filter((item) => item.category === category),
-  })).filter((group) => group.items.length > 0);
-
-  return (
-    <div>
-      <SectionHead
-        title="Catálogo"
-        hint={`${products.length} productos · pide los de tu categoría. Si tocas otro, te explicamos.`}
-      />
-      {present.length > 1 ? (
-        <div className="mb-6 flex flex-wrap gap-2">
-          <button
-            type="button"
-            className={`h-10 rounded-full px-4 text-sm font-semibold ${
-              filter === "ALL" ? "bg-gold-500 text-navy-950" : "border border-white/20 bg-white/5 text-white hover:bg-white/10"
-            }`}
-            onClick={() => onFilter("ALL")}
-          >
-            Todas
-          </button>
-          {present.map((category) => (
-            <button
-              key={category}
-              type="button"
-              className={`h-10 rounded-full px-4 text-sm font-semibold ${
-                filter === category ? "bg-gold-500 text-navy-950" : "border border-white/20 bg-white/5 text-white hover:bg-white/10"
-              }`}
-              onClick={() => onFilter(category)}
-            >
-              {CATEGORY_CHIPS[category]}
-            </button>
-          ))}
-        </div>
-      ) : null}
-      {groups.length === 0 ? (
-        <EmptyStrip text="No hay productos en esta categoría." />
-      ) : (
-        <div className="space-y-10">
-          {groups.map((group) => (
-            <div key={group.category}>
-              {present.length > 1 && filter === "ALL" ? (
-                <h3 className="font-display text-2xl font-semibold text-gold-100">{CATEGORY_LABELS[group.category]}</h3>
-              ) : null}
-              <div className={`${present.length > 1 && filter === "ALL" ? "mt-4" : ""} grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3`}>
-                {group.items.map((product) => (
-                  <CatalogSlide
-                    key={product.id}
-                    product={product}
-                    busy={busyId === product.id}
-                    onAsk={() => onAsk(product)}
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function CatalogSlide({
   product,
   busy,
@@ -885,8 +811,8 @@ function CatalogSlide({
   onAsk: () => void;
 }) {
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white text-navy-900">
-      <div className="relative h-40 shrink-0 bg-slate-100">
+    <article className="carousel-item flex h-full w-64 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white text-navy-900">
+      <div className="relative h-36 bg-slate-100">
         {product.imageUrl ? (
           <img src={mediaUrl(product.imageUrl)} alt={product.name} className="h-full w-full object-cover" />
         ) : (

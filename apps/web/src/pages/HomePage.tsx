@@ -1,8 +1,11 @@
 import { Link } from "react-router-dom";
+import { useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import {
   ArrowRight,
+  ChevronLeft,
+  ChevronRight,
   Download,
   Facebook,
   HeartPulse,
@@ -32,15 +35,15 @@ type PublicProduct = {
   imageUrl?: string | null;
 };
 
-function openWhatsApp(productName?: string) {
-  const text = productName
-    ? `Hola, quiero ser cliente de HogarPlus. Me interesa ${productName}.`
+function whatsappHref(product?: { name: string; price: number }) {
+  const text = product
+    ? `Hola, quiero ser cliente de HogarPlus. Me interesa ${product.name} (${money(product.price)}).`
     : "Hola, quiero ser cliente de HogarPlus.";
-  window.open(
-    `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`,
-    "_blank",
-    "noopener,noreferrer",
-  );
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
+}
+
+function openWhatsApp(product?: { name: string; price: number }) {
+  window.open(whatsappHref(product), "_blank", "noopener,noreferrer");
 }
 
 function scrollToCatalog() {
@@ -160,10 +163,10 @@ export function HomePage() {
             </p>
           </div>
           {catalog.isLoading ? (
-            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="h-80 animate-pulse rounded-3xl bg-navy-900" />
-              ))}
+            <div className="mt-8 h-80 animate-pulse rounded-3xl bg-navy-900 lg:grid lg:grid-cols-3 lg:gap-4">
+              <div className="h-full rounded-3xl bg-navy-900" />
+              <div className="hidden h-full rounded-3xl bg-navy-900 lg:block" />
+              <div className="hidden h-full rounded-3xl bg-navy-900 lg:block" />
             </div>
           ) : groups.length === 0 ? (
             <p className="mt-8 text-center text-sm text-slate-400">Pronto verás los productos aquí.</p>
@@ -171,39 +174,7 @@ export function HomePage() {
             <div className="mt-10 space-y-12">
               {groups.map((group) => (
                 <div key={group.category}>
-                  <h3 className="font-display text-2xl font-semibold text-gold-100">{CATEGORY_LABELS[group.category]}</h3>
-                  <div className="mt-5 grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {group.items.map((product) => (
-                      <article key={product.id} className="flex h-full flex-col overflow-hidden rounded-3xl border border-white/10 bg-navy-900">
-                        <div className="relative h-44 shrink-0 bg-navy-800">
-                          {product.imageUrl ? (
-                            <img src={mediaUrl(product.imageUrl)} alt={product.name} className="h-full w-full object-cover" />
-                          ) : (
-                            <div className="flex h-full items-center justify-center text-slate-500">
-                              <Package size={32} />
-                            </div>
-                          )}
-                          <div className="absolute left-3 top-3">
-                            <CatalogBadge tier={product.catalogTier} />
-                          </div>
-                        </div>
-                        <div className="flex flex-1 flex-col p-5">
-                          <h4 className="line-clamp-1 text-lg font-semibold">{product.name}</h4>
-                          <p className="mt-1 line-clamp-2 min-h-10 text-sm text-slate-400">
-                            {product.description || "Producto HogarPlus"}
-                          </p>
-                          <p className="mt-3 font-display text-2xl text-gold-100">{money(product.price)}</p>
-                          <button
-                            type="button"
-                            className="mt-auto inline-flex h-11 w-full items-center justify-center rounded-xl bg-gold-500 text-sm font-semibold text-navy-950 hover:bg-gold-600"
-                            onClick={() => openWhatsApp(product.name)}
-                          >
-                            Quiero este
-                          </button>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
+                  <CategoryCarousel title={CATEGORY_LABELS[group.category]} products={group.items} />
                 </div>
               ))}
             </div>
@@ -275,6 +246,82 @@ export function HomePage() {
           </p>
         </div>
       </footer>
+    </div>
+  );
+}
+
+function CategoryCarousel({ title, products }: { title: string; products: PublicProduct[] }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  function move(direction: number) {
+    const node = ref.current;
+    if (!node) return;
+    const card = node.querySelector("article");
+    const step = (card instanceof HTMLElement ? card.offsetWidth : node.clientWidth) + 16;
+    node.scrollBy({ left: direction * step, behavior: "smooth" });
+  }
+
+  return (
+    <div>
+      <div className="mb-4 flex items-end justify-between gap-3">
+        <h3 className="font-display text-2xl font-semibold text-gold-100">{title}</h3>
+        {products.length > 1 ? (
+          <div className="mb-0.5 flex shrink-0 gap-2">
+            <button
+              type="button"
+              aria-label="Anterior"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white hover:bg-white/20"
+              onClick={() => move(-1)}
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <button
+              type="button"
+              aria-label="Siguiente"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white hover:bg-white/20"
+              onClick={() => move(1)}
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        ) : null}
+      </div>
+      <div ref={ref} className="carousel items-stretch">
+        {products.map((product) => (
+          <article
+            key={product.id}
+            className="flex min-w-full shrink-0 snap-start flex-col overflow-hidden rounded-3xl border border-white/10 bg-navy-900 lg:min-w-[calc((100%-2rem)/3)] lg:w-[calc((100%-2rem)/3)]"
+          >
+            <div className="relative h-44 shrink-0 bg-navy-800">
+              {product.imageUrl ? (
+                <img src={mediaUrl(product.imageUrl)} alt={product.name} className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full items-center justify-center text-slate-500">
+                  <Package size={32} />
+                </div>
+              )}
+              <div className="absolute left-3 top-3">
+                <CatalogBadge tier={product.catalogTier} />
+              </div>
+            </div>
+            <div className="flex flex-1 flex-col p-5">
+              <h4 className="line-clamp-1 text-lg font-semibold">{product.name}</h4>
+              <p className="mt-1 line-clamp-2 min-h-10 text-sm text-slate-400">
+                {product.description || "Producto HogarPlus"}
+              </p>
+              <p className="mt-3 font-display text-2xl text-gold-100">{money(product.price)}</p>
+              <a
+                href={whatsappHref(product)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-auto inline-flex h-11 w-full items-center justify-center rounded-xl bg-gold-500 text-sm font-semibold text-navy-950 hover:bg-gold-600"
+              >
+                Quiero este
+              </a>
+            </div>
+          </article>
+        ))}
+      </div>
     </div>
   );
 }

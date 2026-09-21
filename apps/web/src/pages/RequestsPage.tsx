@@ -10,6 +10,7 @@ import { DataTable } from "../components/DataTable";
 import { RowActions } from "../components/RowActions";
 import { TableCard } from "../components/TableCard";
 import { CatalogBadge, LevelBadge } from "../components/Badges";
+import { Modal } from "../components/Form";
 import {
   PAYMENT_CLAIM_STATUS_LABELS,
   PAYMENT_METHOD_LABELS,
@@ -29,11 +30,23 @@ type RequestRow = {
   product: { id: string; name: string; catalogTier: CatalogTier; price: number; imageUrl?: string | null };
 };
 
-function ReceiptPhoto({ path }: { path: string }) {
+function ReceiptPhoto({ path, onOpen }: { path: string; onOpen: () => void }) {
   return (
-    <a href={mediaUrl(path)} target="_blank" rel="noreferrer" className="block">
+    <button type="button" className="overflow-hidden rounded-xl" onClick={onOpen}>
       <img src={mediaUrl(path)} alt="Comprobante" className="h-16 w-16 rounded-xl object-cover" />
-    </a>
+    </button>
+  );
+}
+
+function PhotoModal({ path, title, onClose }: { path: string; title: string; onClose: () => void }) {
+  return (
+    <Modal title={title} size="lg" onClose={onClose}>
+      <img
+        src={mediaUrl(path)}
+        alt={title}
+        className="max-h-[70vh] w-full rounded-xl bg-slate-100 object-contain"
+      />
+    </Modal>
   );
 }
 
@@ -201,6 +214,7 @@ function ProductRequestsTable() {
 function PaymentClaimsTable() {
   const qc = useQueryClient();
   const [confirm, setConfirm] = useState<{ row: ClaimRow; action: "approve" | "reject" } | null>(null);
+  const [photo, setPhoto] = useState<{ path: string; title: string } | null>(null);
   const q = useQuery({
     queryKey: ["payment-claims"],
     queryFn: () => api<ClaimRow[]>("/api/payment-claims?pageSize=50"),
@@ -235,13 +249,23 @@ function PaymentClaimsTable() {
             title={<Link to={`/clientes/${row.client.id}`}>{row.client.firstName} {row.client.lastName}</Link>}
             subtitle={row.client.phone}
             photo={row.receiptPath ? mediaUrl(row.receiptPath) : row.credit.product.imageUrl ? mediaUrl(row.credit.product.imageUrl) : null}
+            onPhotoClick={
+              row.receiptPath
+                ? () => setPhoto({ path: row.receiptPath!, title: `Comprobante · ${row.client.firstName}` })
+                : undefined
+            }
             initials={row.client.firstName}
             fields={[
               { label: "Producto", value: row.credit.product.name, hint: `${row.credit.code} · ${formatDate(row.createdAt)}` },
               { label: "Monto", value: money(row.amount), hint: PAYMENT_METHOD_LABELS[row.method] },
               {
                 label: "Comprobante",
-                value: row.receiptPath ? <ReceiptPhoto path={row.receiptPath} /> : "Sin foto",
+                value: row.receiptPath ? (
+                  <ReceiptPhoto
+                    path={row.receiptPath}
+                    onOpen={() => setPhoto({ path: row.receiptPath!, title: `Comprobante · ${row.client.firstName}` })}
+                  />
+                ) : "Sin foto",
               },
               { label: "Estado", value: PAYMENT_CLAIM_STATUS_LABELS[row.status] },
             ]}
@@ -284,7 +308,12 @@ function PaymentClaimsTable() {
               <div className="text-xs text-slate-500">{PAYMENT_METHOD_LABELS[row.method]}</div>
             </td>
             <td className="px-5 py-3.5">
-              {row.receiptPath ? <ReceiptPhoto path={row.receiptPath} /> : <span className="text-xs text-slate-400">Sin foto</span>}
+              {row.receiptPath ? (
+                <ReceiptPhoto
+                  path={row.receiptPath}
+                  onOpen={() => setPhoto({ path: row.receiptPath!, title: `Comprobante · ${row.client.firstName}` })}
+                />
+              ) : <span className="text-xs text-slate-400">Sin foto</span>}
             </td>
             <td className="px-5 py-3.5">{PAYMENT_CLAIM_STATUS_LABELS[row.status]}</td>
             <td className="px-5 py-3.5">
@@ -329,6 +358,7 @@ function PaymentClaimsTable() {
           onConfirm={() => decide.mutate({ id: confirm.row.id, action: confirm.action })}
         />
       )}
+      {photo ? <PhotoModal path={photo.path} title={photo.title} onClose={() => setPhoto(null)} /> : null}
     </>
   );
 }

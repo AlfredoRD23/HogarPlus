@@ -10,6 +10,7 @@ export function TableCard({
   title,
   subtitle,
   photo,
+  onPhotoClick,
   initials,
   badge,
   fields,
@@ -19,6 +20,7 @@ export function TableCard({
   title: ReactNode;
   subtitle?: ReactNode;
   photo?: string | null;
+  onPhotoClick?: () => void;
   initials?: string;
   badge?: ReactNode;
   fields: TableCardField[];
@@ -29,7 +31,13 @@ export function TableCard({
     <article className={`px-4 py-4 ${muted ? "opacity-60" : ""}`}>
       <div className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-3">
         {photo ? (
-          <img src={photo} alt="" className="h-[4.5rem] w-[4.5rem] shrink-0 rounded-2xl object-cover object-top" />
+          onPhotoClick ? (
+            <button type="button" className="h-[4.5rem] w-[4.5rem] shrink-0 overflow-hidden rounded-2xl" onClick={onPhotoClick}>
+              <img src={photo} alt="" className="h-full w-full object-cover object-top" />
+            </button>
+          ) : (
+            <img src={photo} alt="" className="h-[4.5rem] w-[4.5rem] shrink-0 rounded-2xl object-cover object-top" />
+          )
         ) : (
           <div className="flex h-[4.5rem] w-[4.5rem] shrink-0 items-center justify-center rounded-2xl bg-navy-900 text-lg font-bold uppercase text-gold-300">
             {(initials ?? "?").slice(0, 1)}

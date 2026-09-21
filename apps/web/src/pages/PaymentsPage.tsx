@@ -13,11 +13,12 @@ import { openInvoice, type InvoiceData } from "../lib/invoice";
 import { TableCard } from "../components/TableCard";
 import { FileText, Wallet } from "lucide-react";
 import { useOnceSubmit } from "../hooks/useOnceSubmit";
-import { PAYMENT_TYPE_LABELS, firstError, moneyError, parseMoney, referenceError, type PaymentMethod, type PaymentType } from "@hogarplus/shared";
+import { PAYMENT_TYPE_LABELS, firstError, moneyError, parseMoney, type PaymentMethod, type PaymentType } from "@hogarplus/shared";
 
 type Payment = {
   id: string;
   code: string;
+  reference?: string | null;
   amount: number;
   method: PaymentMethod;
   type: PaymentType;
@@ -26,6 +27,10 @@ type Payment = {
   client: { firstName: string; lastName: string };
   credit?: { code: string; balance: number; downPayment?: number; price?: number } | null;
 };
+
+function paymentRef(p: Pick<Payment, "code" | "reference">) {
+  return p.reference || p.code;
+}
 
 export function PaymentsPage() {
   const [params] = useSearchParams();
@@ -48,7 +53,6 @@ export function PaymentsPage() {
     creditId: params.get("creditId") ?? "",
     amount: "",
     method: "CASH" as PaymentMethod,
-    reference: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const settings = useQuery({
@@ -82,7 +86,6 @@ export function PaymentsPage() {
           creditId: form.creditId || undefined,
           amount: parseMoney(form.amount),
           method: form.method,
-          reference: form.reference.trim() || undefined,
         }),
       }),
     onSuccess: () => {
@@ -119,11 +122,9 @@ export function PaymentsPage() {
         noValidate
         onSubmit={(e) => {
           e.preventDefault();
-          const needsReference = form.method === "TRANSFER" || form.method === "DEPOSIT";
           const next = {
             clientId: form.clientId ? "" : "Selecciona un cliente",
             amount: moneyError(form.amount, { label: "monto" }) ?? "",
-            reference: referenceError(form.reference, needsReference) ?? "",
           };
           setErrors(next);
           const message = firstError(Object.values(next));
@@ -132,7 +133,9 @@ export function PaymentsPage() {
         }}
       >
         <h2 className="font-display text-2xl">Registrar pago</h2>
-        <p className="text-xs text-slate-500">El pago se aplica primero a las cuotas más antiguas.</p>
+        <p className="text-xs text-slate-500">
+          El pago se aplica primero a las cuotas más antiguas. La referencia PAGO- se genera sola.
+        </p>
         <Field label="Cliente" error={errors.clientId} required>
           <select className={`input ${errors.clientId ? "input-error" : ""}`} required value={form.clientId} onChange={(e) => setForm({ ...form, clientId: e.target.value })}>
             <option value="">Seleccione</option>
@@ -159,9 +162,6 @@ export function PaymentsPage() {
             <option value="DEPOSIT">Depósito</option>
           </select>
         </Field>
-        <Field label="Referencia" hint={form.method === "CASH" ? "Opcional en efectivo" : fieldHint("reference")} error={errors.reference}>
-          <FormattedInput kind="reference" value={form.reference} error={Boolean(errors.reference)} onValue={(v) => setForm({ ...form, reference: v })} />
-        </Field>
         <button className="btn-primary w-full" disabled={submit.blocked}>
           <WaitLabel waiting={submit.blocked} idle="Aplicar pago" busy="Aplicando..." />
         </button>
@@ -173,12 +173,12 @@ export function PaymentsPage() {
         rows={rows.length}
         emptyTitle="Sin pagos"
         emptyDescription="Los cobros aparecerán aquí al registrar la primera cuota."
-        headers={["Código", "Cliente", "Tipo", "Monto", "Inicial / Resta", "Fecha", "Acciones"]}
+        headers={["Referencia", "Cliente", "Tipo", "Monto", "Inicial / Resta", "Fecha", "Acciones"]}
         mobile={rows.map((p) => (
           <TableCard
             key={p.id}
             title={`${p.client.firstName} ${p.client.lastName}`}
-            subtitle={p.credit?.code ? `${p.code} · ${p.credit.code}` : p.code}
+            subtitle={p.credit?.code ? `${paymentRef(p)} · ${p.credit.code}` : paymentRef(p)}
             initials={p.client.firstName}
             muted={Boolean(p.voidedAt)}
             badge={p.voidedAt ? <span className="text-[11px] font-bold uppercase text-rose-700">Anulado</span> : null}
@@ -204,7 +204,7 @@ export function PaymentsPage() {
       >
         {rows.map((p) => (
           <tr key={p.id} className={`border-t ${p.voidedAt ? "opacity-40" : ""}`}>
-            <td className="px-5 py-3.5">{p.code}</td>
+            <td className="px-5 py-3.5 font-semibold">{paymentRef(p)}</td>
             <td className="px-5 py-3.5">
               {p.client.firstName} {p.client.lastName}
               {p.credit?.code ? <div className="text-xs text-slate-500">{p.credit.code}</div> : null}
@@ -234,7 +234,7 @@ export function PaymentsPage() {
         <ConfirmModal
           title="Anular pago"
           message="Vas a anular"
-          itemName={voiding.code}
+          itemName={paymentRef(voiding)}
           confirmText="Anular pago"
           loadingText="Anulando..."
           loading={voidPayment.isPending}

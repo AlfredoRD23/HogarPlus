@@ -128,7 +128,6 @@ export class PaymentClaimsService {
         creditId: claim.creditId,
         amount: Number(claim.amount),
         method: claim.method,
-        reference: claim.method === "CASH" ? undefined : `PORTAL-${claim.id.slice(-8).toUpperCase()}`,
         notes: claim.notes || "Validado desde aviso del portal",
         receiptPath: claim.receiptPath ?? undefined,
       },

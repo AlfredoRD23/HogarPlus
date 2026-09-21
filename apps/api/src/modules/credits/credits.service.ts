@@ -12,7 +12,7 @@ import { prisma } from "../../lib/prisma";
 import { settingsService } from "../settings/settings.service";
 import { markOverdueInstallments } from "../../shared/sla";
 import { assertNoOutstandingDebt } from "../../shared/debt";
-import { addByFrequency, AppError, money, nextCode, pagination } from "../../shared/utils";
+import { addByFrequency, AppError, money, nextCode, nextPaymentReference, pagination } from "../../shared/utils";
 import { writeAudit } from "../../middleware/auth";
 import type { z } from "zod";
 import type { createCreditSchema, updateCreditSchema } from "./credits.schema";
@@ -163,14 +163,16 @@ export class CreditsService {
       });
 
       if (downPayment > 0) {
+        const reference = await nextPaymentReference();
         await tx.payment.create({
           data: {
-            code: await nextCode("payment", "PAG"),
+            code: reference,
             clientId: client.id,
             creditId: created.id,
             amount: downPayment,
             method: "CASH",
             type: "DOWN_PAYMENT",
+            reference,
             notes: "Pago inicial al entregar el producto",
             createdById: actorId,
           },
@@ -307,14 +309,16 @@ export class CreditsService {
         if (initial) {
           await tx.payment.update({ where: { id: initial.id }, data: { amount: downPayment } });
         } else {
+          const reference = await nextPaymentReference();
           await tx.payment.create({
             data: {
-              code: await nextCode("payment", "PAG"),
+              code: reference,
               clientId: before.clientId,
               creditId: id,
               amount: downPayment,
               method: "CASH",
               type: "DOWN_PAYMENT",
+              reference,
               notes: "Pago inicial al entregar el producto",
               createdById: actorId,
             },

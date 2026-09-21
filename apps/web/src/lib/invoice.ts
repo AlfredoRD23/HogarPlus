@@ -93,20 +93,22 @@ function invoiceMarkup(invoice: InvoiceData) {
           <div class="meta">
             <div class="meta-row"><span>Fecha</span><strong>${text(fields.date)}</strong></div>
             <div class="meta-row"><span>Método</span><strong>${text(fields.method)}</strong></div>
-            ${invoice.reference ? `<div class="meta-row"><span>Referencia</span><strong>${text(invoice.reference)}</strong></div>` : ""}
+            <div class="meta-row"><span>Referencia</span><strong>${text(invoice.reference || invoice.number)}</strong></div>
           </div>
         </div>
         <div class="two-col">
           <div class="panel">
             <div class="panel-title">Cliente</div>
             <div class="panel-main">${text(invoice.clientName)}</div>
-            <div class="panel-sub">${text(invoice.clientCode)} · Cédula ${text(fields.cedula)}</div>
+            <div class="panel-sub">Código: ${text(invoice.clientCode)}</div>
+            <div class="panel-sub">Cédula: ${text(fields.cedula)}</div>
             <div class="panel-sub">${text(fields.phone)}${invoice.city ? ` · ${text(invoice.city)}` : ""}</div>
           </div>
           <div class="panel">
             <div class="panel-title">Concepto</div>
             <div class="panel-main">${text(fields.concept)}</div>
-            <div class="panel-sub">${text(fields.product)}${invoice.creditCode ? ` · ${text(invoice.creditCode)}` : ""}</div>
+            <div class="panel-sub">${text(fields.product)}</div>
+            ${invoice.creditCode ? `<div class="panel-sub">Crédito: ${text(invoice.creditCode)}</div>` : ""}
           </div>
         </div>
         <table class="items">

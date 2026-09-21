@@ -5,7 +5,7 @@ import { settingsService } from "../settings/settings.service";
 import { prisma } from "../../lib/prisma";
 import { absoluteUploadPath, MAX_CLIENT_IMAGES, publicUploadPath } from "../../lib/upload";
 import { markOverdueInstallments } from "../../shared/sla";
-import { AppError, nextCode, pagination } from "../../shared/utils";
+import { AppError, nextCode, nextPaymentReference, pagination } from "../../shared/utils";
 import { writeAudit } from "../../middleware/auth";
 import { notifyStaff } from "../notifications/notifications.service";
 import { referralsService } from "../referrals/referrals.service";
@@ -239,13 +239,15 @@ export class ClientsService {
     method: "CASH" | "TRANSFER" | "DEPOSIT",
   ) {
     const settings = await settingsService.getAll();
+    const reference = await nextPaymentReference();
     const payment = await tx.payment.create({
       data: {
-        code: await nextCode("payment", "PAG"),
+        code: reference,
         clientId,
         amount: settings.affiliationFee,
         method,
         type: "AFFILIATION",
+        reference,
         notes: "Afiliación / contrato",
         createdById: actorId,
       },

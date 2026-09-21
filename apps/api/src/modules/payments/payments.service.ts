@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { POINTS_RULES } from "@hogarplus/shared";
 import { prisma } from "../../lib/prisma";
-import { AppError, money, nextCode, pagination, startOfDay } from "../../shared/utils";
+import { AppError, money, nextPaymentReference, pagination, startOfDay } from "../../shared/utils";
 import { writeAudit } from "../../middleware/auth";
 import { clientsService } from "../clients/clients.service";
 import { settingsService } from "../settings/settings.service";
@@ -63,7 +63,7 @@ export class PaymentsService {
     }
     const settings = await settingsService.getAll();
     return {
-      number: payment.code,
+      number: payment.reference || payment.code,
       issuedAt: payment.createdAt,
       companyName: settings.companyName,
       companyCity: settings.companyCity,
@@ -77,7 +77,7 @@ export class PaymentsService {
       amount: money(payment.amount),
       method: payment.method,
       type: payment.type,
-      reference: payment.reference,
+      reference: payment.reference || payment.code,
     };
   }
 
@@ -114,15 +114,16 @@ export class PaymentsService {
 
     const today = startOfDay();
     const result = await prisma.$transaction(async (tx) => {
+      const reference = await nextPaymentReference();
       const payment = await tx.payment.create({
         data: {
-          code: await nextCode("payment", "PAG"),
+          code: reference,
           clientId: client.id,
           creditId: credit.id,
           amount,
           method: input.method,
           type: "INSTALLMENT",
-          reference: input.reference,
+          reference,
           receiptPath: input.receiptPath,
           notes: input.notes,
           createdById: actorId,

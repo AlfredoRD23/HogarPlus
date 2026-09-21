@@ -87,3 +87,8 @@ export async function nextCode(name: string, prefix: string, pad = 6): Promise<s
   });
   return `${prefix}${String(row.value).padStart(pad, "0")}`;
 }
+
+/** Referencia de pago automática, estilo SmartCon: PAGO-000001 */
+export async function nextPaymentReference(): Promise<string> {
+  return nextCode("payment", "PAGO-");
+}

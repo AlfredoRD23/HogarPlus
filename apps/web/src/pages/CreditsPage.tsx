@@ -629,9 +629,9 @@ export function NewCreditPage() {
                     productId === p.id ? "border-navy-900 ring-2 ring-gold-400" : errors.productId ? "border-rose-400" : "border-slate-200 hover:border-navy-300"
                   }`}
                 >
-                  <div className="h-28 bg-slate-100">
+                  <div className="relative h-28 overflow-hidden bg-slate-100">
                     {p.imageUrl ? (
-                      <img src={mediaUrl(p.imageUrl)} alt={p.name} className="h-full w-full object-cover" />
+                      <img src={mediaUrl(p.imageUrl)} alt={p.name} className="absolute inset-0 h-full w-full object-cover" />
                     ) : (
                       <div className="flex h-full items-center justify-center text-slate-400">
                         <Package size={22} />

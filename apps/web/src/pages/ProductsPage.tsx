@@ -59,9 +59,9 @@ function ProductCard({
   const cover = coverOf(product);
   return (
     <article className="panel overflow-hidden">
-      <div className="relative h-48 bg-slate-100">
+      <div className="relative h-48 overflow-hidden bg-slate-100">
         {cover ? (
-          <img src={mediaUrl(cover)} alt={product.name} className="h-full w-full object-cover" />
+          <img src={mediaUrl(cover)} alt={product.name} className="absolute inset-0 h-full w-full object-cover" />
         ) : (
           <div className="flex h-full flex-col items-center justify-center text-slate-400">
             <Package size={28} />

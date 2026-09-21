@@ -762,9 +762,9 @@ function CreditSlide({
       }`}
     >
       <button type="button" className="block w-full text-left" onClick={onSelect}>
-        <div className="h-36 bg-slate-100">
+        <div className="relative h-36 shrink-0 overflow-hidden bg-slate-100">
           {credit.product.imageUrl ? (
-            <img src={mediaUrl(credit.product.imageUrl)} alt={credit.product.name} className="h-full w-full object-cover" />
+            <img src={mediaUrl(credit.product.imageUrl)} alt={credit.product.name} className="absolute inset-0 h-full w-full object-cover" />
           ) : (
             <div className="flex h-full items-center justify-center text-slate-400">
               <Package size={28} />
@@ -812,9 +812,9 @@ function CatalogSlide({
 }) {
   return (
     <article className="carousel-item flex h-full w-64 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white text-navy-900">
-      <div className="relative h-36 bg-slate-100">
+      <div className="relative h-36 shrink-0 overflow-hidden bg-slate-100">
         {product.imageUrl ? (
-          <img src={mediaUrl(product.imageUrl)} alt={product.name} className="h-full w-full object-cover" />
+          <img src={mediaUrl(product.imageUrl)} alt={product.name} className="absolute inset-0 h-full w-full object-cover" />
         ) : (
           <div className="flex h-full items-center justify-center text-slate-400">
             <Package size={28} />

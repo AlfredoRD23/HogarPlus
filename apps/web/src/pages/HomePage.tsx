@@ -292,9 +292,9 @@ function CategoryCarousel({ title, products }: { title: string; products: Public
             key={product.id}
             className="flex min-w-full shrink-0 snap-start flex-col overflow-hidden rounded-3xl border border-white/10 bg-navy-900 lg:min-w-[calc((100%-2rem)/3)] lg:w-[calc((100%-2rem)/3)]"
           >
-            <div className="relative h-44 shrink-0 bg-navy-800">
+            <div className="relative h-44 shrink-0 overflow-hidden bg-navy-800">
               {product.imageUrl ? (
-                <img src={mediaUrl(product.imageUrl)} alt={product.name} className="h-full w-full object-cover" />
+                <img src={mediaUrl(product.imageUrl)} alt={product.name} className="absolute inset-0 h-full w-full object-cover" />
               ) : (
                 <div className="flex h-full items-center justify-center text-slate-500">
                   <Package size={32} />

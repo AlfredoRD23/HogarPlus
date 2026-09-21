@@ -80,24 +80,24 @@ export function HomePage() {
   return (
     <div className="min-h-screen bg-[#122033] text-white">
       <header className="sticky top-0 z-40 border-b border-white/10 bg-[#122033]/90 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-8">
+        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-2 px-3 sm:h-16 sm:px-8">
           <Logo />
           <nav className="hidden items-center gap-5 text-sm font-medium text-slate-300 lg:flex">
             <button type="button" className="hover:text-white" onClick={scrollToCatalog}>Catálogo</button>
           </nav>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             <Link
-              className="inline-flex h-10 items-center rounded-full border border-white/20 px-4 text-sm font-semibold text-white hover:bg-white/10"
+              className="inline-flex h-9 shrink-0 items-center whitespace-nowrap rounded-full border border-white/20 px-3 text-xs font-semibold text-white hover:bg-white/10 sm:h-10 sm:px-4 sm:text-sm"
               to="/portal"
             >
               Soy cliente
             </Link>
             {user ? (
-              <Link className="inline-flex h-10 items-center rounded-full bg-gold-500 px-4 text-sm font-semibold text-navy-950 hover:bg-gold-600" to={homePathFor(user.role)}>
-                Ir al panel
+              <Link className="inline-flex h-9 shrink-0 items-center whitespace-nowrap rounded-full bg-gold-500 px-3 text-xs font-semibold text-navy-950 hover:bg-gold-600 sm:h-10 sm:px-4 sm:text-sm" to={homePathFor(user.role)}>
+                Panel
               </Link>
             ) : (
-              <Link className="inline-flex h-10 items-center rounded-full bg-gold-500 px-4 text-sm font-semibold text-navy-950 hover:bg-gold-600" to="/login">
+              <Link className="inline-flex h-9 shrink-0 items-center whitespace-nowrap rounded-full bg-gold-500 px-3 text-xs font-semibold text-navy-950 hover:bg-gold-600 sm:h-10 sm:px-4 sm:text-sm" to="/login">
                 Entrar
               </Link>
             )}
@@ -120,22 +120,22 @@ export function HomePage() {
               <p className="mt-4 max-w-xl text-base leading-7 text-slate-300">
                 Salud, belleza y hogar. Te afilias, eliges el artículo y pagas semanal. El buen pago sube de Bronce a Plata y Oro.
               </p>
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <button type="button" className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-gold-500 px-5 text-sm font-semibold text-navy-950 hover:bg-gold-600" onClick={() => openWhatsApp()}>
+              <div className="mt-8 grid gap-3">
+                <button type="button" className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-gold-500 px-5 text-sm font-semibold text-navy-950 hover:bg-gold-600" onClick={() => openWhatsApp()}>
                   Quiero ser cliente <ArrowRight size={16} />
                 </button>
-                <button type="button" className="inline-flex h-12 flex-1 items-center justify-center rounded-2xl border border-white/20 bg-white/5 px-5 text-sm font-semibold text-white hover:bg-white/10" onClick={scrollToCatalog}>
+                <button type="button" className="inline-flex h-12 w-full items-center justify-center rounded-2xl border border-white/20 bg-white/5 px-5 text-sm font-semibold text-white hover:bg-white/10" onClick={scrollToCatalog}>
                   Ver catálogo
                 </button>
+                <button
+                  type="button"
+                  className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-gold-400 bg-gold-500/20 px-5 text-sm font-semibold text-gold-100 hover:bg-gold-500/30"
+                  onClick={() => void handleInstall()}
+                >
+                  <Download size={18} />
+                  {pwa.installed ? "Ya está instalada" : "Instalar app"}
+                </button>
               </div>
-              <button
-                type="button"
-                className="mt-3 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-gold-400 bg-gold-500/20 px-5 text-sm font-semibold text-gold-100 hover:bg-gold-500/30"
-                onClick={() => void handleInstall()}
-              >
-                <Download size={18} />
-                {pwa.installed ? "HogarPlus ya está instalada" : "Instalar aplicación"}
-              </button>
               {pwa.ios && !pwa.installed ? (
                 <p className="mt-3 flex items-start gap-2 text-sm text-gold-100">
                   <Share size={16} className="mt-0.5 shrink-0" />

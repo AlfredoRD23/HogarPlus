@@ -17,6 +17,11 @@ export class ProductsController {
     res.json({ success: true, data: data.items, meta: data.meta });
   }
 
+  async listPublic(_req: Request, res: Response) {
+    const data = await productsService.listPublic();
+    res.json({ success: true, data });
+  }
+
   async get(req: Request, res: Response) {
     const data = await productsService.get(req.params.id);
     res.json({ success: true, data });

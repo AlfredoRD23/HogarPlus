@@ -6,6 +6,7 @@ import { asUploadError, productImageUpload } from "../../lib/upload";
 
 export const productsRouter = Router();
 
+productsRouter.get("/public", asyncHandler((req, res) => productsController.listPublic(req, res)));
 productsRouter.use(authenticate);
 productsRouter.get("/", authorize("VENTAS", "INVENTARIO"), asyncHandler((req, res) => productsController.list(req, res)));
 productsRouter.get("/:id", authorize("VENTAS", "INVENTARIO"), asyncHandler((req, res) => productsController.get(req, res)));

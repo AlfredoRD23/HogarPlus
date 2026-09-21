@@ -1,14 +1,51 @@
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { Download, HeartPulse, Home, Share, Sparkles, Wallet } from "lucide-react";
+import { Download, Facebook, HeartPulse, Home, Instagram, Package, Share, Sparkles, Wallet } from "lucide-react";
 import { Logo } from "../components/Logo";
-import { homePathFor } from "@hogarplus/shared";
+import { CatalogBadge } from "../components/Badges";
+import { homePathFor, CATEGORY_LABELS, PRODUCT_CATEGORIES, type CatalogTier, type ProductCategory } from "@hogarplus/shared";
 import { useAuth } from "../auth/AuthContext";
 import { usePwaInstall } from "../hooks/usePwaInstall";
+import { api, mediaUrl, money } from "../lib/api";
+
+const WHATSAPP_NUMBER = "18298819361";
+const WHATSAPP_TEXT = "Hola, quiero ser cliente de HogarPlus.";
+
+type PublicProduct = {
+  id: string;
+  name: string;
+  description?: string | null;
+  category: ProductCategory;
+  catalogTier: CatalogTier;
+  price: number;
+  imageUrl?: string | null;
+};
+
+function openWhatsApp() {
+  window.open(
+    `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_TEXT)}`,
+    "_blank",
+    "noopener,noreferrer",
+  );
+}
+
+function scrollToCatalog() {
+  document.getElementById("catalogo")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
 
 export function HomePage() {
   const { user } = useAuth();
   const pwa = usePwaInstall();
+  const catalog = useQuery({
+    queryKey: ["public-catalog"],
+    queryFn: () => api<PublicProduct[]>("/api/products/public"),
+  });
+  const products = catalog.data?.data ?? [];
+  const groups = PRODUCT_CATEGORIES.map((category) => ({
+    category,
+    items: products.filter((item) => item.category === category),
+  })).filter((group) => group.items.length > 0);
 
   async function handleInstall() {
     if (pwa.installed) {
@@ -58,7 +95,19 @@ export function HomePage() {
               HogarPlus acerca salud, belleza y artículos del hogar con afiliación simple, cuotas claras y un sistema de puntos que premia el buen pago. Instala la app para consultar o gestionar desde el teléfono.
             </p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-              <button type="button" className="btn-gold" onClick={() => void handleInstall()}>
+              <button type="button" className="btn-gold" onClick={openWhatsApp}>
+                Quiero ser cliente
+              </button>
+              <button
+                type="button"
+                className="btn-ghost border-white/20 bg-transparent text-white hover:bg-navy-800"
+                onClick={scrollToCatalog}
+              >
+                Ver catálogo
+              </button>
+            </div>
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+              <button type="button" className="btn-ghost border-white/20 bg-transparent text-white hover:bg-navy-800" onClick={() => void handleInstall()}>
                 <Download size={18} />
                 {pwa.installed ? "Ya está instalada" : "Descargar app"}
               </button>
@@ -80,7 +129,60 @@ export function HomePage() {
           </div>
         </section>
 
-        <section className="grid gap-4 rounded-3xl bg-navy-900 p-6 sm:grid-cols-3 sm:p-8">
+        <section id="catalogo" className="scroll-mt-6 rounded-3xl bg-white p-6 text-navy-900 sm:p-8">
+          <p className="text-sm font-medium text-gold-600">Catálogo</p>
+          <h2 className="mt-1 font-display text-3xl font-semibold">Lo que puedes pedir</h2>
+          <p className="mt-2 max-w-2xl text-sm text-slate-600">
+            Bronce, Plata y Oro. Si quieres alguno, pulsa Quiero ser cliente y te atendemos por WhatsApp.
+          </p>
+          {catalog.isLoading ? (
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="h-64 animate-pulse rounded-2xl bg-slate-100" />
+              ))}
+            </div>
+          ) : groups.length === 0 ? (
+            <p className="mt-6 text-sm text-slate-500">Pronto verás los productos aquí.</p>
+          ) : (
+            <div className="mt-8 space-y-10">
+              {groups.map((group) => (
+                <div key={group.category}>
+                  <h3 className="font-display text-2xl font-semibold">{CATEGORY_LABELS[group.category]}</h3>
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {group.items.map((product) => (
+                      <article key={product.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                        <div className="relative h-40 bg-slate-100">
+                          {product.imageUrl ? (
+                            <img src={mediaUrl(product.imageUrl)} alt={product.name} className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="flex h-full items-center justify-center text-slate-400">
+                              <Package size={28} />
+                            </div>
+                          )}
+                          <div className="absolute left-3 top-3">
+                            <CatalogBadge tier={product.catalogTier} />
+                          </div>
+                        </div>
+                        <div className="p-4">
+                          <p className="font-semibold leading-tight">{product.name}</p>
+                          {product.description ? (
+                            <p className="mt-1 line-clamp-2 text-sm text-slate-500">{product.description}</p>
+                          ) : null}
+                          <p className="mt-2 font-display text-xl">{money(product.price)}</p>
+                          <button type="button" className="btn-gold mt-3 w-full btn-compact" onClick={openWhatsApp}>
+                            Quiero este
+                          </button>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="mt-10 grid gap-4 rounded-3xl bg-navy-900 p-6 sm:grid-cols-3 sm:p-8">
           <Step n="1" title="Afiliación" text="Un pago de entrada y las condiciones claras desde el primer día." />
           <Step n="2" title="Cuota semanal" text="El cliente ve su saldo, las fechas de pago y cada cobro aplicado." />
           <Step n="3" title="Puntos y niveles" text="El buen pago sube de Inicial a Bronce, Plata y Oro, y abre más productos." />
@@ -102,12 +204,62 @@ export function HomePage() {
             <p className="mt-2 text-sm text-slate-300">
               Consulta tu nivel, puntos, productos de tu categoría y si las cuotas están pendientes o atrasadas.
             </p>
-            <button type="button" className="btn-gold mt-5" onClick={() => void handleInstall()}>
-              <Download size={18} /> Instalar HogarPlus
-            </button>
+            <Link className="btn-gold mt-5" to="/portal">
+              Soy cliente
+            </Link>
           </div>
         </section>
       </main>
+
+      <footer className="border-t border-white/10 bg-navy-900">
+        <div className="mx-auto grid max-w-6xl gap-8 px-5 py-10 sm:grid-cols-3">
+          <div>
+            <Logo />
+            <p className="mt-3 max-w-sm text-sm text-slate-300">
+              Productos para el hogar con cuotas semanales. Escríbenos y te afiliamos.
+            </p>
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-gold-100">Contacto</p>
+            <button type="button" className="mt-3 text-left text-sm text-slate-300 hover:text-white" onClick={openWhatsApp}>
+              WhatsApp 829-881-9361
+            </button>
+            <p className="mt-1 text-sm text-slate-400">info@hogarplus.do</p>
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-gold-100">Redes</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <a
+                href="https://www.facebook.com/hogarplus"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-2 text-sm text-slate-200 hover:bg-white/10"
+              >
+                <Facebook size={16} /> Facebook
+              </a>
+              <a
+                href="https://www.instagram.com/hogarplus"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-2 text-sm text-slate-200 hover:bg-white/10"
+              >
+                <Instagram size={16} /> Instagram
+              </a>
+              <a
+                href="https://www.tiktok.com/@hogarplus"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-2 text-sm text-slate-200 hover:bg-white/10"
+              >
+                TikTok
+              </a>
+            </div>
+          </div>
+        </div>
+        <p className="border-t border-white/10 px-5 py-4 text-center text-xs text-slate-500">
+          © {new Date().getFullYear()} HogarPlus. Todos los derechos reservados.
+        </p>
+      </footer>
     </div>
   );
 }

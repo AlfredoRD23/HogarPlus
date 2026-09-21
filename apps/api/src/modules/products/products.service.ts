@@ -44,6 +44,32 @@ export class ProductsService {
     return { items, meta: { page, pageSize, total } };
   }
 
+  async listPublic() {
+    const items = await prisma.product.findMany({
+      where: { status: "ACTIVE" },
+      orderBy: [{ category: "asc" }, { name: "asc" }],
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        category: true,
+        catalogTier: true,
+        price: true,
+        imageUrl: true,
+        images: { take: 1, orderBy: { createdAt: "asc" }, select: { path: true } },
+      },
+    });
+    return items.map((item) => ({
+      id: item.id,
+      name: item.name,
+      description: item.description,
+      category: item.category,
+      catalogTier: item.catalogTier,
+      price: item.price,
+      imageUrl: item.imageUrl || item.images[0]?.path || null,
+    }));
+  }
+
   async get(id: string) {
     const product = await prisma.product.findUnique({
       where: { id },

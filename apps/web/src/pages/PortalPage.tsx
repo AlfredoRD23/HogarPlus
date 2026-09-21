@@ -206,7 +206,7 @@ export function PortalPage() {
   const selected = data.credits.find((credit) => credit.id === activeCreditId) ?? data.credits[0] ?? null;
 
   return (
-    <div className="portal-shell min-h-screen text-white">
+    <div className="portal-shell min-h-screen text-navy-900">
       <header className="portal-nav text-white">
         <div className="flex items-center justify-between px-4 py-3 sm:px-8">
           <Logo />
@@ -310,13 +310,12 @@ export function PortalPage() {
         <section>
           {data.credits.length === 0 ? (
             <>
-              <SectionHead light title="Tus productos" hint="Aún no hay entregas" />
+              <SectionHead title="Tus productos" hint="Aún no hay entregas" />
               <EmptyStrip text="Cuando te entreguen un artículo, sale aquí." />
             </>
           ) : (
             <>
               <Carousel
-                light
                 title="Tus productos"
                 hint={
                   data.credits.length > 1
@@ -350,7 +349,7 @@ export function PortalPage() {
           {data.catalog.length === 0 ? (
             <>
               <SectionHead title="Catálogo" hint="Cuando haya productos, salen aquí." />
-              <p className="text-sm text-slate-500">No hay productos en catálogo.</p>
+              <EmptyStrip text="No hay productos en catálogo." />
             </>
           ) : (
             <Carousel title="Catálogo" hint="Pide los de tu categoría. Si tocas otro, te explicamos.">
@@ -602,12 +601,12 @@ function HeaderStat({ label, value, hint }: { label: string; value: string; hint
   );
 }
 
-function SectionHead({ title, hint, light }: { title: string; hint: string; light?: boolean }) {
+function SectionHead({ title, hint }: { title: string; hint: string }) {
   return (
     <div className="mb-3">
-      <h2 className={`font-display text-3xl font-semibold tracking-tight ${light ? "text-white" : "text-navy-900"}`}>{title}</h2>
+      <h2 className="font-display text-3xl font-semibold tracking-tight text-navy-900">{title}</h2>
       <div className="mt-1.5 h-1 w-11 rounded-full bg-gold-500" />
-      <p className={`mt-2 text-sm font-medium ${light ? "text-slate-300" : "text-navy-800/70"}`}>{hint}</p>
+      <p className="mt-2 text-sm font-medium text-navy-800/70">{hint}</p>
     </div>
   );
 }
@@ -618,7 +617,7 @@ function EmptyStrip({ text }: { text: string }) {
   );
 }
 
-function Carousel({ title, hint, children, light }: { title: string; hint: string; children: ReactNode; light?: boolean }) {
+function Carousel({ title, hint, children }: { title: string; hint: string; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
 
   function move(direction: number) {
@@ -630,16 +629,12 @@ function Carousel({ title, hint, children, light }: { title: string; hint: strin
   return (
     <div>
       <div className="mb-3 flex items-end justify-between gap-3">
-        <SectionHead title={title} hint={hint} light={light} />
+        <SectionHead title={title} hint={hint} />
         <div className="mb-3 hidden shrink-0 gap-2 sm:flex">
           <button
             type="button"
             aria-label="Anterior"
-            className={`inline-flex h-9 w-9 items-center justify-center rounded-full ${
-              light
-                ? "border border-white/20 bg-white/10 text-white hover:bg-white/20"
-                : "border border-slate-200 bg-white text-navy-900"
-            }`}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-navy-900"
             onClick={() => move(-1)}
           >
             <ChevronLeft size={16} />
@@ -647,11 +642,7 @@ function Carousel({ title, hint, children, light }: { title: string; hint: strin
           <button
             type="button"
             aria-label="Siguiente"
-            className={`inline-flex h-9 w-9 items-center justify-center rounded-full ${
-              light
-                ? "border border-white/20 bg-white/10 text-white hover:bg-white/20"
-                : "border border-slate-200 bg-white text-navy-900"
-            }`}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-navy-900"
             onClick={() => move(1)}
           >
             <ChevronRight size={16} />

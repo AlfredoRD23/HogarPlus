@@ -1,12 +1,12 @@
 import { useRef, useState, type ReactNode } from "react";
 import toast from "react-hot-toast";
-import { Bell, CheckCircle2, ChevronLeft, ChevronRight, Download, Home, LogOut, Package, UserPlus, Wallet } from "lucide-react";
+import { Bell, CheckCircle2, ChevronLeft, ChevronRight, Download, Home, LogOut, Package, UserPlus, Wallet, ArrowRight } from "lucide-react";
 import { api, formatDate, mediaUrl, money } from "../lib/api";
 import { creditsFromDebtError, debtFacts, debtNotes, isDebtError } from "../lib/debt";
 import { openInvoice, type InvoiceData } from "../lib/invoice";
 import { Logo } from "../components/Logo";
 import { WaitLabel } from "../components/Loader";
-import { CatalogBadge, InstallmentBadge, LevelBadge } from "../components/Badges";
+import { InstallmentBadge, LevelBadge } from "../components/Badges";
 import { Field, FormattedInput, Modal, fieldHint } from "../components/Form";
 import { InfoModal } from "../components/InfoModal";
 import { ReferClientForm } from "../components/ReferClientForm";
@@ -801,27 +801,49 @@ function CatalogSlide({
   busy: boolean;
   onAsk: () => void;
 }) {
+  const tierLabel = CATALOG_TIER_LABELS[product.catalogTier];
+  const cta = product.requested ? "Ya solicitado" : "Solicitar";
+
   return (
-    <article className="carousel-item flex h-full w-64 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white text-navy-900">
-      <div className="relative h-36 shrink-0 overflow-hidden bg-slate-100">
+    <article className="carousel-item group flex h-full w-72 flex-col overflow-hidden rounded-2xl border border-slate-200/90 bg-white text-navy-900 shadow-sm">
+      <div className="relative aspect-[4/3] shrink-0 overflow-hidden bg-slate-100">
         {product.imageUrl ? (
-          <img src={mediaUrl(product.imageUrl)} alt={product.name} className="absolute inset-0 h-full w-full object-cover" />
+          <img
+            src={mediaUrl(product.imageUrl)}
+            alt={product.name}
+            className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+          />
         ) : (
           <div className="flex h-full items-center justify-center text-slate-400">
             <Package size={28} />
           </div>
         )}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-white to-transparent" />
         <div className="absolute left-3 top-3">
-          <CatalogBadge tier={product.catalogTier} />
+          <span className="rounded-md border border-white/40 bg-white/85 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-navy-900 backdrop-blur-md">
+            {tierLabel}
+          </span>
         </div>
       </div>
-      <div className="flex flex-1 flex-col p-4">
-        <p className="text-xs text-slate-500">{CATEGORY_LABELS[product.category]}</p>
-        <p className="mt-0.5 font-semibold leading-tight">{product.name}</p>
-        <p className="mt-2 font-display text-lg">{money(product.price)}</p>
-        <div className="mt-auto pt-3">
-          <button className="btn-gold w-full btn-compact" disabled={product.requested || busy} onClick={onAsk}>
-            {product.requested ? "Ya solicitado" : "Solicitar"}
+      <div className="flex flex-1 flex-col px-4 pb-4 pt-1">
+        <p className="text-[11px] font-medium uppercase tracking-wider text-slate-400">{CATEGORY_LABELS[product.category]}</p>
+        <p className="mt-1 line-clamp-1 text-[1.05rem] font-semibold tracking-tight">{product.name}</p>
+        <p className="mt-1 line-clamp-2 min-h-[2.5rem] text-sm leading-5 text-slate-500">
+          {product.description || "Disponible a crédito con cuotas semanales."}
+        </p>
+        <div className="mt-auto flex items-end justify-between gap-3 border-t border-slate-100 pt-3">
+          <div>
+            <p className="text-[11px] font-medium uppercase tracking-wider text-slate-400">Precio</p>
+            <p className="mt-0.5 font-display text-xl text-navy-900">{money(product.price)}</p>
+          </div>
+          <button
+            type="button"
+            className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-navy-900/20 bg-transparent px-4 text-sm font-semibold text-navy-900 transition hover:border-gold-500 hover:bg-gold-500 hover:text-navy-950 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={product.requested || busy}
+            onClick={onAsk}
+          >
+            <WaitLabel waiting={busy} idle={cta} busy="..." />
+            {!busy && !product.requested ? <ArrowRight size={14} /> : null}
           </button>
         </div>
       </div>

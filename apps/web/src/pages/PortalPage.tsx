@@ -747,49 +747,81 @@ function CreditSlide({
   const pending = credit.installments.filter((item) => item.status !== "PAID");
   const next = pending[0];
   const frequency = credit.frequency ?? "WEEKLY";
+  const hasBalance = Number(credit.balance) > 0;
 
   return (
     <article
-      className={`carousel-item flex h-full w-64 flex-col overflow-hidden rounded-2xl border bg-white text-navy-900 ${
-        active ? "border-gold-500 shadow-card" : "border-slate-200"
+      className={`group flex h-full min-w-full shrink-0 snap-start flex-col overflow-hidden rounded-2xl border bg-white text-navy-900 shadow-sm lg:min-w-[calc((100%-2rem)/3)] lg:w-[calc((100%-2rem)/3)] ${
+        active ? "border-gold-500 ring-1 ring-gold-500/30" : "border-slate-200/90"
       }`}
     >
-      <button type="button" className="block w-full text-left" onClick={onSelect}>
-        <div className="relative h-36 shrink-0 overflow-hidden bg-slate-100">
+      <button type="button" className="block w-full flex-1 text-left" onClick={onSelect}>
+        <div className="relative aspect-[4/3] shrink-0 overflow-hidden bg-slate-100">
           {credit.product.imageUrl ? (
-            <img src={mediaUrl(credit.product.imageUrl)} alt={credit.product.name} className="absolute inset-0 h-full w-full object-cover" />
+            <img
+              src={mediaUrl(credit.product.imageUrl)}
+              alt={credit.product.name}
+              className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+            />
           ) : (
             <div className="flex h-full items-center justify-center text-slate-400">
               <Package size={28} />
             </div>
           )}
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-white to-transparent" />
+          <div className="absolute left-3 top-3">
+            <span className="rounded-md border border-white/40 bg-white/85 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-navy-900 backdrop-blur-md">
+              {PAYMENT_FREQUENCY_LABELS[frequency]}
+            </span>
+          </div>
+          {active ? (
+            <div className="absolute right-3 top-3">
+              <span className="rounded-md bg-gold-500 px-2.5 py-1 text-[11px] font-semibold text-navy-950">
+                Seleccionado
+              </span>
+            </div>
+          ) : null}
         </div>
-        <div className="p-4">
-          <p className="text-xs text-slate-400">{credit.code} · {PAYMENT_FREQUENCY_LABELS[frequency]}</p>
-          <h3 className="mt-1 font-display text-lg leading-tight">{credit.product.name}</h3>
-          <p className="mt-2 font-display text-2xl">{money(credit.balance)}</p>
+        <div className="px-4 pt-1">
+          <p className="text-[11px] font-medium uppercase tracking-wider text-slate-400">{credit.code}</p>
+          <h3 className="mt-1 line-clamp-1 text-[1.05rem] font-semibold tracking-tight">{credit.product.name}</h3>
           {next ? (
-            <p className="mt-1 text-xs text-slate-500">Próxima {money(next.amount)} · {formatDate(next.dueDate)}</p>
+            <p className="mt-1 line-clamp-2 min-h-[2.5rem] text-sm leading-5 text-slate-500">
+              Próxima cuota {money(next.amount)} · {formatDate(next.dueDate)}
+            </p>
           ) : (
-            <p className="mt-1 flex items-center gap-1 text-xs text-emerald-700">
-              <CheckCircle2 size={12} /> Saldado
+            <p className="mt-1 flex min-h-[2.5rem] items-center gap-1 text-sm text-emerald-700">
+              <CheckCircle2 size={14} /> Producto saldado
             </p>
           )}
         </div>
       </button>
-      {Number(credit.balance) > 0 ? (
-        <div className="px-4 pb-4">
-          {pendingClaim ? (
-            <p className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800">
-              {PAYMENT_METHOD_LABELS[pendingClaim.method]} {money(pendingClaim.amount)} en revisión
+      <div className="mt-auto flex items-end justify-between gap-3 border-t border-slate-100 px-4 pb-4 pt-3">
+        <div>
+          <p className="text-[11px] font-medium uppercase tracking-wider text-slate-400">Saldo</p>
+          <p className="mt-0.5 font-display text-xl text-navy-900">{money(credit.balance)}</p>
+        </div>
+        {hasBalance ? (
+          pendingClaim ? (
+            <p className="max-w-[9.5rem] rounded-full bg-amber-50 px-3 py-2 text-right text-[11px] font-medium leading-snug text-amber-800">
+              {PAYMENT_METHOD_LABELS[pendingClaim.method]} en revisión
             </p>
           ) : (
-            <button type="button" className="btn-gold w-full btn-compact" onClick={onPay}>
-              Subir comprobante
+            <button
+              type="button"
+              className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-navy-900/20 bg-transparent px-4 text-sm font-semibold text-navy-900 transition hover:border-gold-500 hover:bg-gold-500 hover:text-navy-950"
+              onClick={onPay}
+            >
+              Comprobante
+              <ArrowRight size={14} />
             </button>
-          )}
-        </div>
-      ) : null}
+          )
+        ) : (
+          <span className="inline-flex h-10 items-center rounded-full bg-emerald-50 px-4 text-sm font-semibold text-emerald-800">
+            Al día
+          </span>
+        )}
+      </div>
     </article>
   );
 }
@@ -807,7 +839,7 @@ function CatalogSlide({
   const cta = product.requested ? "Ya solicitado" : "Solicitar";
 
   return (
-    <article className="carousel-item group flex h-full w-72 flex-col overflow-hidden rounded-2xl border border-slate-200/90 bg-white text-navy-900 shadow-sm">
+    <article className="group flex h-full min-w-full shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-slate-200/90 bg-white text-navy-900 shadow-sm lg:min-w-[calc((100%-2rem)/3)] lg:w-[calc((100%-2rem)/3)]">
       <div className="relative aspect-[4/3] shrink-0 overflow-hidden bg-slate-100">
         {product.imageUrl ? (
           <img

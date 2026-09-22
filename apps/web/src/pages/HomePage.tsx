@@ -13,7 +13,6 @@ import {
   Share,
 } from "lucide-react";
 import { Logo } from "../components/Logo";
-import { CatalogBadge } from "../components/Badges";
 import { homePathFor, CATEGORY_LABELS, PRODUCT_CATEGORIES, type CatalogTier, type ProductCategory } from "@hogarplus/shared";
 import { useAuth } from "../auth/AuthContext";
 import { usePwaInstall } from "../hooks/usePwaInstall";
@@ -332,34 +331,47 @@ function CategoryCarousel({ title, products }: { title: string; products: Public
         {products.map((product) => (
           <article
             key={product.id}
-            className="flex min-w-full shrink-0 snap-start flex-col overflow-hidden rounded-[1.5rem] border border-white/10 bg-[#122033] transition hover:border-gold-500/35 lg:min-w-[calc((100%-2rem)/3)] lg:w-[calc((100%-2rem)/3)]"
+            className="group flex min-w-full shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-[#15263a] lg:min-w-[calc((100%-2rem)/3)] lg:w-[calc((100%-2rem)/3)]"
           >
-            <div className="relative h-48 shrink-0 overflow-hidden bg-navy-900">
+            <div className="relative aspect-[4/3] shrink-0 overflow-hidden bg-navy-900">
               {product.imageUrl ? (
-                <img src={mediaUrl(product.imageUrl)} alt={product.name} className="absolute inset-0 h-full w-full object-cover" />
+                <img
+                  src={mediaUrl(product.imageUrl)}
+                  alt={product.name}
+                  className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                />
               ) : (
                 <div className="flex h-full items-center justify-center text-slate-500">
-                  <Package size={32} />
+                  <Package size={28} />
                 </div>
               )}
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#15263a] to-transparent" />
               <div className="absolute left-3 top-3">
-                <CatalogBadge tier={product.catalogTier} />
+                <span className="rounded-md border border-white/20 bg-[#122033]/75 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-gold-100 backdrop-blur-md">
+                  {product.catalogTier === "A" ? "Bronce" : product.catalogTier === "B" ? "Plata" : "Oro"}
+                </span>
               </div>
             </div>
-            <div className="flex flex-1 flex-col p-5">
-              <h4 className="line-clamp-1 text-lg font-semibold">{product.name}</h4>
-              <p className="mt-1 line-clamp-2 min-h-10 text-sm text-slate-400">
-                {product.description || "Producto HogarPlus"}
+            <div className="flex flex-1 flex-col px-5 pb-5 pt-1">
+              <h4 className="line-clamp-1 text-[1.05rem] font-semibold tracking-tight text-white">{product.name}</h4>
+              <p className="mt-1.5 line-clamp-2 min-h-[2.5rem] text-sm leading-5 text-slate-400">
+                {product.description || "Disponible a crédito con cuotas semanales."}
               </p>
-              <p className="mt-4 font-display text-2xl text-gold-100">{money(product.price)}</p>
-              <a
-                href={whatsappHref(product)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-auto inline-flex h-11 w-full items-center justify-center rounded-xl bg-gold-500 text-sm font-semibold text-navy-950 transition hover:bg-gold-600"
-              >
-                Quiero este
-              </a>
+              <div className="mt-auto flex items-end justify-between gap-3 border-t border-white/10 pt-4">
+                <div>
+                  <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">Precio</p>
+                  <p className="mt-0.5 font-display text-xl text-gold-100">{money(product.price)}</p>
+                </div>
+                <a
+                  href={whatsappHref(product)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-gold-500/50 bg-transparent px-4 text-sm font-semibold text-gold-100 transition hover:border-gold-500 hover:bg-gold-500 hover:text-navy-950"
+                >
+                  Consultar
+                  <ArrowRight size={14} />
+                </a>
+              </div>
             </div>
           </article>
         ))}

@@ -623,7 +623,9 @@ function Carousel({ title, hint, children }: { title: string; hint: string; chil
   function move(direction: number) {
     const node = ref.current;
     if (!node) return;
-    node.scrollBy({ left: direction * Math.min(node.clientWidth * 0.75, 300), behavior: "smooth" });
+    const card = node.querySelector("article");
+    const step = (card instanceof HTMLElement ? card.offsetWidth : node.clientWidth) + 16;
+    node.scrollBy({ left: direction * step, behavior: "smooth" });
   }
 
   return (

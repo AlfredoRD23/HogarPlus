@@ -1,12 +1,17 @@
 import { Prisma } from "@prisma/client";
-import { POINTS_RULES } from "@hogarplus/shared";
+import { PAYMENT_METHOD_LABELS, POINTS_RULES } from "@hogarplus/shared";
 import { prisma } from "../../lib/prisma";
 import { AppError, money, nextPaymentReference, pagination, startOfDay } from "../../shared/utils";
 import { writeAudit } from "../../middleware/auth";
+import { portalUrl, sendClientTemplate } from "../../shared/mailer";
 import { clientsService } from "../clients/clients.service";
 import { settingsService } from "../settings/settings.service";
 import type { z } from "zod";
 import type { createPaymentSchema } from "./payments.schema";
+
+function formatRd(value: number) {
+  return `RD$ ${value.toLocaleString("es-DO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
 
 export class PaymentsService {
   async list(query: { page?: unknown; pageSize?: unknown; clientId?: string; creditId?: string }) {
@@ -81,7 +86,12 @@ export class PaymentsService {
     };
   }
 
-  async create(input: z.infer<typeof createPaymentSchema>, actorId: string, ip?: string) {
+  async create(
+    input: z.infer<typeof createPaymentSchema>,
+    actorId: string,
+    ip?: string,
+    options?: { notifyClient?: boolean },
+  ) {
     const client = await prisma.client.findUnique({ where: { id: input.clientId } });
     if (!client) throw new AppError(404, "NOT_FOUND", "Cliente no encontrado");
 
@@ -222,8 +232,13 @@ export class PaymentsService {
         where: { id: payment.id },
         include: {
           allocations: { include: { installment: true } },
-          credit: { include: { installments: { orderBy: { number: "asc" } } } },
-          client: { select: { firstName: true, lastName: true, points: true, level: true } },
+          credit: {
+            include: {
+              installments: { orderBy: { number: "asc" } },
+              product: { select: { name: true } },
+            },
+          },
+          client: { select: { firstName: true, lastName: true, email: true, points: true, level: true } },
         },
       });
     });
@@ -236,6 +251,18 @@ export class PaymentsService {
       after: { code: result.code, amount: money(result.amount) },
       ip,
     });
+
+    if (options?.notifyClient !== false) {
+      void sendClientTemplate(result.client.email, "payment_received", {
+        clientName: `${result.client.firstName} ${result.client.lastName}`,
+        productName: result.credit?.product.name,
+        amount: formatRd(money(result.amount)),
+        reference: result.reference || result.code,
+        method: PAYMENT_METHOD_LABELS[result.method],
+        creditCode: result.credit?.code,
+        portalUrl: portalUrl(),
+      });
+    }
 
     return result;
   }

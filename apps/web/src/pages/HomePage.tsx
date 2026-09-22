@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import {
@@ -13,6 +13,7 @@ import {
   Share,
 } from "lucide-react";
 import { Logo } from "../components/Logo";
+import { CatalogTierTabs, type CatalogTierFilter } from "../components/CatalogTierTabs";
 import { homePathFor, CATEGORY_LABELS, PRODUCT_CATEGORIES, type CatalogTier, type ProductCategory } from "@hogarplus/shared";
 import { useAuth } from "../auth/AuthContext";
 import { usePwaInstall } from "../hooks/usePwaInstall";
@@ -48,15 +49,23 @@ function scrollToCatalog() {
 export function HomePage() {
   const { user } = useAuth();
   const pwa = usePwaInstall();
+  const [tier, setTier] = useState<CatalogTierFilter>("ALL");
   const catalog = useQuery({
     queryKey: ["public-catalog"],
     queryFn: () => api<PublicProduct[]>("/api/products/public"),
   });
   const products = catalog.data?.data ?? [];
+  const filtered = tier === "ALL" ? products : products.filter((item) => item.catalogTier === tier);
   const groups = PRODUCT_CATEGORIES.map((category) => ({
     category,
-    items: products.filter((item) => item.category === category),
+    items: filtered.filter((item) => item.category === category),
   })).filter((group) => group.items.length > 0);
+  const tierCounts = {
+    ALL: products.length,
+    A: products.filter((item) => item.catalogTier === "A").length,
+    B: products.filter((item) => item.catalogTier === "B").length,
+    C: products.filter((item) => item.catalogTier === "C").length,
+  };
 
   async function handleInstall() {
     if (pwa.installed) {
@@ -188,6 +197,10 @@ export function HomePage() {
               </p>
             </div>
 
+            <div className="mt-8">
+              <CatalogTierTabs value={tier} onChange={setTier} counts={tierCounts} variant="dark" />
+            </div>
+
             {catalog.isLoading ? (
               <div className="mt-10 flex gap-4 overflow-hidden">
                 {Array.from({ length: 3 }).map((_, i) => (
@@ -195,7 +208,9 @@ export function HomePage() {
                 ))}
               </div>
             ) : groups.length === 0 ? (
-              <p className="mt-10 text-sm text-slate-400">Pronto verás los productos aquí.</p>
+              <p className="mt-10 text-sm text-slate-400">
+                {products.length === 0 ? "Pronto verás los productos aquí." : "No hay productos en esta categoría."}
+              </p>
             ) : (
               <div className="mt-12 space-y-14">
                 {groups.map((group) => (

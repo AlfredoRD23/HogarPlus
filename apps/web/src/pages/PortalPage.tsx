@@ -7,6 +7,7 @@ import { openInvoice, type InvoiceData } from "../lib/invoice";
 import { Logo } from "../components/Logo";
 import { WaitLabel } from "../components/Loader";
 import { InstallmentBadge, LevelBadge } from "../components/Badges";
+import { CatalogTierTabs, type CatalogTierFilter } from "../components/CatalogTierTabs";
 import { Field, FormattedInput, Modal, fieldHint } from "../components/Form";
 import { InfoModal } from "../components/InfoModal";
 import { ReferClientForm } from "../components/ReferClientForm";
@@ -136,6 +137,7 @@ export function PortalPage() {
   const [levelLock, setLevelLock] = useState<CatalogProduct | null>(null);
   const [payCredit, setPayCredit] = useState<PortalCredit | null>(null);
   const [activeCreditId, setActiveCreditId] = useState("");
+  const [catalogTier, setCatalogTier] = useState<CatalogTierFilter>("ALL");
   const [activity, setActivity] = useState<ActivityTab>("payments");
 
   const identity = () => ({ documentId: digitsOnly(documentId), phone: digitsOnly(phone) });
@@ -178,6 +180,19 @@ export function PortalPage() {
       toast.error(err instanceof Error ? err.message : "No se pudo abrir la factura");
     }
   }
+
+  const catalogItems =
+    data && catalogTier !== "ALL"
+      ? data.catalog.filter((item) => item.catalogTier === catalogTier)
+      : data?.catalog ?? [];
+  const catalogTierCounts = data
+    ? {
+        ALL: data.catalog.length,
+        A: data.catalog.filter((item) => item.catalogTier === "A").length,
+        B: data.catalog.filter((item) => item.catalogTier === "B").length,
+        C: data.catalog.filter((item) => item.catalogTier === "C").length,
+      }
+    : undefined;
 
   if (!data) {
     return (
@@ -352,42 +367,52 @@ export function PortalPage() {
               <EmptyStrip text="No hay productos en catálogo." />
             </>
           ) : (
-            <Carousel title="Catálogo" hint="Pide los de tu categoría. Si tocas otro, te explicamos.">
-              {data.catalog.map((product) => (
-                <CatalogSlide
-                  key={product.id}
-                  product={product}
-                  busy={busy === product.id}
-                  onAsk={async () => {
-                    if (!product.canRequest && !product.lockReason?.includes("saldar")) {
-                      setLevelLock(product);
-                      return;
-                    }
-                    if (!product.canRequest && product.lockReason?.includes("saldar")) {
-                      setDebtModal(data.debt?.[0] ?? null);
-                      return;
-                    }
-                    setBusy(product.id);
-                    try {
-                      await api("/api/portal/request", {
-                        method: "POST",
-                        body: JSON.stringify({ ...identity(), productId: product.id }),
-                      });
-                      toast.success("Solicitud enviada");
-                      await lookup();
-                    } catch (err) {
-                      if (isDebtError(err)) {
-                        setDebtModal(creditsFromDebtError(err)[0] ?? data.debt?.[0] ?? null);
-                      } else {
-                        toast.error(err instanceof Error ? err.message : "No se pudo solicitar");
-                      }
-                    } finally {
-                      setBusy("");
-                    }
-                  }}
-                />
-              ))}
-            </Carousel>
+            <>
+              <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                <SectionHead title="Catálogo" hint="Pide los de tu categoría. Si tocas otro, te explicamos." />
+                <CatalogTierTabs value={catalogTier} onChange={setCatalogTier} counts={catalogTierCounts} />
+              </div>
+              {catalogItems.length === 0 ? (
+                <EmptyStrip text="No hay productos en esta categoría." />
+              ) : (
+                <Carousel>
+                  {catalogItems.map((product) => (
+                    <CatalogSlide
+                      key={product.id}
+                      product={product}
+                      busy={busy === product.id}
+                      onAsk={async () => {
+                        if (!product.canRequest && !product.lockReason?.includes("saldar")) {
+                          setLevelLock(product);
+                          return;
+                        }
+                        if (!product.canRequest && product.lockReason?.includes("saldar")) {
+                          setDebtModal(data.debt?.[0] ?? null);
+                          return;
+                        }
+                        setBusy(product.id);
+                        try {
+                          await api("/api/portal/request", {
+                            method: "POST",
+                            body: JSON.stringify({ ...identity(), productId: product.id }),
+                          });
+                          toast.success("Solicitud enviada");
+                          await lookup();
+                        } catch (err) {
+                          if (isDebtError(err)) {
+                            setDebtModal(creditsFromDebtError(err)[0] ?? data.debt?.[0] ?? null);
+                          } else {
+                            toast.error(err instanceof Error ? err.message : "No se pudo solicitar");
+                          }
+                        } finally {
+                          setBusy("");
+                        }
+                      }}
+                    />
+                  ))}
+                </Carousel>
+              )}
+            </>
           )}
         </section>
 
@@ -617,7 +642,15 @@ function EmptyStrip({ text }: { text: string }) {
   );
 }
 
-function Carousel({ title, hint, children }: { title: string; hint: string; children: ReactNode }) {
+function Carousel({
+  title,
+  hint,
+  children,
+}: {
+  title?: string;
+  hint?: string;
+  children: ReactNode;
+}) {
   const ref = useRef<HTMLDivElement>(null);
 
   function move(direction: number) {
@@ -628,29 +661,37 @@ function Carousel({ title, hint, children }: { title: string; hint: string; chil
     node.scrollBy({ left: direction * step, behavior: "smooth" });
   }
 
+  const nav = (
+    <div className="hidden shrink-0 gap-2 sm:flex">
+      <button
+        type="button"
+        aria-label="Anterior"
+        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-navy-900"
+        onClick={() => move(-1)}
+      >
+        <ChevronLeft size={16} />
+      </button>
+      <button
+        type="button"
+        aria-label="Siguiente"
+        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-navy-900"
+        onClick={() => move(1)}
+      >
+        <ChevronRight size={16} />
+      </button>
+    </div>
+  );
+
   return (
     <div>
-      <div className="mb-3 flex items-end justify-between gap-3">
-        <SectionHead title={title} hint={hint} />
-        <div className="mb-3 hidden shrink-0 gap-2 sm:flex">
-          <button
-            type="button"
-            aria-label="Anterior"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-navy-900"
-            onClick={() => move(-1)}
-          >
-            <ChevronLeft size={16} />
-          </button>
-          <button
-            type="button"
-            aria-label="Siguiente"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-navy-900"
-            onClick={() => move(1)}
-          >
-            <ChevronRight size={16} />
-          </button>
+      {title ? (
+        <div className="mb-3 flex items-end justify-between gap-3">
+          <SectionHead title={title} hint={hint ?? ""} />
+          {nav}
         </div>
-      </div>
+      ) : (
+        <div className="mb-3 flex justify-end">{nav}</div>
+      )}
       <div ref={ref} className="carousel items-stretch">
         {children}
       </div>

@@ -1,9 +1,14 @@
 import { PAYMENT_METHOD_LABELS } from "@hogarplus/shared";
 import { prisma } from "../../lib/prisma";
 import { AppError, money, pagination } from "../../shared/utils";
+import { portalUrl, sendClientTemplate } from "../../shared/mailer";
 import { notifyStaff } from "../notifications/notifications.service";
 import { paymentsService } from "../payments/payments.service";
 import { moveUploadTo } from "../../lib/upload";
+
+function formatRd(value: number) {
+  return `RD$ ${value.toLocaleString("es-DO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
 
 export class PaymentClaimsService {
   async list(query: { page?: unknown; pageSize?: unknown; status?: string }) {
@@ -65,7 +70,10 @@ export class PaymentClaimsService {
   }) {
     const credit = await prisma.credit.findFirst({
       where: { id: input.creditId, clientId: input.clientId },
-      include: { product: { select: { name: true } }, client: { select: { firstName: true, lastName: true, code: true, phone: true } } },
+      include: {
+        product: { select: { name: true } },
+        client: { select: { firstName: true, lastName: true, code: true, phone: true, email: true } },
+      },
     });
     if (!credit || credit.status !== "ACTIVE") {
       throw new AppError(400, "NO_CREDIT", "No hay un crédito activo para este aviso");
@@ -111,13 +119,25 @@ export class PaymentClaimsService {
       roles: ["DIRECCION", "COBRANZA", "ADMINISTRACION"],
     });
 
+    void sendClientTemplate(credit.client.email, "payment_claim_received", {
+      clientName: `${credit.client.firstName} ${credit.client.lastName}`,
+      productName: credit.product.name,
+      amount: formatRd(money(input.amount)),
+      method: methodLabel,
+      creditCode: credit.code,
+      portalUrl: portalUrl(),
+    });
+
     return prisma.paymentClaim.findUniqueOrThrow({ where: { id: created.id } });
   }
 
   async approve(id: string, actorId: string, ip?: string) {
     const claim = await prisma.paymentClaim.findUnique({
       where: { id },
-      include: { credit: true },
+      include: {
+        credit: { include: { product: { select: { name: true } } } },
+        client: { select: { firstName: true, lastName: true, email: true } },
+      },
     });
     if (!claim) throw new AppError(404, "NOT_FOUND", "Aviso de pago no encontrado");
     if (claim.status !== "PENDING") throw new AppError(400, "CLAIM_CLOSED", "Este aviso ya fue revisado");
@@ -133,9 +153,10 @@ export class PaymentClaimsService {
       },
       actorId,
       ip,
+      { notifyClient: false },
     );
 
-    return prisma.paymentClaim.update({
+    const updated = await prisma.paymentClaim.update({
       where: { id },
       data: {
         status: "APPROVED",
@@ -144,19 +165,36 @@ export class PaymentClaimsService {
         reviewedAt: new Date(),
       },
       include: {
-        client: { select: { id: true, firstName: true, lastName: true } },
+        client: { select: { id: true, firstName: true, lastName: true, email: true } },
         credit: { select: { code: true, product: { select: { name: true } } } },
-        payment: { select: { id: true, code: true } },
+        payment: { select: { id: true, code: true, reference: true } },
       },
     });
+
+    void sendClientTemplate(updated.client.email, "payment_claim_approved", {
+      clientName: `${updated.client.firstName} ${updated.client.lastName}`,
+      productName: updated.credit.product.name,
+      amount: formatRd(money(claim.amount)),
+      reference: updated.payment?.reference || updated.payment?.code,
+      creditCode: updated.credit.code,
+      portalUrl: portalUrl(),
+    });
+
+    return updated;
   }
 
   async reject(id: string, actorId: string, reason?: string) {
-    const claim = await prisma.paymentClaim.findUnique({ where: { id } });
+    const claim = await prisma.paymentClaim.findUnique({
+      where: { id },
+      include: {
+        client: { select: { firstName: true, lastName: true, email: true } },
+        credit: { select: { code: true, product: { select: { name: true } } } },
+      },
+    });
     if (!claim) throw new AppError(404, "NOT_FOUND", "Aviso de pago no encontrado");
     if (claim.status !== "PENDING") throw new AppError(400, "CLAIM_CLOSED", "Este aviso ya fue revisado");
 
-    return prisma.paymentClaim.update({
+    const updated = await prisma.paymentClaim.update({
       where: { id },
       data: {
         status: "REJECTED",
@@ -164,7 +202,22 @@ export class PaymentClaimsService {
         reviewedById: actorId,
         reviewedAt: new Date(),
       },
+      include: {
+        client: { select: { firstName: true, lastName: true, email: true } },
+        credit: { select: { code: true, product: { select: { name: true } } } },
+      },
     });
+
+    void sendClientTemplate(updated.client.email, "payment_claim_rejected", {
+      clientName: `${updated.client.firstName} ${updated.client.lastName}`,
+      productName: updated.credit.product.name,
+      amount: formatRd(money(claim.amount)),
+      creditCode: updated.credit.code,
+      reason: reason?.trim() || undefined,
+      portalUrl: portalUrl(),
+    });
+
+    return updated;
   }
 }
 

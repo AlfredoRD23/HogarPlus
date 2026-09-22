@@ -10,6 +10,7 @@ import { PageHeader } from "../components/PageHeader";
 import { Package, Plus } from "lucide-react";
 import { CATEGORY_LABELS, CATALOG_TIERS, firstError, integerError, moneyError, parseInteger, parseMoney, productNameError, type CatalogTier, type ProductCategory } from "@hogarplus/shared";
 import { CatalogBadge } from "../components/Badges";
+import { CatalogTierTabs, type CatalogTierFilter } from "../components/CatalogTierTabs";
 import { StatusTabs } from "../components/StatusTabs";
 import { WaitLabel } from "../components/Loader";
 import { useOnceSubmit } from "../hooks/useOnceSubmit";
@@ -100,7 +101,7 @@ export function ProductsPage() {
   const [editing, setEditing] = useState<Product | null>(null);
   const [confirm, setConfirm] = useState<{ product: Product; kind: "activate" | "deactivate" | "delete" } | null>(null);
   const [search, setSearch] = useState("");
-  const [tier, setTier] = useState<CatalogTier | "ALL">("ALL");
+  const [tier, setTier] = useState<CatalogTierFilter>("ALL");
   const [statusTab, setStatusTab] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
   const q = useQuery({
     queryKey: ["products", search],
@@ -151,10 +152,17 @@ export function ProductsPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const rows = (q.data?.data ?? []).filter((p) => (tier === "ALL" ? true : p.catalogTier === tier));
+  const allProducts = q.data?.data ?? [];
+  const rows = allProducts.filter((p) => (tier === "ALL" ? true : p.catalogTier === tier));
   const activeRows = rows.filter((p) => p.status === "ACTIVE");
   const inactiveRows = rows.filter((p) => p.status !== "ACTIVE");
   const visible = statusTab === "ACTIVE" ? activeRows : inactiveRows;
+  const tierCounts = {
+    ALL: allProducts.length,
+    A: allProducts.filter((p) => p.catalogTier === "A").length,
+    B: allProducts.filter((p) => p.catalogTier === "B").length,
+    C: allProducts.filter((p) => p.catalogTier === "C").length,
+  };
 
   return (
     <div className="space-y-4">
@@ -167,19 +175,7 @@ export function ProductsPage() {
         onSearchChange={setSearch}
         actions={[{ label: "Nuevo producto", icon: Plus, onClick: () => setOpen(true) }]}
       />
-      <div className="flex flex-wrap items-center gap-2">
-        <button className={tier === "ALL" ? "btn-primary" : "btn-ghost"} onClick={() => setTier("ALL")}>Todos</button>
-        {CATALOG_TIERS.map((item) => (
-          <button
-            key={item}
-            type="button"
-            className={`rounded-full ${tier === item ? "ring-2 ring-navy-900 ring-offset-2" : "opacity-80 hover:opacity-100"}`}
-            onClick={() => setTier(item)}
-          >
-            <CatalogBadge tier={item} />
-          </button>
-        ))}
-      </div>
+      <CatalogTierTabs value={tier} onChange={setTier} counts={tierCounts} />
       <StatusTabs
         value={statusTab}
         onChange={setStatusTab}

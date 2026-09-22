@@ -12,6 +12,7 @@ import { referralsService } from "../referrals/referrals.service";
 import { paymentClaimsService } from "../payment-claims/payment-claims.service";
 import { paymentsService } from "../payments/payments.service";
 import { asUploadError, claimImageUpload } from "../../lib/upload";
+import { portalUrl, sendClientTemplate } from "../../shared/mailer";
 
 export const portalRouter = Router();
 
@@ -180,6 +181,11 @@ portalRouter.post(
       clientId: client.id,
       productId: product.id,
       requestId: request.id,
+    });
+    void sendClientTemplate(client.email, "product_request_received", {
+      clientName: `${client.firstName} ${client.lastName}`,
+      productName: product.name,
+      portalUrl: portalUrl(),
     });
     res.status(201).json({ success: true, data: { id: request.id, status: request.status } });
   }),

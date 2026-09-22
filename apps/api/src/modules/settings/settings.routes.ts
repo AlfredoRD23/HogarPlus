@@ -8,6 +8,10 @@ export const settingsRouter = Router();
 settingsRouter.get("/public", asyncHandler((req, res) => settingsController.public(req, res)));
 settingsRouter.use(authenticate);
 settingsRouter.get("/", asyncHandler((req, res) => settingsController.get(req, res)));
+settingsRouter.get(
+  "/email-templates",
+  asyncHandler((req, res) => settingsController.emailTemplates(req, res)),
+);
 settingsRouter.put(
   "/",
   authorize("TECNOLOGIA"),

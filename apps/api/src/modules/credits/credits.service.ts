@@ -14,8 +14,13 @@ import { markOverdueInstallments } from "../../shared/sla";
 import { assertNoOutstandingDebt } from "../../shared/debt";
 import { addByFrequency, AppError, money, nextCode, nextPaymentReference, pagination } from "../../shared/utils";
 import { writeAudit } from "../../middleware/auth";
+import { portalUrl, sendClientTemplate } from "../../shared/mailer";
 import type { z } from "zod";
 import type { createCreditSchema, updateCreditSchema } from "./credits.schema";
+
+function formatRd(value: number) {
+  return `RD$ ${value.toLocaleString("es-DO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
 
 const creditInclude = {
   client: {
@@ -202,6 +207,15 @@ export class CreditsService {
       entityId: credit.id,
       after: { code: credit.code, price: money(credit.price), cost: money(credit.cost) },
       ip,
+    });
+
+    void sendClientTemplate(client.email, "product_delivered", {
+      clientName: `${client.firstName} ${client.lastName}`,
+      productName: product.name,
+      creditCode: credit.code,
+      weeks: `${credit.weeks} semanas`,
+      weeklyQuota: formatRd(money(credit.weeklyQuota)),
+      portalUrl: portalUrl(),
     });
 
     return credit;

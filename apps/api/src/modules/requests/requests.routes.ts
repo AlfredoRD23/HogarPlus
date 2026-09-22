@@ -5,6 +5,7 @@ import { authenticate, authorize } from "../../middleware/auth";
 import { asyncHandler } from "../../shared/http";
 import { prisma } from "../../lib/prisma";
 import { AppError, pagination } from "../../shared/utils";
+import { portalUrl, sendClientTemplate } from "../../shared/mailer";
 
 export const requestsRouter = Router();
 requestsRouter.use(authenticate, authorize("VENTAS"));
@@ -62,10 +63,25 @@ requestsRouter.patch(
       where: { id },
       data: { status: body.status },
       include: {
-        client: { select: { id: true, code: true, firstName: true, lastName: true } },
+        client: { select: { id: true, code: true, firstName: true, lastName: true, email: true } },
         product: { select: { id: true, name: true } },
       },
     });
+
+    if (body.status === "APPROVED") {
+      void sendClientTemplate(data.client.email, "product_request_approved", {
+        clientName: `${data.client.firstName} ${data.client.lastName}`,
+        productName: data.product.name,
+        portalUrl: portalUrl(),
+      });
+    } else if (body.status === "REJECTED") {
+      void sendClientTemplate(data.client.email, "product_request_rejected", {
+        clientName: `${data.client.firstName} ${data.client.lastName}`,
+        productName: data.product.name,
+        portalUrl: portalUrl(),
+      });
+    }
+
     res.json({ success: true, data });
   }),
 );

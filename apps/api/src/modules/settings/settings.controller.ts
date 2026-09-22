@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
 import type { AuthedRequest } from "../../middleware/auth";
+import { EMAIL_TEMPLATE_CATALOG, previewEmailTemplate } from "../../shared/mailer";
 import { settingsService } from "./settings.service";
 
 const schema = z.object({
@@ -33,6 +34,21 @@ export class SettingsController {
   async update(req: Request, res: Response) {
     const body = schema.parse(req.body);
     const data = await settingsService.upsert(body, (req as AuthedRequest).user.id);
+    res.json({ success: true, data });
+  }
+
+  async emailTemplates(_req: Request, res: Response) {
+    const data = EMAIL_TEMPLATE_CATALOG.map((item) => {
+      const preview = previewEmailTemplate(item.id);
+      return {
+        id: item.id,
+        name: item.name,
+        description: item.description,
+        audience: item.audience,
+        subject: preview.subject,
+        html: preview.html,
+      };
+    });
     res.json({ success: true, data });
   }
 }

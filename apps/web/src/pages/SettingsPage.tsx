@@ -4,6 +4,7 @@ import { api } from "../lib/api";
 import { Field, FormattedInput, fieldHint } from "../components/Form";
 import { PageHeader } from "../components/PageHeader";
 import { Loader, WaitLabel } from "../components/Loader";
+import { EmailTemplatesPanel, type EmailTemplatePreview } from "../components/EmailTemplatesPanel";
 import { Building2, Settings, Wallet } from "lucide-react";
 import { useState, useEffect, type ReactNode } from "react";
 import { useOnceSubmit } from "../hooks/useOnceSubmit";
@@ -30,6 +31,10 @@ type SettingsForm = {
 export function SettingsPage() {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["settings"], queryFn: () => api<Settings>("/api/settings") });
+  const templates = useQuery({
+    queryKey: ["email-templates"],
+    queryFn: () => api<EmailTemplatePreview[]>("/api/settings/email-templates"),
+  });
   const [form, setForm] = useState<SettingsForm | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -130,6 +135,7 @@ export function SettingsPage() {
           </button>
         </div>
       </form>
+      {templates.data?.data ? <EmailTemplatesPanel templates={templates.data.data} /> : null}
     </div>
   );
 }

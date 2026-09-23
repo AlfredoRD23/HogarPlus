@@ -111,7 +111,7 @@ function Bucket({
   onNote: (v: { clientId: string; creditId?: string; name: string }) => void;
 }) {
   const countClass =
-    tone === "bad" ? "bg-rose-100 text-rose-800" : tone === "warn" ? "bg-amber-100 text-amber-800" : "bg-gold-100 text-navy-900";
+    tone === "bad" ? "bg-rose-100 text-rose-800" : tone === "warn" ? "bg-amber-100 text-amber-800" : "bg-emerald-50 text-emerald-800";
 
   return (
     <div className="panel flex min-h-[280px] flex-col p-5">
@@ -123,7 +123,7 @@ function Bucket({
         {items.map((item) => (
           <button
             key={item.id}
-            className="w-full rounded-2xl border border-slate-100 bg-slate-50 p-4 text-left transition hover:border-gold-300 hover:bg-white"
+            className="w-full rounded-2xl border border-slate-100 bg-slate-50 p-4 text-left transition hover:border-slate-300 hover:bg-white"
             onClick={() => onNote({ clientId: item.clientId, creditId: item.creditId, name: item.name })}
           >
             <div className="flex items-start justify-between gap-3">

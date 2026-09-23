@@ -130,7 +130,7 @@ export function SettingsPage() {
         </div>
         <div className="panel flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-slate-500">Al guardar, estos números se usan en clientes, créditos, pagos y el dashboard.</p>
-          <button className="btn-gold" disabled={submit.blocked}>
+          <button className="btn-primary" disabled={submit.blocked}>
             <WaitLabel waiting={submit.blocked} idle="Guardar" busy="Guardando..." />
           </button>
         </div>
@@ -154,7 +154,7 @@ function RuleCard({
   return (
     <section className="panel flex flex-col p-6">
       <div className="mb-5 flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-navy-900 text-gold-300">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-navy-800">
           <Icon size={18} />
         </div>
         <div>

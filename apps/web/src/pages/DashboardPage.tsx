@@ -84,7 +84,7 @@ export function DashboardPage() {
                 <XAxis dataKey="name" />
                 <YAxis allowDecimals={false} />
                 <Tooltip />
-                <Bar dataKey="count" fill="#0B1F4A" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="count" fill="#1A2F52" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -97,7 +97,7 @@ export function DashboardPage() {
             <li className="flex justify-between"><span>Inventario en almacén</span><b>{money(d?.kpis.stockValue ?? 0)}</b></li>
             <li className="flex justify-between"><span>Gastos 7 días</span><b>{money(d?.kpis.weeklyExpenses ?? 0)}</b></li>
           </ul>
-          <p className="mt-4 rounded-xl bg-gold-50 p-3 text-xs text-navy-800">
+          <p className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
             El cobro, el costo de mercancía y los gastos se muestran por separado.
           </p>
         </div>

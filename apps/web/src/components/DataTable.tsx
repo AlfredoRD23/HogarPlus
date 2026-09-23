@@ -31,7 +31,7 @@ export function DataTable({
       <div className="flex items-center justify-between border-b px-5 py-4">
         <h3 className="text-lg font-semibold text-navy-900">{title}</h3>
         {typeof count === "number" && (
-          <span className="rounded-full bg-gold-100 px-2.5 py-1 text-xs font-medium text-navy-900">{count}</span>
+          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">{count}</span>
         )}
       </div>
       {loading ? (
@@ -49,7 +49,7 @@ export function DataTable({
           {mobile ? <div className="divide-y md:hidden">{mobile}</div> : null}
           <div className={mobile ? "hidden overflow-auto md:block" : "overflow-auto"}>
             <table className="data-table">
-              <thead className="bg-navy-900 text-xs font-semibold text-white">
+              <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-500">
                 <tr>
                   {headers.map((h) => (
                     <th key={h}>

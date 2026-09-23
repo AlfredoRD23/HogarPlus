@@ -125,7 +125,7 @@ export function CreditsPage() {
         rows={rows.length}
         emptyTitle={statusTab === "ACTIVE" ? "Sin créditos activos" : "Sin créditos desactivados"}
         emptyDescription={statusTab === "ACTIVE" ? "Entrega el primer producto a crédito para abrir cartera." : "Los que desactives aparecen aquí."}
-        emptyAction={<a className="btn-gold" href="/creditos/nuevo">Nuevo crédito</a>}
+        emptyAction={<a className="btn-primary" href="/creditos/nuevo">Nuevo crédito</a>}
         headers={["Código", "Cliente", "Producto", "Inicial", "Cuota", "Saldo", "Estado", "Acciones"]}
         mobile={rows.map((c) => (
           <TableCard

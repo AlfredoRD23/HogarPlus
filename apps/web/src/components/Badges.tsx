@@ -11,7 +11,7 @@ const levelClass: Record<ClientLevel, string> = {
 const creditClass: Record<CreditStatus, string> = {
   DRAFT: "bg-slate-100 text-slate-600",
   ACTIVE: "bg-emerald-50 text-emerald-700",
-  COMPLETED: "bg-navy-900 text-gold-300",
+  COMPLETED: "bg-emerald-50 text-emerald-800",
   DEFAULTED: "bg-rose-50 text-rose-700",
   CANCELLED: "bg-slate-100 text-slate-500",
 };

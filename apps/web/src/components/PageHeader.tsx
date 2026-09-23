@@ -31,7 +31,7 @@ export function PageHeader({
   return (
     <div className="page-header">
       <div className="flex min-w-0 items-center gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-navy-900 text-gold-300">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-navy-800">
           <Icon size={20} />
         </div>
         <div className="min-w-0">
@@ -54,7 +54,11 @@ export function PageHeader({
         {actions.map((action) => {
           const ActionIcon = action.icon;
           const cls =
-            action.variant === "ghost" ? "btn-ghost" : action.variant === "primary" ? "btn-primary" : "btn-gold";
+            action.variant === "ghost"
+              ? "btn-ghost"
+              : action.variant === "gold"
+                ? "btn-gold"
+                : "btn-primary";
           if (action.href) {
             return (
               <Link key={action.label} className={cls} to={action.href}>

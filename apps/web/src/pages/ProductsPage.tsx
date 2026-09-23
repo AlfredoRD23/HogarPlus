@@ -195,7 +195,7 @@ export function ProductsPage() {
             {statusTab === "ACTIVE" ? "Agrega un producto o reactívalo en Inactivos." : "Los que desactives aparecen aquí."}
           </p>
           {statusTab === "ACTIVE" ? (
-            <button className="btn-gold mt-4" onClick={() => setOpen(true)}>Nuevo producto</button>
+            <button className="btn-primary mt-4" onClick={() => setOpen(true)}>Nuevo producto</button>
           ) : null}
         </div>
       ) : (

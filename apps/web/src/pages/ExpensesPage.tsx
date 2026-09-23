@@ -81,7 +81,7 @@ export function ExpensesPage() {
         rows={rows.length}
         emptyTitle="Sin gastos"
         emptyDescription="Registra nómina, transporte u otros gastos."
-        emptyAction={<button className="btn-gold" onClick={() => setOpen(true)}>Nuevo gasto</button>}
+        emptyAction={<button className="btn-primary" onClick={() => setOpen(true)}>Nuevo gasto</button>}
         headers={["Fecha", "Categoría", "Descripción", "Monto", "Acciones"]}
         mobile={rows.map((e) => (
           <TableCard

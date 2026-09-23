@@ -189,7 +189,7 @@ export function ClientsPage() {
         rows={rows.length}
         emptyTitle={statusTab === "ACTIVE" ? "Sin clientes activos" : "Sin clientes inactivos"}
         emptyDescription={statusTab === "ACTIVE" ? "Crea el primer cliente para comenzar la cartera." : "Los que desactives aparecen aquí."}
-        emptyAction={<button className="btn-gold" onClick={() => setOpen(true)}>Nuevo cliente</button>}
+        emptyAction={<button className="btn-primary" onClick={() => setOpen(true)}>Nuevo cliente</button>}
         headers={["Cliente", "Contacto", "Referencia", "Inicio", "Próxima cuota", "Saldo", "Acciones"]}
         mobile={rows.map((c) => {
           const credit = c.credits?.[0];
@@ -238,7 +238,7 @@ export function ClientsPage() {
                   {photo ? (
                     <img src={mediaUrl(photo.path)} alt="" className="h-10 w-10 rounded-full object-cover" />
                   ) : (
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-navy-900 text-xs font-bold text-gold-300">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-navy-800">
                       {c.firstName.slice(0, 1)}
                     </div>
                   )}

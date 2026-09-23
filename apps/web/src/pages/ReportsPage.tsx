@@ -41,7 +41,7 @@ export function ReportsPage() {
         <KpiCard label="Margen bruto teórico" value={money(d?.grossMargin ?? 0)} />
         <KpiCard label="Cobros (90 días)" value={money(d?.collections ?? 0)} />
       </div>
-      <p className="rounded-2xl bg-navy-900 p-4 text-sm text-gold-100">{d?.note}</p>
+      <p className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">{d?.note}</p>
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="panel p-5">
           <h3 className="font-display text-xl">Caja vs utilidad</h3>

@@ -39,7 +39,7 @@ export function TableCard({
             <img src={photo} alt="" className="h-[4.5rem] w-[4.5rem] shrink-0 rounded-2xl object-cover object-top" />
           )
         ) : (
-          <div className="flex h-[4.5rem] w-[4.5rem] shrink-0 items-center justify-center rounded-2xl bg-navy-900 text-lg font-bold uppercase text-gold-300">
+          <div className="flex h-[4.5rem] w-[4.5rem] shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-lg font-bold uppercase text-navy-800">
             {(initials ?? "?").slice(0, 1)}
           </div>
         )}

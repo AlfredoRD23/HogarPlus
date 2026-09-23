@@ -60,16 +60,31 @@ body {
 }
 
 .portal-shell {
-  background-color: #f1f5f9;
+  background-color: #f8fafc;
 }
 
 .portal-nav {
   background: #1a2f52;
+  border-bottom: 3px solid #c4a04a;
 }
 
-.portal-profile {
-  background: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
+.portal-pad {
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+
+@media (min-width: 640px) {
+  .portal-pad {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .portal-pad {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
 }
 
 .login-brand {

@@ -223,7 +223,7 @@ export function PortalPage() {
   return (
     <div className="portal-shell min-h-screen text-navy-900">
       <header className="portal-nav sticky top-0 z-40 text-white">
-        <div className="flex items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+        <div className="portal-pad flex items-center justify-between py-3">
           <Logo />
           <div className="flex items-center gap-2">
             <a
@@ -247,22 +247,22 @@ export function PortalPage() {
         </div>
       </header>
 
-      <section className="portal-profile">
-        <div className="px-4 pb-6 pt-8 sm:px-6 sm:pb-7 sm:pt-10 lg:px-8">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+      <main className="portal-pad space-y-8 pb-12 pt-8 sm:pb-14 sm:pt-10">
+        <section className="space-y-6">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div className="flex min-w-0 items-start gap-4">
               <ProfilePhoto name={data.client.name} photoUrl={data.client.photoUrl} />
-              <div className="min-w-0">
+              <div className="min-w-0 pt-0.5">
                 <p className="text-sm font-medium text-gold-600">Mi cuenta · {LEVEL_LABELS[data.client.level]}</p>
-                <h1 className="font-display text-3xl font-semibold capitalize tracking-tight text-navy-900 sm:text-4xl">
+                <h1 className="font-display text-3xl font-semibold capitalize tracking-tight text-navy-900 sm:text-[2.5rem] sm:leading-tight">
                   {data.client.name.toLowerCase()}
                 </h1>
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="mt-1.5 text-sm text-slate-600">
                   {data.client.code} · puedes pedir {catalogAccessLabel(data.client.level)}
                 </p>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <LevelBadge level={data.client.level} />
-                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+                  <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-700 ring-1 ring-slate-200">
                     {data.client.points} pts
                     {progress.next ? ` · ${progress.remaining} para ${LEVEL_LABELS[progress.next]}` : ""}
                   </span>
@@ -270,7 +270,7 @@ export function PortalPage() {
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-2 lg:justify-end">
+            <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 className="btn-gold"
@@ -311,35 +311,26 @@ export function PortalPage() {
             </div>
           </div>
 
-          <dl className="mt-6 flex flex-wrap items-end gap-x-8 gap-y-3 border-t border-slate-100 pt-5 text-navy-900">
-            <div>
-              <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Saldo</dt>
-              <dd className="mt-1 font-display text-2xl font-semibold">{money(totalBalance)}</dd>
-            </div>
-            <div className="hidden h-10 w-px bg-slate-200 sm:block" aria-hidden />
-            <div>
-              <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Próxima cuota</dt>
-              <dd className="mt-1 font-display text-2xl font-semibold">
-                {nextDue ? money(nextDue.amount) : "Al día"}
-              </dd>
-              <p className="mt-0.5 text-xs text-slate-500">
-                {nextDue ? formatDate(nextDue.dueDate) : "No tienes cuotas pendientes"}
-              </p>
-            </div>
-            <div className="hidden h-10 w-px bg-slate-200 sm:block" aria-hidden />
-            <div>
-              <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Puntos</dt>
-              <dd className="mt-1 font-display text-2xl font-semibold">{data.client.points}</dd>
-              <p className="mt-0.5 text-xs text-slate-500">
-                {progress.next ? `Faltan ${progress.remaining} para ${LEVEL_LABELS[progress.next]}` : "Nivel máximo"}
-              </p>
-            </div>
-          </dl>
-        </div>
-      </section>
+          <div className="grid gap-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:grid-cols-3 sm:gap-0 sm:p-0 sm:divide-x sm:divide-slate-100">
+            <Metric
+              label="Saldo"
+              value={money(totalBalance)}
+              hint="Lo que falta por pagar"
+            />
+            <Metric
+              label="Próxima cuota"
+              value={nextDue ? money(nextDue.amount) : "Al día"}
+              hint={nextDue ? formatDate(nextDue.dueDate) : "Sin cuotas pendientes"}
+            />
+            <Metric
+              label="Puntos"
+              value={String(data.client.points)}
+              hint={progress.next ? `Faltan ${progress.remaining} para ${LEVEL_LABELS[progress.next]}` : "Nivel máximo"}
+            />
+          </div>
+        </section>
 
-      <main className="space-y-5 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-        <section className="panel p-4 sm:p-5">
+        <section className="space-y-4">
           {data.credits.length === 0 ? (
             <>
               <SectionHead title="Tus productos" hint="Aún no hay entregas" />
@@ -377,7 +368,7 @@ export function PortalPage() {
           )}
         </section>
 
-        <section className="panel p-4 sm:p-5">
+        <section className="space-y-4">
           {data.catalog.length === 0 ? (
             <>
               <SectionHead title="Catálogo" hint="Cuando haya productos, salen aquí." />
@@ -385,7 +376,7 @@ export function PortalPage() {
             </>
           ) : (
             <>
-              <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                 <SectionHead title="Catálogo" hint="Pide los de tu categoría. Si tocas otro, te explicamos." />
                 <CatalogTierTabs value={catalogTier} onChange={setCatalogTier} counts={catalogTierCounts} />
               </div>
@@ -433,7 +424,7 @@ export function PortalPage() {
           )}
         </section>
 
-        <section className="panel p-4 sm:p-5">
+        <section className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-5">
           <div className="flex gap-1 rounded-xl bg-slate-100 p-1">
             {([
               ["payments", "Pagos"],
@@ -625,26 +616,38 @@ function activityPanel(
 function ProfilePhoto({ name, photoUrl }: { name: string; photoUrl?: string | null }) {
   const initial = name.trim().slice(0, 1).toUpperCase() || "C";
   return photoUrl ? (
-    <img src={mediaUrl(photoUrl)} alt={name} className="h-16 w-16 rounded-full object-cover ring-2 ring-slate-200 sm:h-20 sm:w-20" />
+    <img src={mediaUrl(photoUrl)} alt={name} className="h-16 w-16 rounded-full object-cover ring-2 ring-white shadow-sm sm:h-20 sm:w-20" />
   ) : (
-    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-navy-900 text-2xl font-semibold text-gold-300 ring-2 ring-slate-200 sm:h-20 sm:w-20 sm:text-3xl">
+    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-navy-900 text-2xl font-semibold text-gold-300 shadow-sm ring-2 ring-white sm:h-20 sm:w-20 sm:text-3xl">
       {initial}
+    </div>
+  );
+}
+
+function Metric({ label, value, hint }: { label: string; value: string; hint: string }) {
+  return (
+    <div className="sm:px-6 sm:py-5">
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{label}</p>
+      <p className="mt-1 font-display text-2xl font-semibold text-navy-900">{value}</p>
+      <p className="mt-0.5 text-xs text-slate-500">{hint}</p>
     </div>
   );
 }
 
 function SectionHead({ title, hint }: { title: string; hint: string }) {
   return (
-    <div className="mb-3">
-      <h2 className="font-display text-2xl font-semibold tracking-tight text-navy-900 sm:text-3xl">{title}</h2>
-      <p className="mt-1.5 text-sm text-slate-500">{hint}</p>
+    <div>
+      <h2 className="font-display text-2xl font-semibold tracking-tight text-navy-900 sm:text-[1.75rem]">{title}</h2>
+      <p className="mt-1 text-sm text-slate-500">{hint}</p>
     </div>
   );
 }
 
 function EmptyStrip({ text }: { text: string }) {
   return (
-    <div className="rounded-xl bg-slate-50 px-5 py-8 text-center text-sm text-slate-500">{text}</div>
+    <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-5 py-10 text-center text-sm text-slate-500">
+      {text}
+    </div>
   );
 }
 
@@ -691,12 +694,12 @@ function Carousel({
   return (
     <div>
       {title ? (
-        <div className="mb-3 flex items-end justify-between gap-3">
+        <div className="mb-4 flex items-end justify-between gap-3">
           <SectionHead title={title} hint={hint ?? ""} />
           {nav}
         </div>
       ) : (
-        <div className="mb-3 flex justify-end">{nav}</div>
+        <div className="mb-4 flex justify-end">{nav}</div>
       )}
       <div ref={ref} className="carousel items-stretch">
         {children}
@@ -720,7 +723,7 @@ function InstallmentPlan({
   const percent = credit.installments.length === 0 ? 0 : Math.round((paidCount / credit.installments.length) * 100);
 
   return (
-    <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/80">
+    <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
       {credits.length > 1 ? (
         <div className="flex gap-2 overflow-x-auto border-b border-slate-100 px-4 py-3">
           {credits.map((item) => (
@@ -817,13 +820,13 @@ function CreditSlide({
           )}
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-white to-transparent" />
           <div className="absolute left-3 top-3">
-            <span className="rounded-md border border-white/40 bg-white/85 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-navy-900 backdrop-blur-md">
+            <span className="rounded-md border border-white/50 bg-white/90 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-navy-900 shadow-sm backdrop-blur-md">
               {PAYMENT_FREQUENCY_LABELS[frequency]}
             </span>
           </div>
           {active ? (
             <div className="absolute right-3 top-3">
-              <span className="rounded-md bg-gold-500 px-2.5 py-1 text-[11px] font-semibold text-navy-950">
+              <span className="rounded-md bg-gold-500 px-2.5 py-1 text-[11px] font-semibold text-navy-950 shadow-sm">
                 Seleccionado
               </span>
             </div>

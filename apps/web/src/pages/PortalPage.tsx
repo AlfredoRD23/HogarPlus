@@ -223,7 +223,7 @@ export function PortalPage() {
   return (
     <div className="portal-shell min-h-screen text-navy-900">
       <header className="portal-nav sticky top-0 z-40 text-white">
-        <div className="flex items-center justify-between px-4 py-3 sm:px-8">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
           <Logo />
           <div className="flex items-center gap-2">
             <a
@@ -247,14 +247,14 @@ export function PortalPage() {
         </div>
       </header>
 
-      <div className="px-4 pt-5 sm:px-8">
+      <div className="portal-body mx-auto max-w-6xl px-4 pb-10 pt-5 sm:px-6">
         <div className="portal-hero overflow-hidden rounded-3xl px-5 py-6 text-white sm:px-7">
           <div className="flex items-start gap-4">
             <ProfilePhoto name={data.client.name} photoUrl={data.client.photoUrl} />
             <div className="min-w-0">
               <p className="text-sm font-medium text-gold-300">Mi cuenta · {LEVEL_LABELS[data.client.level]}</p>
               <h1 className="font-display text-3xl font-semibold capitalize tracking-tight text-white sm:text-4xl">{data.client.name.toLowerCase()}</h1>
-              <p className="mt-1 text-sm text-slate-300">
+              <p className="mt-1 text-sm text-slate-200">
                 {data.client.code} · puedes pedir {catalogAccessLabel(data.client.level)}
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -319,130 +319,130 @@ export function PortalPage() {
             </button>
           </div>
         </div>
-      </div>
 
-      <main className="space-y-8 px-4 py-8 sm:px-8">
-        <section>
-          {data.credits.length === 0 ? (
-            <>
-              <SectionHead title="Tus productos" hint="Aún no hay entregas" />
-              <EmptyStrip text="Cuando te entreguen un artículo, sale aquí." />
-            </>
-          ) : (
-            <>
-              <Carousel
-                title="Tus productos"
-                hint={
-                  data.credits.length > 1
-                    ? `${data.credits.length} productos · toca uno para ver sus cuotas`
-                    : "Toca uno para ver su plan de cuotas"
-                }
-              >
-                {data.credits.map((credit) => (
-                  <CreditSlide
-                    key={credit.id}
-                    credit={credit}
-                    active={credit.id === selected?.id}
-                    pendingClaim={data.paymentClaims?.find((item) => item.creditId === credit.id)}
-                    onSelect={() => setActiveCreditId(credit.id)}
-                    onPay={() => setPayCredit(credit)}
-                  />
-                ))}
-              </Carousel>
-              {selected ? (
-                <InstallmentPlan
-                  credit={selected}
-                  credits={data.credits}
-                  onSelect={setActiveCreditId}
-                />
-              ) : null}
-            </>
-          )}
-        </section>
-
-        <section className="panel p-4 sm:p-5">
-          {data.catalog.length === 0 ? (
-            <>
-              <SectionHead title="Catálogo" hint="Cuando haya productos, salen aquí." />
-              <EmptyStrip text="No hay productos en catálogo." />
-            </>
-          ) : (
-            <>
-              <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-                <SectionHead title="Catálogo" hint="Pide los de tu categoría. Si tocas otro, te explicamos." />
-                <CatalogTierTabs value={catalogTier} onChange={setCatalogTier} counts={catalogTierCounts} />
-              </div>
-              {catalogItems.length === 0 ? (
-                <EmptyStrip text="No hay productos en esta categoría." />
-              ) : (
-                <Carousel>
-                  {catalogItems.map((product) => (
-                    <CatalogSlide
-                      key={product.id}
-                      product={product}
-                      busy={busy === product.id}
-                      onAsk={async () => {
-                        if (!product.canRequest && !product.lockReason?.includes("saldar")) {
-                          setLevelLock(product);
-                          return;
-                        }
-                        if (!product.canRequest && product.lockReason?.includes("saldar")) {
-                          setDebtModal(data.debt?.[0] ?? null);
-                          return;
-                        }
-                        setBusy(product.id);
-                        try {
-                          await api("/api/portal/request", {
-                            method: "POST",
-                            body: JSON.stringify({ ...identity(), productId: product.id }),
-                          });
-                          toast.success("Solicitud enviada");
-                          await lookup();
-                        } catch (err) {
-                          if (isDebtError(err)) {
-                            setDebtModal(creditsFromDebtError(err)[0] ?? data.debt?.[0] ?? null);
-                          } else {
-                            toast.error(err instanceof Error ? err.message : "No se pudo solicitar");
-                          }
-                        } finally {
-                          setBusy("");
-                        }
-                      }}
+        <main className="mt-6 space-y-6">
+          <section className="panel p-4 sm:p-5">
+            {data.credits.length === 0 ? (
+              <>
+                <SectionHead title="Tus productos" hint="Aún no hay entregas" />
+                <EmptyStrip text="Cuando te entreguen un artículo, sale aquí." />
+              </>
+            ) : (
+              <>
+                <Carousel
+                  title="Tus productos"
+                  hint={
+                    data.credits.length > 1
+                      ? `${data.credits.length} productos · toca uno para ver sus cuotas`
+                      : "Toca uno para ver su plan de cuotas"
+                  }
+                >
+                  {data.credits.map((credit) => (
+                    <CreditSlide
+                      key={credit.id}
+                      credit={credit}
+                      active={credit.id === selected?.id}
+                      pendingClaim={data.paymentClaims?.find((item) => item.creditId === credit.id)}
+                      onSelect={() => setActiveCreditId(credit.id)}
+                      onPay={() => setPayCredit(credit)}
                     />
                   ))}
                 </Carousel>
-              )}
-            </>
-          )}
-        </section>
+                {selected ? (
+                  <InstallmentPlan
+                    credit={selected}
+                    credits={data.credits}
+                    onSelect={setActiveCreditId}
+                  />
+                ) : null}
+              </>
+            )}
+          </section>
 
-        <section className="panel p-4 sm:p-5">
-          <div className="flex gap-1 rounded-xl bg-slate-100 p-1">
-            {([
-              ["payments", "Pagos"],
-              ["points", "Puntos"],
-              ["referrals", "Referidos"],
-            ] as const).map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                className={`h-10 flex-1 rounded-lg text-sm font-medium ${
-                  activity === id ? "bg-white text-navy-900 shadow-sm" : "text-slate-500"
-                }`}
-                onClick={() => setActivity(id)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          <div className="mt-4">
-            {activityPanel(activity, data, () => {
-              setReferError(undefined);
-              setReferOpen(true);
-            }, downloadInvoice)}
-          </div>
-        </section>
-      </main>
+          <section className="panel p-4 sm:p-5">
+            {data.catalog.length === 0 ? (
+              <>
+                <SectionHead title="Catálogo" hint="Cuando haya productos, salen aquí." />
+                <EmptyStrip text="No hay productos en catálogo." />
+              </>
+            ) : (
+              <>
+                <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                  <SectionHead title="Catálogo" hint="Pide los de tu categoría. Si tocas otro, te explicamos." />
+                  <CatalogTierTabs value={catalogTier} onChange={setCatalogTier} counts={catalogTierCounts} />
+                </div>
+                {catalogItems.length === 0 ? (
+                  <EmptyStrip text="No hay productos en esta categoría." />
+                ) : (
+                  <Carousel>
+                    {catalogItems.map((product) => (
+                      <CatalogSlide
+                        key={product.id}
+                        product={product}
+                        busy={busy === product.id}
+                        onAsk={async () => {
+                          if (!product.canRequest && !product.lockReason?.includes("saldar")) {
+                            setLevelLock(product);
+                            return;
+                          }
+                          if (!product.canRequest && product.lockReason?.includes("saldar")) {
+                            setDebtModal(data.debt?.[0] ?? null);
+                            return;
+                          }
+                          setBusy(product.id);
+                          try {
+                            await api("/api/portal/request", {
+                              method: "POST",
+                              body: JSON.stringify({ ...identity(), productId: product.id }),
+                            });
+                            toast.success("Solicitud enviada");
+                            await lookup();
+                          } catch (err) {
+                            if (isDebtError(err)) {
+                              setDebtModal(creditsFromDebtError(err)[0] ?? data.debt?.[0] ?? null);
+                            } else {
+                              toast.error(err instanceof Error ? err.message : "No se pudo solicitar");
+                            }
+                          } finally {
+                            setBusy("");
+                          }
+                        }}
+                      />
+                    ))}
+                  </Carousel>
+                )}
+              </>
+            )}
+          </section>
+
+          <section className="panel p-4 sm:p-5">
+            <div className="flex gap-1 rounded-xl bg-slate-100 p-1">
+              {([
+                ["payments", "Pagos"],
+                ["points", "Puntos"],
+                ["referrals", "Referidos"],
+              ] as const).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={`h-10 flex-1 rounded-lg text-sm font-medium ${
+                    activity === id ? "bg-white text-navy-900 shadow-sm" : "text-slate-500"
+                  }`}
+                  onClick={() => setActivity(id)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div className="mt-4">
+              {activityPanel(activity, data, () => {
+                setReferError(undefined);
+                setReferOpen(true);
+              }, downloadInvoice)}
+            </div>
+          </section>
+        </main>
+      </div>
 
       {referOpen && (
         <Modal title="Referir un cliente" onClose={() => setReferOpen(false)}>
@@ -637,7 +637,7 @@ function SectionHead({ title, hint }: { title: string; hint: string }) {
 
 function EmptyStrip({ text }: { text: string }) {
   return (
-    <div className="panel px-5 py-8 text-sm text-slate-500">{text}</div>
+    <div className="rounded-xl bg-slate-50 px-5 py-8 text-center text-sm text-slate-500">{text}</div>
   );
 }
 
@@ -713,7 +713,7 @@ function InstallmentPlan({
   const percent = credit.installments.length === 0 ? 0 : Math.round((paidCount / credit.installments.length) * 100);
 
   return (
-    <div className="panel mt-4 overflow-hidden">
+    <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/80">
       {credits.length > 1 ? (
         <div className="flex gap-2 overflow-x-auto border-b border-slate-100 px-4 py-3">
           {credits.map((item) => (

@@ -1,44 +1,48 @@
 import { CATALOG_TIER_LABELS, CATALOG_TIERS, type CatalogTier } from "@hogarplus/shared";
+import { TIER_TONE, type CatalogTierFilter } from "../lib/catalogTiers";
 
-export type CatalogTierFilter = "ALL" | CatalogTier;
-
-const TIER_ACCENT: Record<CatalogTier, string> = {
-  A: "#B87333",
-  B: "#8E9AA8",
-  C: "#C4A04A",
-};
+export type { CatalogTierFilter } from "../lib/catalogTiers";
+export { TIER_TONE } from "../lib/catalogTiers";
 
 type Props = {
   value: CatalogTierFilter;
   onChange: (value: CatalogTierFilter) => void;
   counts?: Partial<Record<CatalogTierFilter, number>>;
+  /** @deprecated dark track removed; kept for call-site compatibility */
   variant?: "light" | "dark";
   className?: string;
 };
 
-export function CatalogTierTabs({ value, onChange, counts, variant = "light", className = "" }: Props) {
-  const items: { id: CatalogTierFilter; label: string; accent?: string }[] = [
+export function CatalogTierTabs({ value, onChange, counts, className = "" }: Props) {
+  const items: { id: CatalogTierFilter; label: string; tier?: CatalogTier }[] = [
     { id: "ALL", label: "Todos" },
     ...CATALOG_TIERS.map((tier) => ({
       id: tier as CatalogTierFilter,
       label: CATALOG_TIER_LABELS[tier],
-      accent: TIER_ACCENT[tier],
+      tier,
     })),
   ];
-
-  const dark = variant === "dark";
 
   return (
     <div
       role="tablist"
       aria-label="Filtrar por categoría del catálogo"
-      className={`inline-flex max-w-full flex-wrap gap-1 rounded-2xl p-1.5 ${
-        dark ? "border border-white/10 bg-white/[0.04]" : "border border-slate-200/80 bg-slate-100/90"
-      } ${className}`}
+      className={`flex max-w-full gap-1 overflow-x-auto pb-0.5 ${className}`}
     >
       {items.map((item) => {
         const active = value === item.id;
         const count = counts?.[item.id];
+        const tone = item.tier ? TIER_TONE[item.tier] : null;
+
+        let tabClass: string;
+        if (active && tone) {
+          tabClass = `${tone.soft} ${tone.softText} ring-1 ${tone.ring}`;
+        } else if (active) {
+          tabClass = "bg-navy-900 text-white";
+        } else {
+          tabClass = "bg-transparent text-slate-500 hover:bg-slate-100 hover:text-navy-800";
+        }
+
         return (
           <button
             key={item.id}
@@ -46,34 +50,24 @@ export function CatalogTierTabs({ value, onChange, counts, variant = "light", cl
             role="tab"
             aria-selected={active}
             onClick={() => onChange(item.id)}
-            className={`relative inline-flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold transition ${
-              active
-                ? dark
-                  ? "bg-white text-navy-950 shadow-sm"
-                  : "bg-white text-navy-900 shadow-sm ring-1 ring-black/[0.04]"
-                : dark
-                  ? "text-slate-400 hover:bg-white/5 hover:text-white"
-                  : "text-slate-500 hover:bg-white/60 hover:text-navy-800"
-            }`}
+            className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold transition ${tabClass}`}
           >
-            {item.accent ? (
+            {tone ? (
               <span
-                className="h-2 w-2 shrink-0 rounded-full"
-                style={{ backgroundColor: item.accent, boxShadow: active ? `0 0 0 3px ${item.accent}33` : undefined }}
+                className="h-1.5 w-1.5 shrink-0 rounded-full"
+                style={{ backgroundColor: tone.accent }}
                 aria-hidden
               />
             ) : null}
             <span>{item.label}</span>
             {typeof count === "number" ? (
               <span
-                className={`rounded-md px-1.5 py-0.5 text-[11px] font-bold tabular-nums ${
-                  active
-                    ? dark
-                      ? "bg-navy-900/10 text-navy-900"
-                      : "bg-slate-100 text-slate-600"
-                    : dark
-                      ? "bg-white/5 text-slate-500"
-                      : "bg-white/80 text-slate-400"
+                className={`min-w-[1.25rem] rounded-full px-1.5 text-center text-[11px] font-bold tabular-nums ${
+                  active && !tone
+                    ? "bg-white/15 text-white"
+                    : active && tone
+                      ? "bg-white/70 text-inherit"
+                      : "bg-slate-100 text-slate-500"
                 }`}
               >
                 {count}

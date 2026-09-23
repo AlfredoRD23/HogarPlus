@@ -1,11 +1,12 @@
 import type { CatalogTier, ClientLevel, CreditStatus, InstallmentStatus } from "@hogarplus/shared";
 import { CATALOG_TIER_LABELS, effectiveInstallmentStatus, LEVEL_LABELS } from "@hogarplus/shared";
+import { TIER_TONE } from "../lib/catalogTiers";
 
 const levelClass: Record<ClientLevel, string> = {
-  INICIAL: "bg-slate-100 text-slate-700",
-  BRONCE: "bg-[#B87333] text-white",
-  PLATA: "bg-[#8E9AA8] text-white",
-  ORO: "bg-[#C4A04A] text-navy-950",
+  INICIAL: "bg-slate-100 text-slate-700 ring-1 ring-slate-200",
+  BRONCE: `${TIER_TONE.A.soft} ${TIER_TONE.A.softText} ring-1 ${TIER_TONE.A.ring}`,
+  PLATA: `${TIER_TONE.B.soft} ${TIER_TONE.B.softText} ring-1 ${TIER_TONE.B.ring}`,
+  ORO: `${TIER_TONE.C.soft} ${TIER_TONE.C.softText} ring-1 ${TIER_TONE.C.ring}`,
 };
 
 const creditClass: Record<CreditStatus, string> = {
@@ -36,12 +37,12 @@ export function CreditBadge({ status }: { status: CreditStatus }) {
 }
 
 export function CatalogBadge({ tier }: { tier: CatalogTier }) {
-  const cls: Record<CatalogTier, string> = {
-    A: "bg-[#B87333] text-white",
-    B: "bg-[#8E9AA8] text-white",
-    C: "bg-[#C4A04A] text-navy-950",
-  };
-  return <Badge className={`${cls[tier]} font-semibold`}>{CATALOG_TIER_LABELS[tier]}</Badge>;
+  const tone = TIER_TONE[tier];
+  return (
+    <Badge className={`${tone.soft} ${tone.softText} ring-1 ${tone.ring} font-semibold`}>
+      {CATALOG_TIER_LABELS[tier]}
+    </Badge>
+  );
 }
 
 export function InstallmentBadge({ status, dueDate }: { status: InstallmentStatus; dueDate?: string | Date }) {

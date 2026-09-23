@@ -6,7 +6,7 @@ import { creditsFromDebtError, debtFacts, debtNotes, isDebtError } from "../lib/
 import { openInvoice, type InvoiceData } from "../lib/invoice";
 import { Logo } from "../components/Logo";
 import { WaitLabel } from "../components/Loader";
-import { InstallmentBadge, LevelBadge } from "../components/Badges";
+import { InstallmentBadge, LevelBadge, CatalogBadge } from "../components/Badges";
 import { CatalogTierTabs, type CatalogTierFilter } from "../components/CatalogTierTabs";
 import { Field, FormattedInput, Modal, fieldHint } from "../components/Form";
 import { InfoModal } from "../components/InfoModal";
@@ -222,19 +222,19 @@ export function PortalPage() {
 
   return (
     <div className="portal-shell min-h-screen text-navy-900">
-      <header className="portal-nav text-white">
+      <header className="portal-nav sticky top-0 z-40 text-navy-900">
         <div className="flex items-center justify-between px-4 py-3 sm:px-8">
-          <Logo />
+          <Logo light />
           <div className="flex items-center gap-2">
             <a
               href="/"
-              className="inline-flex h-10 items-center gap-2 rounded-xl bg-white/10 px-3.5 text-sm font-semibold text-white hover:bg-white/20"
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-semibold text-navy-900 hover:bg-slate-50"
             >
               <Home size={16} /> Inicio
             </a>
             <button
               type="button"
-              className="inline-flex h-10 items-center gap-2 rounded-xl bg-gold-500 px-3.5 text-sm font-semibold text-navy-950 hover:bg-gold-600"
+              className="inline-flex h-10 items-center gap-2 rounded-xl bg-navy-900 px-3.5 text-sm font-semibold text-white hover:bg-navy-800"
               onClick={() => {
                 setData(null);
                 setError("");
@@ -248,18 +248,18 @@ export function PortalPage() {
       </header>
 
       <div className="px-4 pt-5 sm:px-8">
-        <div className="portal-hero overflow-hidden rounded-3xl px-5 py-6 text-white sm:px-7">
+        <div className="portal-hero overflow-hidden rounded-3xl px-5 py-6 sm:px-7">
           <div className="flex items-start gap-4">
             <ProfilePhoto name={data.client.name} photoUrl={data.client.photoUrl} />
             <div className="min-w-0">
-              <p className="text-sm text-gold-300">Mi cuenta · {LEVEL_LABELS[data.client.level]}</p>
-              <h1 className="font-display text-4xl font-semibold capitalize tracking-tight text-white">{data.client.name.toLowerCase()}</h1>
-              <p className="mt-1 text-sm text-slate-300">
+              <p className="text-sm font-medium text-gold-600">Mi cuenta · {LEVEL_LABELS[data.client.level]}</p>
+              <h1 className="font-display text-3xl font-semibold capitalize tracking-tight text-navy-900 sm:text-4xl">{data.client.name.toLowerCase()}</h1>
+              <p className="mt-1 text-sm text-slate-500">
                 {data.client.code} · puedes pedir {catalogAccessLabel(data.client.level)}
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <LevelBadge level={data.client.level} />
-                <span className="rounded-full bg-navy-800 px-3 py-1 text-xs text-gold-100">
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
                   {data.client.points} pts
                   {progress.next ? ` · ${progress.remaining} para ${LEVEL_LABELS[progress.next]}` : ""}
                 </span>
@@ -282,7 +282,7 @@ export function PortalPage() {
           <div className="mt-5 flex flex-wrap gap-2">
             <button
               type="button"
-              className="btn-gold"
+              className="btn-primary"
               disabled={payableCredits.length === 0}
               onClick={() => setPayCredit(selected && Number(selected.balance) > 0 ? selected : payableCredits[0] ?? null)}
             >
@@ -290,7 +290,7 @@ export function PortalPage() {
             </button>
             <button
               type="button"
-              className="btn-ghost border-white/15 bg-transparent text-white hover:bg-navy-800"
+              className="btn-ghost"
               disabled={busy === "collect"}
               onClick={async () => {
                 if (busy) return;
@@ -309,7 +309,7 @@ export function PortalPage() {
             </button>
             <button
               type="button"
-              className="btn-ghost border-white/15 bg-transparent text-white hover:bg-navy-800"
+              className="btn-ghost"
               onClick={() => {
                 setReferError(undefined);
                 setReferOpen(true);
@@ -577,7 +577,7 @@ function activityPanel(
         <div>
           <div className="mb-3 flex items-center justify-between gap-3">
             <p className="text-sm text-slate-500">Si entra esa persona, ganas {POINTS_RULES.REFERRAL} puntos.</p>
-            <button className="btn-gold btn-compact" type="button" onClick={onRefer}>
+            <button className="btn-primary btn-compact" type="button" onClick={onRefer}>
               Referir
             </button>
           </div>
@@ -608,9 +608,9 @@ function activityPanel(
 function ProfilePhoto({ name, photoUrl }: { name: string; photoUrl?: string | null }) {
   const initial = name.trim().slice(0, 1).toUpperCase() || "C";
   return photoUrl ? (
-    <img src={mediaUrl(photoUrl)} alt={name} className="h-24 w-24 rounded-full object-cover ring-2 ring-gold-400" />
+    <img src={mediaUrl(photoUrl)} alt={name} className="h-24 w-24 rounded-full object-cover ring-2 ring-slate-200" />
   ) : (
-    <div className="flex h-24 w-24 items-center justify-center rounded-full bg-navy-800 text-3xl font-semibold text-gold-300 ring-2 ring-gold-400">
+    <div className="flex h-24 w-24 items-center justify-center rounded-full bg-slate-100 text-3xl font-semibold text-navy-800 ring-2 ring-slate-200">
       {initial}
     </div>
   );
@@ -619,8 +619,8 @@ function ProfilePhoto({ name, photoUrl }: { name: string; photoUrl?: string | nu
 function HeaderStat({ label, value, hint }: { label: string; value: string; hint: string }) {
   return (
     <div className="portal-stat rounded-2xl px-4 py-3">
-      <p className="text-xs text-slate-300">{label}</p>
-      <p className="mt-1 font-display text-xl text-white">{value}</p>
+      <p className="text-xs text-slate-500">{label}</p>
+      <p className="mt-1 font-display text-xl text-navy-900">{value}</p>
       <p className="mt-0.5 text-xs text-slate-400">{hint}</p>
     </div>
   );
@@ -629,9 +629,8 @@ function HeaderStat({ label, value, hint }: { label: string; value: string; hint
 function SectionHead({ title, hint }: { title: string; hint: string }) {
   return (
     <div className="mb-3">
-      <h2 className="font-display text-3xl font-semibold tracking-tight text-navy-900">{title}</h2>
-      <div className="mt-1.5 h-1 w-11 rounded-full bg-gold-500" />
-      <p className="mt-2 text-sm font-medium text-navy-800/70">{hint}</p>
+      <h2 className="font-display text-2xl font-semibold tracking-tight text-navy-900 sm:text-3xl">{title}</h2>
+      <p className="mt-1.5 text-sm text-slate-500">{hint}</p>
     </div>
   );
 }
@@ -876,7 +875,6 @@ function CatalogSlide({
   busy: boolean;
   onAsk: () => void;
 }) {
-  const tierLabel = CATALOG_TIER_LABELS[product.catalogTier];
   const cta = product.requested ? "Ya solicitado" : "Solicitar";
 
   return (
@@ -895,9 +893,7 @@ function CatalogSlide({
         )}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-white to-transparent" />
         <div className="absolute left-3 top-3">
-          <span className="rounded-md border border-white/40 bg-white/85 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-navy-900 backdrop-blur-md">
-            {tierLabel}
-          </span>
+          <CatalogBadge tier={product.catalogTier} />
         </div>
       </div>
       <div className="flex flex-1 flex-col px-4 pb-4 pt-1">

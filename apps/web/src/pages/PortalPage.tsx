@@ -311,7 +311,7 @@ export function PortalPage() {
             </div>
           </div>
 
-          <div className="grid gap-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:grid-cols-3 sm:gap-0 sm:p-0 sm:divide-x sm:divide-slate-100">
+          <div className="grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-3 sm:gap-0 sm:divide-x sm:divide-slate-200 sm:p-0">
             <Metric
               label="Saldo"
               value={money(totalBalance)}
@@ -330,7 +330,7 @@ export function PortalPage() {
           </div>
         </section>
 
-        <section className="space-y-4">
+        <section className="space-y-4 border-t border-slate-200 pt-8">
           {data.credits.length === 0 ? (
             <>
               <SectionHead title="Tus productos" hint="Aún no hay entregas" />
@@ -368,7 +368,7 @@ export function PortalPage() {
           )}
         </section>
 
-        <section className="space-y-4">
+        <section className="space-y-4 border-t border-slate-200 pt-8">
           {data.catalog.length === 0 ? (
             <>
               <SectionHead title="Catálogo" hint="Cuando haya productos, salen aquí." />
@@ -424,8 +424,8 @@ export function PortalPage() {
           )}
         </section>
 
-        <section className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-5">
-          <div className="flex gap-1 rounded-xl bg-slate-100 p-1">
+        <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
+          <div className="flex gap-1 rounded-xl bg-white p-1 ring-1 ring-slate-200">
             {([
               ["payments", "Pagos"],
               ["points", "Puntos"],
@@ -645,7 +645,7 @@ function SectionHead({ title, hint }: { title: string; hint: string }) {
 
 function EmptyStrip({ text }: { text: string }) {
   return (
-    <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-5 py-10 text-center text-sm text-slate-500">
+    <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center text-sm text-slate-600">
       {text}
     </div>
   );
@@ -723,7 +723,7 @@ function InstallmentPlan({
   const percent = credit.installments.length === 0 ? 0 : Math.round((paidCount / credit.installments.length) * 100);
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+    <div className="mt-1 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
       {credits.length > 1 ? (
         <div className="flex gap-2 overflow-x-auto border-b border-slate-100 px-4 py-3">
           {credits.map((item) => (
@@ -801,12 +801,12 @@ function CreditSlide({
 
   return (
     <article
-      className={`group flex h-full min-w-full shrink-0 snap-start flex-col overflow-hidden rounded-2xl border bg-white text-navy-900 shadow-sm lg:min-w-[calc((100%-2rem)/3)] lg:w-[calc((100%-2rem)/3)] ${
-        active ? "border-gold-500 ring-1 ring-gold-500/30" : "border-slate-200/90"
+      className={`group flex h-full min-w-full shrink-0 snap-start flex-col overflow-hidden rounded-2xl border bg-white text-navy-900 lg:min-w-[calc((100%-1rem)/2)] lg:w-[calc((100%-1rem)/2)] xl:min-w-[calc((100%-2rem)/3)] xl:w-[calc((100%-2rem)/3)] ${
+        active ? "border-gold-500 ring-2 ring-gold-500/25" : "border-slate-300"
       }`}
     >
       <button type="button" className="block w-full flex-1 text-left" onClick={onSelect}>
-        <div className="relative aspect-[4/3] shrink-0 overflow-hidden bg-slate-100">
+        <div className="relative aspect-[4/3] shrink-0 overflow-hidden bg-slate-200">
           {credit.product.imageUrl ? (
             <img
               src={mediaUrl(credit.product.imageUrl)}
@@ -814,13 +814,14 @@ function CreditSlide({
               className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
             />
           ) : (
-            <div className="flex h-full items-center justify-center text-slate-400">
-              <Package size={28} />
+            <div className="flex h-full flex-col items-center justify-center gap-2 text-slate-500">
+              <Package size={32} />
+              <span className="text-xs font-medium">Sin foto</span>
             </div>
           )}
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-white to-transparent" />
           <div className="absolute left-3 top-3">
-            <span className="rounded-md border border-white/50 bg-white/90 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-navy-900 shadow-sm backdrop-blur-md">
+            <span className="rounded-md bg-white px-2.5 py-1 text-[11px] font-semibold tracking-wide text-navy-900 shadow-sm ring-1 ring-slate-200">
               {PAYMENT_FREQUENCY_LABELS[frequency]}
             </span>
           </div>
@@ -832,11 +833,11 @@ function CreditSlide({
             </div>
           ) : null}
         </div>
-        <div className="px-4 pt-1">
-          <p className="text-[11px] font-medium uppercase tracking-wider text-slate-400">{credit.code}</p>
+        <div className="px-4 pt-3">
+          <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">{credit.code}</p>
           <h3 className="mt-1 line-clamp-1 text-[1.05rem] font-semibold tracking-tight">{credit.product.name}</h3>
           {next ? (
-            <p className="mt-1 line-clamp-2 min-h-[2.5rem] text-sm leading-5 text-slate-500">
+            <p className="mt-1 line-clamp-2 min-h-[2.5rem] text-sm leading-5 text-slate-600">
               Próxima cuota {money(next.amount)} · {formatDate(next.dueDate)}
             </p>
           ) : (
@@ -846,9 +847,9 @@ function CreditSlide({
           )}
         </div>
       </button>
-      <div className="mt-auto flex items-end justify-between gap-3 border-t border-slate-100 px-4 pb-4 pt-3">
+      <div className="mt-auto flex items-end justify-between gap-3 border-t border-slate-200 px-4 pb-4 pt-3">
         <div>
-          <p className="text-[11px] font-medium uppercase tracking-wider text-slate-400">Saldo</p>
+          <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">Saldo</p>
           <p className="mt-0.5 font-display text-xl text-navy-900">{money(credit.balance)}</p>
         </div>
         {hasBalance ? (
@@ -859,7 +860,7 @@ function CreditSlide({
           ) : (
             <button
               type="button"
-              className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-navy-900/20 bg-transparent px-4 text-sm font-semibold text-navy-900 transition hover:border-gold-500 hover:bg-gold-500 hover:text-navy-950"
+              className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-slate-300 bg-white px-4 text-sm font-semibold text-navy-900 transition hover:border-gold-500 hover:bg-gold-500 hover:text-navy-950"
               onClick={onPay}
             >
               Comprobante
@@ -888,8 +889,8 @@ function CatalogSlide({
   const cta = product.requested ? "Ya solicitado" : "Solicitar";
 
   return (
-    <article className="group flex h-full min-w-full shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-slate-200/90 bg-white text-navy-900 shadow-sm lg:min-w-[calc((100%-2rem)/3)] lg:w-[calc((100%-2rem)/3)]">
-      <div className="relative aspect-[4/3] shrink-0 overflow-hidden bg-slate-100">
+    <article className="group flex h-full min-w-full shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-slate-300 bg-white text-navy-900 lg:min-w-[calc((100%-1rem)/2)] lg:w-[calc((100%-1rem)/2)] xl:min-w-[calc((100%-2rem)/3)] xl:w-[calc((100%-2rem)/3)]">
+      <div className="relative aspect-[4/3] shrink-0 overflow-hidden bg-slate-200">
         {product.imageUrl ? (
           <img
             src={mediaUrl(product.imageUrl)}
@@ -897,8 +898,9 @@ function CatalogSlide({
             className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-slate-400">
-            <Package size={28} />
+          <div className="flex h-full flex-col items-center justify-center gap-2 text-slate-500">
+            <Package size={32} />
+            <span className="text-xs font-medium">Sin foto</span>
           </div>
         )}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-white to-transparent" />
@@ -906,20 +908,20 @@ function CatalogSlide({
           <CatalogBadge tier={product.catalogTier} />
         </div>
       </div>
-      <div className="flex flex-1 flex-col px-4 pb-4 pt-1">
-        <p className="text-[11px] font-medium uppercase tracking-wider text-slate-400">{CATEGORY_LABELS[product.category]}</p>
+      <div className="flex flex-1 flex-col px-4 pb-4 pt-3">
+        <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">{CATEGORY_LABELS[product.category]}</p>
         <p className="mt-1 line-clamp-1 text-[1.05rem] font-semibold tracking-tight">{product.name}</p>
-        <p className="mt-1 line-clamp-2 min-h-[2.5rem] text-sm leading-5 text-slate-500">
+        <p className="mt-1 line-clamp-2 min-h-[2.5rem] text-sm leading-5 text-slate-600">
           {product.description || "Disponible a crédito con cuotas semanales."}
         </p>
-        <div className="mt-auto flex items-end justify-between gap-3 border-t border-slate-100 pt-3">
+        <div className="mt-auto flex items-end justify-between gap-3 border-t border-slate-200 pt-3">
           <div>
-            <p className="text-[11px] font-medium uppercase tracking-wider text-slate-400">Precio</p>
+            <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">Precio</p>
             <p className="mt-0.5 font-display text-xl text-navy-900">{money(product.price)}</p>
           </div>
           <button
             type="button"
-            className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-navy-900/20 bg-transparent px-4 text-sm font-semibold text-navy-900 transition hover:border-gold-500 hover:bg-gold-500 hover:text-navy-950 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-slate-300 bg-white px-4 text-sm font-semibold text-navy-900 transition hover:border-gold-500 hover:bg-gold-500 hover:text-navy-950 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={product.requested || busy}
             onClick={onAsk}
           >

@@ -8,12 +8,11 @@ type Props = {
   value: CatalogTierFilter;
   onChange: (value: CatalogTierFilter) => void;
   counts?: Partial<Record<CatalogTierFilter, number>>;
-  /** @deprecated dark track removed; kept for call-site compatibility */
   variant?: "light" | "dark";
   className?: string;
 };
 
-export function CatalogTierTabs({ value, onChange, counts, className = "" }: Props) {
+export function CatalogTierTabs({ value, onChange, counts, variant = "light", className = "" }: Props) {
   const items: { id: CatalogTierFilter; label: string; tier?: CatalogTier }[] = [
     { id: "ALL", label: "Todos" },
     ...CATALOG_TIERS.map((tier) => ({
@@ -23,11 +22,15 @@ export function CatalogTierTabs({ value, onChange, counts, className = "" }: Pro
     })),
   ];
 
+  const dark = variant === "dark";
+
   return (
     <div
       role="tablist"
       aria-label="Filtrar por categoría del catálogo"
-      className={`flex max-w-full gap-1 overflow-x-auto pb-0.5 ${className}`}
+      className={`inline-flex max-w-full gap-1 overflow-x-auto rounded-2xl p-1 ${
+        dark ? "border border-white/10 bg-white/[0.06]" : "border border-slate-200 bg-slate-100/80"
+      } ${className}`}
     >
       {items.map((item) => {
         const active = value === item.id;
@@ -36,11 +39,15 @@ export function CatalogTierTabs({ value, onChange, counts, className = "" }: Pro
 
         let tabClass: string;
         if (active && tone) {
-          tabClass = `${tone.soft} ${tone.softText} ring-1 ${tone.ring}`;
+          tabClass = dark
+            ? `${tone.solid} shadow-sm`
+            : `${tone.soft} ${tone.softText} ring-1 ${tone.ring}`;
         } else if (active) {
-          tabClass = "bg-navy-900 text-white";
+          tabClass = dark ? "bg-white text-navy-950 shadow-sm" : "bg-navy-900 text-white shadow-sm";
         } else {
-          tabClass = "bg-transparent text-slate-500 hover:bg-slate-100 hover:text-navy-800";
+          tabClass = dark
+            ? "text-slate-300 hover:bg-white/10 hover:text-white"
+            : "text-slate-600 hover:bg-white hover:text-navy-900";
         }
 
         return (
@@ -50,9 +57,9 @@ export function CatalogTierTabs({ value, onChange, counts, className = "" }: Pro
             role="tab"
             aria-selected={active}
             onClick={() => onChange(item.id)}
-            className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold transition ${tabClass}`}
+            className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl px-3.5 text-sm font-semibold transition ${tabClass}`}
           >
-            {tone ? (
+            {tone && !active ? (
               <span
                 className="h-1.5 w-1.5 shrink-0 rounded-full"
                 style={{ backgroundColor: tone.accent }}
@@ -62,12 +69,16 @@ export function CatalogTierTabs({ value, onChange, counts, className = "" }: Pro
             <span>{item.label}</span>
             {typeof count === "number" ? (
               <span
-                className={`min-w-[1.25rem] rounded-full px-1.5 text-center text-[11px] font-bold tabular-nums ${
-                  active && !tone
-                    ? "bg-white/15 text-white"
-                    : active && tone
-                      ? "bg-white/70 text-inherit"
-                      : "bg-slate-100 text-slate-500"
+                className={`min-w-[1.25rem] rounded-md px-1.5 text-center text-[11px] font-bold tabular-nums ${
+                  active
+                    ? dark && !tone
+                      ? "bg-navy-900/10 text-navy-900"
+                      : dark
+                        ? "bg-black/15 text-inherit"
+                        : "bg-white/70 text-inherit"
+                    : dark
+                      ? "bg-white/10 text-slate-400"
+                      : "bg-white text-slate-500"
                 }`}
               >
                 {count}

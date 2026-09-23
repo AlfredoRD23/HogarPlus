@@ -86,17 +86,17 @@ export function HomePage() {
   }
 
   return (
-    <div className="home-page min-h-screen bg-slate-50 text-navy-900">
-      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
+    <div className="home-page min-h-screen bg-[#1A2F52] text-white">
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#1A2F52]/85 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-2 px-4 sm:h-16 sm:px-8">
-          <Logo light />
-          <nav className="hidden items-center gap-8 text-sm font-medium text-slate-600 lg:flex">
-            <button type="button" className="transition hover:text-navy-900" onClick={scrollToCatalog}>
+          <Logo />
+          <nav className="hidden items-center gap-8 text-sm font-medium text-slate-300 lg:flex">
+            <button type="button" className="transition hover:text-white" onClick={scrollToCatalog}>
               Catálogo
             </button>
             <button
               type="button"
-              className="transition hover:text-navy-900"
+              className="transition hover:text-white"
               onClick={() => document.getElementById("como-funciona")?.scrollIntoView({ behavior: "smooth", block: "start" })}
             >
               Cómo funciona
@@ -104,14 +104,14 @@ export function HomePage() {
           </nav>
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             <Link
-              className="inline-flex h-9 shrink-0 items-center whitespace-nowrap rounded-full border border-slate-200 px-3 text-xs font-semibold text-navy-900 transition hover:bg-slate-50 sm:h-10 sm:px-4 sm:text-sm"
+              className="inline-flex h-9 shrink-0 items-center whitespace-nowrap rounded-full border border-white/20 px-3 text-xs font-semibold text-white transition hover:bg-white/10 sm:h-10 sm:px-4 sm:text-sm"
               to="/portal"
             >
               Soy cliente
             </Link>
             {user ? (
               <Link
-                className="inline-flex h-9 shrink-0 items-center whitespace-nowrap rounded-full bg-navy-900 px-3 text-xs font-semibold text-white transition hover:bg-navy-800 sm:h-10 sm:px-4 sm:text-sm"
+                className="inline-flex h-9 shrink-0 items-center whitespace-nowrap rounded-full bg-gold-500 px-3 text-xs font-semibold text-navy-950 transition hover:bg-gold-600 sm:h-10 sm:px-4 sm:text-sm"
                 to={homePathFor(user.role)}
               >
                 Panel
@@ -134,18 +134,19 @@ export function HomePage() {
           style={{ backgroundImage: 'url("/portal-hogar.jpg")' }}
           aria-hidden
         />
-        <div className="absolute inset-0 bg-[#122033]/72" aria-hidden />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#122033]/92 via-[#122033]/70 to-[#122033]/35" aria-hidden />
+        {/* Softer than login: less opaque navy wash */}
+        <div className="absolute inset-0 bg-[#1A2F52]/55" aria-hidden />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#1A2F52]/88 via-[#1A2F52]/55 to-[#1A2F52]/25" aria-hidden />
 
         <div className="relative mx-auto flex min-h-[calc(100svh-3.5rem)] max-w-6xl flex-col justify-center px-4 py-16 sm:min-h-[calc(100svh-4rem)] sm:px-8 sm:py-20">
-          <div className="home-fade max-w-2xl text-white">
+          <div className="home-fade max-w-2xl">
             <p className="font-display text-4xl font-semibold tracking-tight text-gold-100 sm:text-5xl lg:text-6xl">
               HogarPlus
             </p>
             <h1 className="mt-4 max-w-xl text-2xl font-medium leading-snug text-white sm:text-3xl lg:text-4xl">
               Productos para el hogar, con cuotas que sí se entienden.
             </h1>
-            <p className="mt-4 max-w-lg text-base leading-7 text-slate-300 sm:text-lg">
+            <p className="mt-4 max-w-lg text-base leading-7 text-slate-200 sm:text-lg">
               Te afilias, eliges el artículo y pagas semanal. El buen pago sube de Bronce a Plata y Oro.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -158,7 +159,7 @@ export function HomePage() {
               </button>
               <button
                 type="button"
-                className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/25 bg-white/10 px-6 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/15"
+                className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/30 bg-white/10 px-6 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/15"
                 onClick={scrollToCatalog}
               >
                 Ver catálogo
@@ -167,7 +168,7 @@ export function HomePage() {
             <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-300">
               <button
                 type="button"
-                className="inline-flex items-center gap-2 font-medium text-gold-200 transition hover:text-gold-100"
+                className="inline-flex items-center gap-2 font-medium text-gold-300 transition hover:text-gold-100"
                 onClick={() => void handleInstall()}
               >
                 <Download size={15} />
@@ -177,7 +178,7 @@ export function HomePage() {
               <span>Salud · Belleza · Hogar</span>
             </div>
             {pwa.ios && !pwa.installed ? (
-              <p className="mt-3 flex items-start gap-2 text-sm text-slate-300">
+              <p className="mt-3 flex items-start gap-2 text-sm text-gold-200/90">
                 <Share size={15} className="mt-0.5 shrink-0" />
                 En iPhone: Compartir → Añadir a pantalla de inicio.
               </p>
@@ -187,27 +188,28 @@ export function HomePage() {
       </section>
 
       <main>
-        <section id="catalogo" className="scroll-mt-24 border-t border-slate-200 bg-white py-16 sm:py-20">
+        <section id="catalogo" className="scroll-mt-24 border-t border-white/10 bg-[#15263f] py-16 sm:py-20">
           <div className="mx-auto max-w-6xl px-4 sm:px-8">
             <div className="max-w-2xl">
-              <h2 className="font-display text-3xl font-semibold text-navy-900 sm:text-4xl">Lo que puedes pedir</h2>
-              <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gold-300">Catálogo</p>
+              <h2 className="mt-3 font-display text-3xl font-semibold sm:text-4xl">Lo que puedes pedir</h2>
+              <p className="mt-3 text-sm leading-7 text-slate-300 sm:text-base">
                 Elige un producto y escríbenos por WhatsApp. Te afiliamos y te explicamos las cuotas.
               </p>
             </div>
 
             <div className="mt-8">
-              <CatalogTierTabs value={tier} onChange={setTier} counts={tierCounts} />
+              <CatalogTierTabs value={tier} onChange={setTier} counts={tierCounts} variant="dark" />
             </div>
 
             {catalog.isLoading ? (
               <div className="mt-10 flex gap-4 overflow-hidden">
                 {Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="h-80 min-w-full animate-pulse rounded-3xl bg-slate-100 lg:min-w-[calc((100%-2rem)/3)]" />
+                  <div key={i} className="h-80 min-w-full animate-pulse rounded-3xl bg-navy-800/60 lg:min-w-[calc((100%-2rem)/3)]" />
                 ))}
               </div>
             ) : groups.length === 0 ? (
-              <p className="mt-10 text-sm text-slate-500">
+              <p className="mt-10 text-sm text-slate-400">
                 {products.length === 0 ? "Pronto verás los productos aquí." : "No hay productos en esta categoría."}
               </p>
             ) : (
@@ -220,12 +222,13 @@ export function HomePage() {
           </div>
         </section>
 
-        <section id="como-funciona" className="scroll-mt-24 bg-slate-50 py-16 sm:py-20">
+        <section id="como-funciona" className="scroll-mt-24 bg-[#1A2F52] py-16 sm:py-20">
           <div className="mx-auto max-w-6xl px-4 sm:px-8">
             <div className="max-w-2xl">
-              <h2 className="font-display text-3xl font-semibold text-navy-900 sm:text-4xl">Así de claro funciona</h2>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gold-300">Proceso</p>
+              <h2 className="mt-3 font-display text-3xl font-semibold sm:text-4xl">Así de claro funciona</h2>
             </div>
-            <ol className="mt-10 grid gap-8 sm:grid-cols-3 sm:gap-10">
+            <ol className="mt-10 grid gap-8 sm:grid-cols-3 sm:gap-8">
               <Step n="01" title="Afiliación" text="Un pago de entrada y las condiciones claras desde el primer día." />
               <Step n="02" title="Cuota semanal" text="Ves tu saldo, las fechas y cada cobro aplicado en tu cuenta." />
               <Step n="03" title="Puntos y niveles" text="El buen pago sube de Inicial a Bronce, Plata y Oro." />
@@ -233,22 +236,23 @@ export function HomePage() {
           </div>
         </section>
 
-        <section className="border-t border-slate-200 bg-white py-16 sm:py-20">
+        <section className="border-t border-white/10 bg-[#15263f] py-16 sm:py-20">
           <div className="mx-auto grid max-w-6xl gap-10 px-4 sm:px-8 lg:grid-cols-2 lg:items-center lg:gap-16">
             <div>
-              <h2 className="font-display text-3xl font-semibold text-navy-900 sm:text-4xl">Todo desde el celular</h2>
-              <p className="mt-3 max-w-md text-sm leading-7 text-slate-600 sm:text-base">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gold-300">Tu cuenta</p>
+              <h2 className="mt-3 font-display text-3xl font-semibold sm:text-4xl">Todo desde el celular</h2>
+              <p className="mt-3 max-w-md text-sm leading-7 text-slate-300 sm:text-base">
                 Consulta tu nivel, puntos, productos de tu categoría y si las cuotas están pendientes.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Link
-                  className="inline-flex h-12 items-center justify-center rounded-2xl bg-navy-900 px-6 text-sm font-semibold text-white transition hover:bg-navy-800"
+                  className="inline-flex h-12 items-center justify-center rounded-2xl bg-gold-500 px-6 text-sm font-semibold text-navy-950 transition hover:bg-gold-600"
                   to="/portal"
                 >
                   Entrar a mi cuenta
                 </Link>
                 <Link
-                  className="inline-flex h-12 items-center justify-center rounded-2xl border border-slate-200 px-6 text-sm font-semibold text-navy-900 transition hover:bg-slate-50"
+                  className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/20 px-6 text-sm font-semibold text-white transition hover:bg-white/10"
                   to={user ? homePathFor(user.role) : "/login"}
                 >
                   {user ? "Abrir panel" : "Soy del equipo"}
@@ -265,37 +269,37 @@ export function HomePage() {
         </section>
       </main>
 
-      <footer className="border-t border-slate-200 bg-white">
+      <footer className="border-t border-white/10 bg-[#122033]">
         <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:grid-cols-3 sm:px-8">
           <div>
-            <Logo light />
-            <p className="mt-4 max-w-sm text-sm leading-6 text-slate-500">
+            <Logo />
+            <p className="mt-4 max-w-sm text-sm leading-6 text-slate-400">
               Productos para el hogar con cuotas semanales. Escríbenos y te afiliamos.
             </p>
           </div>
           <div>
-            <p className="text-sm font-semibold text-navy-900">Contacto</p>
-            <button type="button" className="mt-3 block text-left text-sm text-slate-600 transition hover:text-navy-900" onClick={() => openWhatsApp()}>
+            <p className="text-sm font-semibold text-gold-100">Contacto</p>
+            <button type="button" className="mt-3 block text-left text-sm text-slate-300 transition hover:text-white" onClick={() => openWhatsApp()}>
               WhatsApp 829-881-9361
             </button>
             <p className="mt-1 text-sm text-slate-500">info@hogarplus.do</p>
           </div>
           <div>
-            <p className="text-sm font-semibold text-navy-900">Redes</p>
+            <p className="text-sm font-semibold text-gold-100">Redes</p>
             <div className="mt-3 flex flex-wrap gap-2">
-              <a href="https://www.facebook.com/hogarplus" target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center gap-2 rounded-full border border-slate-200 px-3 text-sm text-slate-700 transition hover:bg-slate-50">
+              <a href="https://www.facebook.com/hogarplus" target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center gap-2 rounded-full border border-white/15 px-3 text-sm text-slate-200 transition hover:bg-white/10">
                 <Facebook size={16} /> Facebook
               </a>
-              <a href="https://www.instagram.com/hogarplus" target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center gap-2 rounded-full border border-slate-200 px-3 text-sm text-slate-700 transition hover:bg-slate-50">
+              <a href="https://www.instagram.com/hogarplus" target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center gap-2 rounded-full border border-white/15 px-3 text-sm text-slate-200 transition hover:bg-white/10">
                 <Instagram size={16} /> Instagram
               </a>
-              <a href="https://www.tiktok.com/@hogarplus" target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center gap-2 rounded-full border border-slate-200 px-3 text-sm text-slate-700 transition hover:bg-slate-50">
+              <a href="https://www.tiktok.com/@hogarplus" target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center gap-2 rounded-full border border-white/15 px-3 text-sm text-slate-200 transition hover:bg-white/10">
                 TikTok
               </a>
             </div>
           </div>
         </div>
-        <p className="border-t border-slate-100 px-4 py-4 text-center text-xs text-slate-500 sm:px-8">
+        <p className="border-t border-white/10 px-4 py-4 text-center text-xs text-slate-500 sm:px-8">
           © {new Date().getFullYear()} HogarPlus. Todos los derechos reservados.
         </p>
       </footer>
@@ -317,13 +321,13 @@ function CategoryCarousel({ title, products }: { title: string; products: Public
   return (
     <div>
       <div className="mb-5 flex items-end justify-between gap-3">
-        <h3 className="font-display text-2xl font-semibold text-navy-900">{title}</h3>
+        <h3 className="font-display text-2xl font-semibold text-white">{title}</h3>
         {products.length > 1 ? (
           <div className="flex shrink-0 gap-2">
             <button
               type="button"
               aria-label="Anterior"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-navy-900 transition hover:bg-slate-50"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white transition hover:bg-white/15"
               onClick={() => move(-1)}
             >
               <ChevronLeft size={16} />
@@ -331,7 +335,7 @@ function CategoryCarousel({ title, products }: { title: string; products: Public
             <button
               type="button"
               aria-label="Siguiente"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-navy-900 transition hover:bg-slate-50"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white transition hover:bg-white/15"
               onClick={() => move(1)}
             >
               <ChevronRight size={16} />
@@ -343,9 +347,9 @@ function CategoryCarousel({ title, products }: { title: string; products: Public
         {products.map((product) => (
           <article
             key={product.id}
-            className="group flex min-w-full shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm lg:min-w-[calc((100%-2rem)/3)] lg:w-[calc((100%-2rem)/3)]"
+            className="group flex min-w-full shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#1e3454] lg:min-w-[calc((100%-2rem)/3)] lg:w-[calc((100%-2rem)/3)]"
           >
-            <div className="relative aspect-[4/3] shrink-0 overflow-hidden bg-slate-100">
+            <div className="relative aspect-[4/3] shrink-0 overflow-hidden bg-navy-900">
               {product.imageUrl ? (
                 <img
                   src={mediaUrl(product.imageUrl)}
@@ -353,29 +357,30 @@ function CategoryCarousel({ title, products }: { title: string; products: Public
                   className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
                 />
               ) : (
-                <div className="flex h-full items-center justify-center text-slate-400">
+                <div className="flex h-full items-center justify-center text-slate-500">
                   <Package size={28} />
                 </div>
               )}
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-[#1e3454] to-transparent" />
               <div className="absolute left-3 top-3">
                 <CatalogBadge tier={product.catalogTier} />
               </div>
             </div>
-            <div className="flex flex-1 flex-col px-5 pb-5 pt-4">
-              <h4 className="line-clamp-1 text-[1.05rem] font-semibold tracking-tight text-navy-900">{product.name}</h4>
-              <p className="mt-1.5 line-clamp-2 min-h-[2.5rem] text-sm leading-5 text-slate-500">
+            <div className="flex flex-1 flex-col px-5 pb-5 pt-1">
+              <h4 className="line-clamp-1 text-[1.05rem] font-semibold tracking-tight text-white">{product.name}</h4>
+              <p className="mt-1.5 line-clamp-2 min-h-[2.5rem] text-sm leading-5 text-slate-300">
                 {product.description || "Disponible a crédito con cuotas semanales."}
               </p>
-              <div className="mt-auto flex items-end justify-between gap-3 border-t border-slate-100 pt-4">
+              <div className="mt-auto flex items-end justify-between gap-3 border-t border-white/10 pt-4">
                 <div>
                   <p className="text-[11px] font-medium uppercase tracking-wider text-slate-400">Precio</p>
-                  <p className="mt-0.5 font-display text-xl text-navy-900">{money(product.price)}</p>
+                  <p className="mt-0.5 font-display text-xl text-gold-100">{money(product.price)}</p>
                 </div>
                 <a
                   href={whatsappHref(product)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-navy-900 transition hover:border-gold-500 hover:bg-gold-500 hover:text-navy-950"
+                  className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-gold-500/50 bg-transparent px-4 text-sm font-semibold text-gold-100 transition hover:border-gold-500 hover:bg-gold-500 hover:text-navy-950"
                 >
                   Consultar
                   <ArrowRight size={14} />
@@ -391,19 +396,19 @@ function CategoryCarousel({ title, products }: { title: string; products: Public
 
 function Step({ n, title, text }: { n: string; title: string; text: string }) {
   return (
-    <li className="relative border-t border-slate-200 pt-5">
-      <p className="text-sm font-semibold tracking-wide text-gold-600">{n}</p>
-      <p className="mt-2 text-xl font-semibold text-navy-900">{title}</p>
-      <p className="mt-2 text-sm leading-6 text-slate-600">{text}</p>
+    <li className="relative border-t border-gold-500/35 pt-5">
+      <p className="text-sm font-semibold tracking-wide text-gold-300">{n}</p>
+      <p className="mt-2 text-xl font-semibold text-white">{title}</p>
+      <p className="mt-2 text-sm leading-6 text-slate-300">{text}</p>
     </li>
   );
 }
 
 function InfoTile({ title, text }: { title: string; text: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-5">
-      <p className="font-semibold text-navy-900">{title}</p>
-      <p className="mt-2 text-sm leading-6 text-slate-600">{text}</p>
+    <div className="rounded-2xl border border-white/10 bg-white/[0.05] p-5">
+      <p className="font-semibold text-white">{title}</p>
+      <p className="mt-2 text-sm leading-6 text-slate-300">{text}</p>
     </div>
   );
 }

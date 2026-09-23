@@ -4,9 +4,9 @@ import { TIER_TONE } from "../lib/catalogTiers";
 
 const levelClass: Record<ClientLevel, string> = {
   INICIAL: "bg-slate-100 text-slate-700 ring-1 ring-slate-200",
-  BRONCE: `${TIER_TONE.A.soft} ${TIER_TONE.A.softText} ring-1 ${TIER_TONE.A.ring}`,
-  PLATA: `${TIER_TONE.B.soft} ${TIER_TONE.B.softText} ring-1 ${TIER_TONE.B.ring}`,
-  ORO: `${TIER_TONE.C.soft} ${TIER_TONE.C.softText} ring-1 ${TIER_TONE.C.ring}`,
+  BRONCE: TIER_TONE.A.solid,
+  PLATA: TIER_TONE.B.solid,
+  ORO: TIER_TONE.C.solid,
 };
 
 const creditClass: Record<CreditStatus, string> = {
@@ -37,12 +37,7 @@ export function CreditBadge({ status }: { status: CreditStatus }) {
 }
 
 export function CatalogBadge({ tier }: { tier: CatalogTier }) {
-  const tone = TIER_TONE[tier];
-  return (
-    <Badge className={`${tone.soft} ${tone.softText} ring-1 ${tone.ring} font-semibold`}>
-      {CATALOG_TIER_LABELS[tier]}
-    </Badge>
-  );
+  return <Badge className={`${TIER_TONE[tier].solid} font-semibold`}>{CATALOG_TIER_LABELS[tier]}</Badge>;
 }
 
 export function InstallmentBadge({ status, dueDate }: { status: InstallmentStatus; dueDate?: string | Date }) {

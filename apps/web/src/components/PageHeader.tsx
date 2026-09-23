@@ -39,9 +39,9 @@ export function PageHeader({
           <p className="mt-1 text-sm text-slate-500 sm:text-base">{description}</p>
         </div>
       </div>
-      <div className="flex w-full min-w-0 flex-col gap-2 lg:w-auto lg:flex-row lg:items-center">
+      <div className="flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center lg:max-w-[min(100%,36rem)] lg:justify-end">
         {onSearchChange && (
-          <div className="relative w-full min-w-0 lg:w-[32rem]">
+          <div className="relative w-full min-w-0 sm:flex-1 lg:min-w-[14rem]">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
               className="search-input"
@@ -55,20 +55,20 @@ export function PageHeader({
           const ActionIcon = action.icon;
           const cls =
             action.variant === "ghost"
-              ? "btn-ghost"
+              ? "btn-ghost btn-compact"
               : action.variant === "gold"
-                ? "btn-gold"
-                : "btn-primary";
+                ? "btn-gold btn-compact"
+                : "btn-primary btn-compact";
           if (action.href) {
             return (
-              <Link key={action.label} className={cls} to={action.href}>
+              <Link key={action.label} className={`${cls} shrink-0`} to={action.href}>
                 {ActionIcon && <ActionIcon size={16} />}
                 {action.label}
               </Link>
             );
           }
           return (
-            <button key={action.label} type="button" className={cls} onClick={action.onClick}>
+            <button key={action.label} type="button" className={`${cls} shrink-0`} onClick={action.onClick}>
               {ActionIcon && <ActionIcon size={16} />}
               {action.label}
             </button>

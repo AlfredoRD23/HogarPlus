@@ -137,7 +137,7 @@ export function ShowcaseCard({
   return (
     <article
       style={style}
-      className={`promo-enter group flex h-full shrink-0 snap-start flex-col overflow-hidden rounded-2xl text-white ${
+      className={`promo-enter group flex shrink-0 snap-start flex-col self-stretch overflow-hidden rounded-2xl text-white ${
         product.exclusive
           ? "promo-card-exclusive shadow-[0_18px_50px_-20px_rgba(124,58,237,0.6)]"
           : product.offer

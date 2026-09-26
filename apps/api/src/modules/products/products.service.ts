@@ -6,6 +6,7 @@ import { writeAudit } from "../../middleware/auth";
 import { absoluteUploadPath, MAX_PRODUCT_IMAGES, publicUploadPathFor } from "../../lib/upload";
 import type { z } from "zod";
 import { activeOffer, effectivePrice, isNewProduct, type OfferType } from "@hogarplus/shared";
+import { notifyCatalogNewsInBackground } from "../../shared/promo-mail";
 import type { createProductSchema, updateProductSchema } from "./products.schema";
 
 const productImages = {
@@ -67,6 +68,28 @@ function promoData(input: PromoInput) {
     offerEndsAt: type ? endOfDay(input.offerEndsAt) ?? null : null,
     newUntil: endOfDay(input.newUntil),
   };
+}
+
+type PromoSnapshot = PromoRow & { status: string };
+
+function offerKey(row: PromoSnapshot) {
+  const offer = activeOffer({ ...row, price: Number(row.price) });
+  return offer ? `${offer.type}|${offer.discount}|${offer.detail ?? ""}` : null;
+}
+
+/** Decide si hay que avisar a los clientes por una oferta nueva o un producto nuevo. */
+function announceChanges(before: PromoSnapshot | null, after: PromoSnapshot & { id: string }) {
+  if (after.status !== "ACTIVE") return;
+  const wasVisible = before?.status === "ACTIVE";
+  const afterOffer = offerKey(after);
+  if (afterOffer && (!wasVisible || !before || offerKey(before) !== afterOffer)) {
+    notifyCatalogNewsInBackground(after.id, "offer");
+    return;
+  }
+  const isNew = isNewProduct(after);
+  if (isNew && (!wasVisible || !before || !isNewProduct(before))) {
+    notifyCatalogNewsInBackground(after.id, "new");
+  }
 }
 
 function assertOfferAboveCost(price: number, cost: number, input: PromoInput) {
@@ -192,6 +215,7 @@ export class ProductsService {
     }
 
     await writeAudit({ userId: actorId, action: "CREATE", entity: "Product", entityId: product.id, after: product, ip });
+    announceChanges(null, product);
     return product;
   }
 
@@ -217,6 +241,7 @@ export class ProductsService {
     });
 
     await writeAudit({ userId: actorId, action: "UPDATE", entity: "Product", entityId: id, before, after: product, ip });
+    announceChanges(before, product);
     return prisma.product.findUniqueOrThrow({ where: { id }, include: { _count: { select: { credits: true } }, ...productImages } });
   }
 

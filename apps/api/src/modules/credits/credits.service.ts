@@ -16,6 +16,7 @@ import { assertNoOutstandingDebt } from "../../shared/debt";
 import { addByFrequency, AppError, money, nextCode, nextPaymentReference, pagination } from "../../shared/utils";
 import { writeAudit } from "../../middleware/auth";
 import { portalUrl, sendClientTemplate } from "../../shared/mailer";
+import { clientOffersService } from "../client-offers/client-offers.service";
 import type { z } from "zod";
 import type { createCreditSchema, updateCreditSchema } from "./credits.schema";
 
@@ -121,14 +122,14 @@ export class CreditsService {
     const settings = await settingsService.getAll();
     const frequency = input.frequency ?? "WEEKLY";
     const downPayment = Number(input.downPayment ?? 0);
-    const price = money(
-      effectivePrice({
-        price: Number(product.price),
-        offerType: product.offerType,
-        offerDiscount: product.offerDiscount,
-        offerEndsAt: product.offerEndsAt,
-      }),
-    );
+    const generalPrice = effectivePrice({
+      price: Number(product.price),
+      offerType: product.offerType,
+      offerDiscount: product.offerDiscount,
+      offerEndsAt: product.offerEndsAt,
+    });
+    const exclusive = await clientOffersService.activeFor(client.id, product.id, Number(product.price));
+    const price = money(Math.min(generalPrice, exclusive?.offer.finalPrice ?? generalPrice));
     if (downPayment >= price) {
       throw new AppError(400, "DOWN_PAYMENT_HIGH", "El pago inicial debe ser menor que el precio del producto");
     }
@@ -189,6 +190,13 @@ export class CreditsService {
             notes: "Pago inicial al entregar el producto",
             createdById: actorId,
           },
+        });
+      }
+
+      if (exclusive) {
+        await tx.clientOffer.update({
+          where: { id: exclusive.row.id },
+          data: { status: "USED", usedCreditId: created.id },
         });
       }
 

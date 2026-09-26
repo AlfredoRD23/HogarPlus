@@ -7,7 +7,10 @@ export type EmailTemplateId =
   | "product_request_received"
   | "product_request_approved"
   | "product_request_rejected"
-  | "product_delivered";
+  | "product_delivered"
+  | "exclusive_offer"
+  | "catalog_offer"
+  | "catalog_new";
 
 export type EmailPayload = {
   subject: string;
@@ -23,6 +26,28 @@ type ShellInput = {
 };
 
 type DetailRow = { label: string; value: string };
+
+const CONTACT = {
+  whatsapp: "18298819361",
+  whatsappLabel: "829-881-9361",
+  email: "hogarplusdr@gmail.com",
+  facebook: "https://www.facebook.com/profile.php?id=61594514707916",
+};
+
+const SOCIAL_LINKS = [
+  { label: "Facebook", url: CONTACT.facebook, color: "#1877F2" },
+  { label: "WhatsApp", url: `https://wa.me/${CONTACT.whatsapp}`, color: "#25D366" },
+  { label: "Correo", url: `mailto:${CONTACT.email}`, color: "#C4A04A" },
+];
+
+const TEXT_FOOTER = [
+  "",
+  "—",
+  "HOGAR PLUS · Ventas de todo a crédito",
+  `Facebook: ${CONTACT.facebook}`,
+  `WhatsApp: ${CONTACT.whatsappLabel} (https://wa.me/${CONTACT.whatsapp})`,
+  `Correo: ${CONTACT.email}`,
+].join("\n");
 
 export function escapeHtml(value: string) {
   return value
@@ -102,9 +127,23 @@ export function buildEmailShell({ title, subtitle, contentHtml, cta }: ShellInpu
               </tr>
 
               <tr>
-                <td style="background:#f8fafc;padding:16px 32px;border-top:1px solid #e2e8f0;text-align:center;">
-                  <div style="font-size:11px;font-weight:700;color:#C4A04A;letter-spacing:0.2em;font-family:Arial,sans-serif;">HOGARPLUS</div>
-                  <div style="margin-top:4px;font-size:11px;color:#94a3b8;font-family:Arial,sans-serif;">Correo automático · No responder a este mensaje</div>
+                <td style="background:#122033;padding:22px 32px;text-align:center;">
+                  <div style="font-size:12px;font-weight:700;color:#C4A04A;letter-spacing:0.2em;font-family:Arial,sans-serif;">SÍGUENOS Y ESCRÍBENOS</div>
+                  <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin-top:14px;">
+                    <tr>
+                      ${SOCIAL_LINKS.map(
+                        (link) => `
+                      <td style="padding:0 5px;">
+                        <a href="${escapeHtml(link.url)}" style="display:inline-block;padding:9px 16px;border-radius:999px;background:${link.color};color:#ffffff;text-decoration:none;font-size:13px;font-weight:700;font-family:Arial,sans-serif;">${escapeHtml(link.label)}</a>
+                      </td>`,
+                      ).join("")}
+                    </tr>
+                  </table>
+                  <div style="margin-top:14px;font-size:12px;line-height:1.7;color:#cbd5e1;font-family:Arial,sans-serif;">
+                    WhatsApp ${escapeHtml(CONTACT.whatsappLabel)} · <a href="mailto:${escapeHtml(CONTACT.email)}" style="color:#E8C97A;text-decoration:none;">${escapeHtml(CONTACT.email)}</a>
+                  </div>
+                  <div style="margin-top:10px;font-size:11px;color:#94a3b8;font-family:Arial,sans-serif;">HOGAR PLUS · Ventas de todo a crédito</div>
+                  <div style="margin-top:2px;font-size:11px;color:#64748b;font-family:Arial,sans-serif;">Correo automático · No respondas a este mensaje</div>
                 </td>
               </tr>
 
@@ -135,7 +174,7 @@ function pack(subject: string, title: string, subtitle: string, greeting: string
     footer ? `\n${footer}` : "",
   ].filter(Boolean);
 
-  return { subject, html, text: textLines.join("\n") };
+  return { subject, html, text: textLines.join("\n") + TEXT_FOOTER };
 }
 
 export type ClientEmailVars = {
@@ -149,6 +188,13 @@ export type ClientEmailVars = {
   weeks?: string;
   weeklyQuota?: string;
   portalUrl?: string;
+  /** Titular de la oferta: "-15%", "Regalo", "Promo". */
+  offer?: string;
+  /** Detalle: qué regalo, texto de la promo o nota del descuento. */
+  offerDetail?: string;
+  /** Precio antes de la oferta, ya formateado. */
+  previousAmount?: string;
+  endsAt?: string;
 };
 
 export function renderStaffAlert(title: string, message: string): EmailPayload {
@@ -161,8 +207,19 @@ export function renderStaffAlert(title: string, message: string): EmailPayload {
   return {
     subject: `HogarPlus · ${title}`,
     html,
-    text: `${title}\n\n${message}`,
+    text: `${title}\n\n${message}${TEXT_FOOTER}`,
   };
+}
+
+function offerRows(product: string, vars: ClientEmailVars): DetailRow[] {
+  return [
+    { label: "Producto", value: product },
+    ...(vars.offer ? [{ label: "Oferta", value: vars.offer }] : []),
+    ...(vars.offerDetail ? [{ label: "Detalle", value: vars.offerDetail }] : []),
+    ...(vars.previousAmount ? [{ label: "Antes", value: vars.previousAmount }] : []),
+    ...(vars.amount ? [{ label: vars.previousAmount ? "Ahora" : "Precio", value: vars.amount }] : []),
+    ...(vars.endsAt ? [{ label: "Válida hasta", value: vars.endsAt }] : []),
+  ];
 }
 
 export function renderClientEmail(id: EmailTemplateId, vars: ClientEmailVars): EmailPayload {
@@ -292,6 +349,42 @@ export function renderClientEmail(id: EmailTemplateId, vars: ClientEmailVars): E
         "Recuerda pagar a tiempo para sumar puntos y subir de nivel.",
         cta,
       );
+    case "exclusive_offer":
+      return pack(
+        `HogarPlus · Oferta exclusiva para ti: ${product}`,
+        "Oferta exclusiva para ti",
+        "Solo tú la puedes ver",
+        `Hola ${name},`,
+        `Preparamos una oferta especial solo para ti en ${product}. Entra a tu portal y solicítalo antes de que termine.`,
+        offerRows(product, vars),
+        "Esta oferta es personal: no aparece para otros clientes.",
+        vars.portalUrl ? { label: "Ver mi oferta", url: vars.portalUrl } : undefined,
+      );
+    case "catalog_offer":
+      return pack(
+        `HogarPlus · Oferta: ${product}`,
+        "Nueva oferta en el catálogo",
+        "Aprovecha antes de que se acabe",
+        `Hola ${name},`,
+        `${product} está en oferta. Entra a tu portal para verla y solicitarla.`,
+        offerRows(product, vars),
+        "Las ofertas tienen tiempo y cantidad limitados.",
+        vars.portalUrl ? { label: "Ver la oferta", url: vars.portalUrl } : undefined,
+      );
+    case "catalog_new":
+      return pack(
+        `HogarPlus · Nuevo en el catálogo: ${product}`,
+        "Llegó algo nuevo",
+        "Recién agregado al catálogo",
+        `Hola ${name},`,
+        `Acabamos de agregar ${product} al catálogo. Entra a tu portal para verlo.`,
+        [
+          { label: "Producto", value: product },
+          ...(amount ? [{ label: "Precio", value: amount }] : []),
+        ],
+        "Recuerda: puedes pedir los productos de tu categoría.",
+        vars.portalUrl ? { label: "Ver lo nuevo", url: vars.portalUrl } : undefined,
+      );
     default: {
       const _exhaustive: never = id;
       return _exhaustive;
@@ -313,6 +406,9 @@ export const EMAIL_TEMPLATE_CATALOG: {
   { id: "product_request_approved", name: "Solicitud aceptada", description: "Cuando ventas aprueba una solicitud.", audience: "cliente" },
   { id: "product_request_rejected", name: "Solicitud rechazada", description: "Cuando ventas rechaza una solicitud.", audience: "cliente" },
   { id: "product_delivered", name: "Producto entregado", description: "Cuando se crea el crédito y se entrega el artículo.", audience: "cliente" },
+  { id: "exclusive_offer", name: "Oferta exclusiva", description: "Cuando creas una oferta solo para ese cliente.", audience: "cliente" },
+  { id: "catalog_offer", name: "Oferta en el catálogo", description: "Cuando un producto entra en oferta (a clientes de esa categoría).", audience: "cliente" },
+  { id: "catalog_new", name: "Producto nuevo", description: "Cuando se agrega un producto marcado como Nuevo.", audience: "cliente" },
   { id: "staff_alert", name: "Aviso al equipo", description: "Notificaciones internas (solicitudes, avisos, referidos).", audience: "equipo" },
 ];
 
@@ -328,6 +424,10 @@ export function previewEmailTemplate(id: EmailTemplateId): EmailPayload {
     weeks: "12 semanas",
     weeklyQuota: "RD$ 850.00",
     portalUrl: "https://hogarplus.do/portal",
+    offer: "-15%",
+    offerDetail: "Solo este mes",
+    previousAmount: "RD$ 5,000.00",
+    endsAt: "30/09/2026",
   };
 
   if (id === "staff_alert") {

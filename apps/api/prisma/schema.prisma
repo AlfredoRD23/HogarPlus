@@ -52,6 +52,34 @@ enum OfferType {
   PROMO
 }
 
+enum ClientOfferStatus {
+  ACTIVE
+  USED
+  CANCELLED
+}
+
+/// Oferta exclusiva: solo la ve y la usa un cliente.
+model ClientOffer {
+  id            String            @id @default(cuid())
+  clientId      String
+  productId     String
+  offerType     OfferType
+  offerDiscount Int?
+  offerLabel    String?           @db.VarChar(120)
+  offerEndsAt   DateTime?
+  status        ClientOfferStatus @default(ACTIVE)
+  usedCreditId  String?
+  createdById   String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  client  Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, status])
+  @@index([productId, status])
+}
+
 enum CreditStatus {
   DRAFT
   ACTIVE
@@ -178,6 +206,7 @@ model Client {
   images          ClientImage[]
   referralsMade   Referral[] @relation("ReferralsMade")
   fromReferral    Referral?  @relation("ReferralRegistered")
+  exclusiveOffers ClientOffer[]
 
   @@index([status, level])
   @@index([phone])
@@ -223,6 +252,7 @@ model Product {
   inventoryMovements InventoryMovement[]
   productRequests    ProductRequest[]
   images             ProductImage[]
+  clientOffers       ClientOffer[]
 
   @@index([category, catalogTier, status])
 }

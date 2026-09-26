@@ -1,6 +1,6 @@
 import { useRef, useState, type ReactNode } from "react";
 import toast from "react-hot-toast";
-import { Bell, CheckCircle2, ChevronLeft, ChevronRight, Download, Flame, Home, Lock, LogOut, Package, UserPlus, Wallet, ArrowRight } from "lucide-react";
+import { Bell, CheckCircle2, ChevronLeft, ChevronRight, Download, Flame, Home, Info, Lock, LogOut, Package, UserPlus, Wallet, ArrowRight } from "lucide-react";
 import { api, formatDate, mediaUrl, money } from "../lib/api";
 import { creditsFromDebtError, debtFacts, debtNotes, isDebtError } from "../lib/debt";
 import { openInvoice, type InvoiceData } from "../lib/invoice";
@@ -9,6 +9,7 @@ import { WaitLabel } from "../components/Loader";
 import { InstallmentBadge, LevelBadge } from "../components/Badges";
 import { CatalogTierTabs, type CatalogTierFilter } from "../components/CatalogTierTabs";
 import { promoRank, ShowcaseCard, type ShowcaseProduct } from "../components/Promo";
+import { LevelsInfoModal } from "../components/LevelsInfo";
 import { Field, FormattedInput, Modal, fieldHint } from "../components/Form";
 import { InfoModal } from "../components/InfoModal";
 import { ReferClientForm } from "../components/ReferClientForm";
@@ -134,6 +135,7 @@ export function PortalPage() {
   const [activeCreditId, setActiveCreditId] = useState("");
   const [catalogTier, setCatalogTier] = useState<CatalogTierFilter>("ALL");
   const [activity, setActivity] = useState<ActivityTab>("payments");
+  const [levelsOpen, setLevelsOpen] = useState(false);
 
   const identity = () => ({ documentId: digitsOnly(documentId), phone: digitsOnly(phone) });
 
@@ -292,6 +294,13 @@ export function PortalPage() {
                   <span className="text-xs text-slate-300">
                     {data.client.code} · pides {catalogAccessLabel(data.client.level)}
                   </span>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 rounded-full border border-gold-500/40 px-2.5 py-1 text-xs font-semibold text-gold-300 transition hover:bg-gold-500 hover:text-navy-950"
+                    onClick={() => setLevelsOpen(true)}
+                  >
+                    <Info size={13} /> Más información
+                  </button>
                 </div>
               </div>
             </div>
@@ -364,6 +373,13 @@ export function PortalPage() {
               <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
                 <div className="h-full rounded-full bg-gradient-to-r from-gold-500 to-gold-300 transition-all duration-700" style={{ width: `${levelPercent}%` }} />
               </div>
+              <button
+                type="button"
+                className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-gold-300 hover:text-gold-100"
+                onClick={() => setLevelsOpen(true)}
+              >
+                ¿Cómo subo de nivel? <ArrowRight size={12} />
+              </button>
             </div>
           </div>
         </section>
@@ -554,6 +570,7 @@ export function PortalPage() {
           onClose={() => setDebtModal(null)}
         />
       )}
+      {levelsOpen && <LevelsInfoModal current={data.client.level} onClose={() => setLevelsOpen(false)} />}
       {levelLock && (
         <InfoModal
           title={`Este es de ${CATALOG_TIER_LABELS[levelLock.catalogTier]}`}

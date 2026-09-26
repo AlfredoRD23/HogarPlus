@@ -9,6 +9,7 @@ import {
   Download,
   Facebook,
   Flame,
+  Info,
   Instagram,
   Share,
   Sparkles,
@@ -16,6 +17,7 @@ import {
 import { Logo } from "../components/Logo";
 import { CatalogTierTabs, type CatalogTierFilter } from "../components/CatalogTierTabs";
 import { promoRank, ShowcaseCard, type ShowcaseProduct } from "../components/Promo";
+import { LevelsInfoModal } from "../components/LevelsInfo";
 import { homePathFor, CATEGORY_LABELS, PRODUCT_CATEGORIES, type ProductCategory } from "@hogarplus/shared";
 import { useAuth } from "../auth/AuthContext";
 import { usePwaInstall } from "../hooks/usePwaInstall";
@@ -73,6 +75,7 @@ export function HomePage() {
   const { user } = useAuth();
   const pwa = usePwaInstall();
   const [tier, setTier] = useState<CatalogTierFilter>("ALL");
+  const [levelsOpen, setLevelsOpen] = useState(false);
   const catalog = useQuery({
     queryKey: ["public-catalog"],
     queryFn: () => api<PublicProduct[]>("/api/products/public"),
@@ -213,7 +216,13 @@ export function HomePage() {
                 {pwa.installed ? "App instalada" : "Instalar app"}
               </button>
               <span className="hidden text-white/25 sm:inline">·</span>
-              <span>Salud · Belleza · Hogar</span>
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 font-medium text-gold-300 transition hover:text-gold-100"
+                onClick={() => setLevelsOpen(true)}
+              >
+                <Info size={15} /> Niveles Bronce, Plata y Oro
+              </button>
             </div>
             {pwa.ios && !pwa.installed ? (
               <p className="mt-3 flex items-start gap-2 text-sm text-gold-200/90">
@@ -292,6 +301,26 @@ export function HomePage() {
               <Step n="02" title="Cuota semanal" text="Ves tu saldo, las fechas y cada cobro aplicado en tu cuenta." />
               <Step n="03" title="Puntos y niveles" text="El buen pago sube de Inicial a Bronce, Plata y Oro." />
             </ol>
+            <div className="mt-10 flex flex-col gap-4 rounded-2xl border border-gold-500/25 bg-white/[0.04] p-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <span className="flex -space-x-2">
+                  {["#B87333", "#8E9AA8", "#C4A04A"].map((color) => (
+                    <span key={color} className="h-8 w-8 rounded-full ring-2 ring-[#1A2F52]" style={{ backgroundColor: color }} />
+                  ))}
+                </span>
+                <div>
+                  <p className="font-semibold text-white">Tu nivel HOGAR PLUS</p>
+                  <p className="text-sm text-slate-300">Bronce, Plata y Oro: qué significa cada uno y cómo avanzar.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-2xl bg-gold-500 px-5 text-sm font-semibold text-navy-950 transition hover:bg-gold-600"
+                onClick={() => setLevelsOpen(true)}
+              >
+                <Info size={16} /> Más información
+              </button>
+            </div>
           </div>
         </section>
 
@@ -364,6 +393,7 @@ export function HomePage() {
           © {new Date().getFullYear()} HogarPlus. Todos los derechos reservados.
         </p>
       </footer>
+      {levelsOpen && <LevelsInfoModal onClose={() => setLevelsOpen(false)} />}
     </div>
   );
 }

@@ -5,11 +5,77 @@ import { AppError, nextCode, pagination } from "../../shared/utils";
 import { writeAudit } from "../../middleware/auth";
 import { absoluteUploadPath, MAX_PRODUCT_IMAGES, publicUploadPathFor } from "../../lib/upload";
 import type { z } from "zod";
+import { activeOffer, effectivePrice, isNewProduct, type OfferType } from "@hogarplus/shared";
 import type { createProductSchema, updateProductSchema } from "./products.schema";
 
 const productImages = {
   images: { orderBy: { createdAt: "asc" as const }, select: { id: true, path: true, originalName: true } },
 };
+
+export const promoSelect = {
+  offerType: true,
+  offerDiscount: true,
+  offerLabel: true,
+  offerEndsAt: true,
+  newUntil: true,
+} as const;
+
+type PromoRow = {
+  price: Prisma.Decimal | number;
+  offerType: OfferType | null;
+  offerDiscount: number | null;
+  offerLabel: string | null;
+  offerEndsAt: Date | null;
+  newUntil: Date | null;
+};
+
+/** Campos de oferta listos para catálogo público y portal. */
+export function publicPromo(row: PromoRow) {
+  const fields = { ...row, price: Number(row.price) };
+  const offer = activeOffer(fields);
+  return {
+    offer,
+    isNew: isNewProduct(fields),
+    finalPrice: offer?.finalPrice ?? Number(row.price),
+  };
+}
+
+function endOfDay(value: string | null | undefined) {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  // Fin del día en hora de República Dominicana (UTC-4, sin horario de verano).
+  return new Date(`${value.slice(0, 10)}T23:59:59-04:00`);
+}
+
+type PromoInput = {
+  offerType?: OfferType | null;
+  offerDiscount?: number | null;
+  offerLabel?: string | null;
+  offerEndsAt?: string | null;
+  newUntil?: string | null;
+};
+
+function promoData(input: PromoInput) {
+  if (input.offerType === undefined) {
+    return { newUntil: endOfDay(input.newUntil) };
+  }
+  const type = input.offerType;
+  return {
+    offerType: type,
+    offerDiscount: type === "DISCOUNT" ? input.offerDiscount ?? null : null,
+    offerLabel: type ? input.offerLabel?.trim() || null : null,
+    offerEndsAt: type ? endOfDay(input.offerEndsAt) ?? null : null,
+    newUntil: endOfDay(input.newUntil),
+  };
+}
+
+function assertOfferAboveCost(price: number, cost: number, input: PromoInput) {
+  if (input.offerType !== "DISCOUNT" || !input.offerDiscount) return;
+  const finalPrice = effectivePrice({ price, offerType: "DISCOUNT", offerDiscount: input.offerDiscount });
+  if (finalPrice <= cost) {
+    throw new AppError(400, "INVALID_OFFER", "Con ese descuento el precio queda por debajo del costo");
+  }
+}
 
 export class ProductsService {
   async list(query: {
@@ -56,6 +122,7 @@ export class ProductsService {
         catalogTier: true,
         price: true,
         imageUrl: true,
+        ...promoSelect,
         images: { take: 1, orderBy: { createdAt: "asc" }, select: { path: true } },
       },
     });
@@ -67,6 +134,7 @@ export class ProductsService {
       catalogTier: item.catalogTier,
       price: item.price,
       imageUrl: item.imageUrl || item.images[0]?.path || null,
+      ...publicPromo(item),
     }));
   }
 
@@ -83,6 +151,7 @@ export class ProductsService {
     if (input.price <= input.cost) {
       throw new AppError(400, "INVALID_PRICE", "El precio de venta debe ser mayor al costo");
     }
+    assertOfferAboveCost(input.price, input.cost, input);
 
     const name = input.name.trim();
     const duplicate = await prisma.product.findFirst({
@@ -105,6 +174,7 @@ export class ProductsService {
         price: input.price,
         stock: input.stock,
         minStock: input.minStock,
+        ...promoData(input),
       },
     });
 
@@ -128,6 +198,7 @@ export class ProductsService {
   async update(id: string, input: z.infer<typeof updateProductSchema>, actorId: string, ip?: string) {
     const before = await prisma.product.findUnique({ where: { id } });
     if (!before) throw new AppError(404, "NOT_FOUND", "Producto no encontrado");
+    assertOfferAboveCost(input.price ?? Number(before.price), input.cost ?? Number(before.cost), input);
 
     const product = await prisma.product.update({
       where: { id },
@@ -141,6 +212,7 @@ export class ProductsService {
         price: input.price,
         minStock: input.minStock,
         status: input.status,
+        ...promoData(input),
       },
     });
 

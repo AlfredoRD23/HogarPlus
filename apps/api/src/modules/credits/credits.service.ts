@@ -3,6 +3,7 @@ import {
   catalogsForLevel,
   CATALOG_TIER_LABELS,
   digitsOnly,
+  effectivePrice,
   financedAmount,
   installmentAmounts,
   LEVEL_LABELS,
@@ -120,7 +121,14 @@ export class CreditsService {
     const settings = await settingsService.getAll();
     const frequency = input.frequency ?? "WEEKLY";
     const downPayment = Number(input.downPayment ?? 0);
-    const price = money(product.price);
+    const price = money(
+      effectivePrice({
+        price: Number(product.price),
+        offerType: product.offerType,
+        offerDiscount: product.offerDiscount,
+        offerEndsAt: product.offerEndsAt,
+      }),
+    );
     if (downPayment >= price) {
       throw new AppError(400, "DOWN_PAYMENT_HIGH", "El pago inicial debe ser menor que el precio del producto");
     }

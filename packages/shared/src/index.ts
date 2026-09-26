@@ -24,6 +24,85 @@ export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];
 export const PRODUCT_STATUSES = ["ACTIVE", "INACTIVE"] as const;
 export type ProductStatus = (typeof PRODUCT_STATUSES)[number];
 
+export const OFFER_TYPES = ["DISCOUNT", "GIFT", "PROMO"] as const;
+export type OfferType = (typeof OFFER_TYPES)[number];
+
+export const OFFER_TYPE_LABELS: Record<OfferType, string> = {
+  DISCOUNT: "Descuento",
+  GIFT: "Regalo gratis",
+  PROMO: "Promoción",
+};
+
+export type ProductPromoFields = {
+  price: number | string;
+  offerType?: OfferType | null;
+  offerDiscount?: number | null;
+  offerLabel?: string | null;
+  offerEndsAt?: string | Date | null;
+  newUntil?: string | Date | null;
+};
+
+export type ActiveOffer = {
+  type: OfferType;
+  headline: string;
+  detail: string | null;
+  discount: number;
+  basePrice: number;
+  finalPrice: number;
+  endsAt: string | null;
+};
+
+function toTime(value: string | Date | null | undefined): number | null {
+  if (!value) return null;
+  const time = new Date(value).getTime();
+  return Number.isNaN(time) ? null : time;
+}
+
+/** Oferta vigente del producto, o null si no tiene o ya venció. */
+export function activeOffer(product: ProductPromoFields, now: Date = new Date()): ActiveOffer | null {
+  if (!product.offerType) return null;
+  const ends = toTime(product.offerEndsAt);
+  if (ends !== null && ends < now.getTime()) return null;
+  const basePrice = Number(product.price);
+  const label = product.offerLabel?.trim() || null;
+  const endsAt = ends !== null ? new Date(ends).toISOString() : null;
+  switch (product.offerType) {
+    case "DISCOUNT": {
+      const discount = Math.min(90, Math.max(0, Math.round(Number(product.offerDiscount ?? 0))));
+      if (discount <= 0) return null;
+      const finalPrice = Math.round(basePrice * (100 - discount)) / 100;
+      return { type: "DISCOUNT", headline: `-${discount}%`, detail: label, discount, basePrice, finalPrice, endsAt };
+    }
+    case "GIFT":
+      return {
+        type: "GIFT",
+        headline: "Gratis",
+        detail: label ?? "Regalo con tu compra",
+        discount: 0,
+        basePrice,
+        finalPrice: basePrice,
+        endsAt,
+      };
+    case "PROMO":
+      if (!label) return null;
+      return { type: "PROMO", headline: "Promo", detail: label, discount: 0, basePrice, finalPrice: basePrice, endsAt };
+    default: {
+      const _exhaustive: never = product.offerType;
+      return _exhaustive;
+    }
+  }
+}
+
+/** Precio que paga el cliente hoy (aplica el descuento vigente). */
+export function effectivePrice(product: ProductPromoFields, now: Date = new Date()): number {
+  return activeOffer(product, now)?.finalPrice ?? Number(product.price);
+}
+
+export function isNewProduct(product: Pick<ProductPromoFields, "newUntil">, now: Date = new Date()): boolean {
+  const until = toTime(product.newUntil);
+  return until !== null && until >= now.getTime();
+}
+
 export const CREDIT_STATUSES = [
   "DRAFT",
   "ACTIVE",

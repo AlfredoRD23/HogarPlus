@@ -35,6 +35,8 @@ import {
   type InstallmentStatus,
   type OutstandingCredit,
   type PaymentFrequency,
+  type ProductPromoFields,
+  effectivePrice,
 } from "@hogarplus/shared";
 import { CatalogBadge, CreditBadge, InstallmentBadge } from "../components/Badges";
 import { StatusTabs } from "../components/StatusTabs";
@@ -449,8 +451,13 @@ export function NewCreditPage() {
   const products = useQuery({
     queryKey: ["products"],
     queryFn: () =>
-      api<Array<{ id: string; name: string; price: number; catalogTier: CatalogTier; imageUrl?: string | null; description?: string | null; status?: string }>>("/api/products?pageSize=100"),
+      api<Array<{ id: string; name: string; price: number; catalogTier: CatalogTier; imageUrl?: string | null; description?: string | null; status?: string } & ProductPromoFields>>("/api/products?pageSize=100"),
   });
+  const pricedProducts = (products.data?.data ?? []).map((p) => ({
+    ...p,
+    basePrice: Number(p.price),
+    price: effectivePrice(p),
+  }));
   const settings = useQuery({
     queryKey: ["settings"],
     queryFn: () => api<{ weeklyQuota: number; defaultWeeks: number }>("/api/settings"),
@@ -513,14 +520,14 @@ export function NewCreditPage() {
     setDebt(openDebt);
   }, [clientId, openDebt?.id]);
   const allowedTiers = selectedClient ? catalogsForLevel(selectedClient.level) : [];
-  const visibleProducts = (products.data?.data ?? []).filter((p) =>
+  const visibleProducts = pricedProducts.filter((p) =>
     p.status !== "INACTIVE" && (selectedClient ? allowedTiers.includes(p.catalogTier) : true),
   );
-  const product = (products.data?.data ?? []).find((p) => p.id === productId);
+  const product = pricedProducts.find((p) => p.id === productId);
 
   useEffect(() => {
     if (!productId || !selectedClient) return;
-    const stillAllowed = (products.data?.data ?? []).some(
+    const stillAllowed = pricedProducts.some(
       (p) => p.id === productId && catalogsForLevel(selectedClient.level).includes(p.catalogTier),
     );
     if (!stillAllowed) setProductId("");
@@ -642,7 +649,12 @@ export function NewCreditPage() {
                     <div className="mb-1"><CatalogBadge tier={p.catalogTier} /></div>
                     <p className="font-semibold leading-tight">{p.name}</p>
                     {p.description ? <p className="mt-1 line-clamp-2 text-xs text-slate-500">{p.description}</p> : null}
-                    <p className="mt-1 text-sm font-bold">{money(p.price)}</p>
+                    <p className="mt-1 text-sm font-bold">
+                      {p.price < p.basePrice ? (
+                        <span className="mr-1.5 font-normal text-slate-400 line-through">{money(p.basePrice)}</span>
+                      ) : null}
+                      {money(p.price)}
+                    </p>
                   </div>
                 </button>
               ))}

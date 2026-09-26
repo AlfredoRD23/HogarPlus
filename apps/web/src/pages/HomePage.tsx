@@ -8,43 +8,65 @@ import {
   ChevronRight,
   Download,
   Facebook,
+  Flame,
   Instagram,
-  Package,
   Share,
+  Sparkles,
 } from "lucide-react";
 import { Logo } from "../components/Logo";
-import { CatalogBadge } from "../components/Badges";
 import { CatalogTierTabs, type CatalogTierFilter } from "../components/CatalogTierTabs";
-import { homePathFor, CATEGORY_LABELS, PRODUCT_CATEGORIES, type CatalogTier, type ProductCategory } from "@hogarplus/shared";
+import { promoRank, ShowcaseCard, type ShowcaseProduct } from "../components/Promo";
+import { homePathFor, CATEGORY_LABELS, PRODUCT_CATEGORIES, type ProductCategory } from "@hogarplus/shared";
 import { useAuth } from "../auth/AuthContext";
 import { usePwaInstall } from "../hooks/usePwaInstall";
-import { api, mediaUrl, money } from "../lib/api";
+import { api, money } from "../lib/api";
 
 const WHATSAPP_NUMBER = "18298819361";
 
-type PublicProduct = {
-  id: string;
-  name: string;
-  description?: string | null;
+type PublicProduct = ShowcaseProduct & {
   category: ProductCategory;
-  catalogTier: CatalogTier;
-  price: number;
-  imageUrl?: string | null;
 };
 
-function whatsappHref(product?: { name: string; price: number }) {
+function whatsappHref(product?: PublicProduct) {
+  const offerNote = product?.offer
+    ? product.offer.type === "DISCOUNT"
+      ? ` con la oferta ${product.offer.headline}`
+      : ` con la oferta: ${product.offer.detail}`
+    : "";
   const text = product
-    ? `Hola, quiero ser cliente de HogarPlus. Me interesa ${product.name} (${money(product.price)}).`
+    ? `Hola, quiero ser cliente de HogarPlus. Me interesa ${product.name} (${money(product.finalPrice)})${offerNote}.`
     : "Hola, quiero ser cliente de HogarPlus.";
   return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
 }
 
-function openWhatsApp(product?: { name: string; price: number }) {
+function openWhatsApp(product?: PublicProduct) {
   window.open(whatsappHref(product), "_blank", "noopener,noreferrer");
 }
 
 function scrollToCatalog() {
   document.getElementById("catalogo")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function scrollToOffers() {
+  document.getElementById("ofertas")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function ConsultButton({ product }: { product: PublicProduct }) {
+  return (
+    <a
+      href={whatsappHref(product)}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-semibold transition ${
+        product.offer
+          ? "bg-gold-500 text-navy-950 hover:bg-gold-600"
+          : "border border-gold-500/50 text-gold-100 hover:border-gold-500 hover:bg-gold-500 hover:text-navy-950"
+      }`}
+    >
+      {product.offer ? "La quiero" : "Consultar"}
+      <ArrowRight size={14} />
+    </a>
+  );
 }
 
 export function HomePage() {
@@ -67,6 +89,8 @@ export function HomePage() {
     B: products.filter((item) => item.catalogTier === "B").length,
     C: products.filter((item) => item.catalogTier === "C").length,
   };
+  const highlights = promoRank(products);
+  const offerCount = products.filter((item) => item.offer).length;
 
   async function handleInstall() {
     if (pwa.installed) {
@@ -140,6 +164,20 @@ export function HomePage() {
 
         <div className="relative mx-auto flex min-h-[calc(100svh-3.5rem)] max-w-6xl flex-col justify-center px-4 py-16 sm:min-h-[calc(100svh-4rem)] sm:px-8 sm:py-20">
           <div className="home-fade max-w-2xl">
+            {highlights.length > 0 ? (
+              <button
+                type="button"
+                onClick={scrollToOffers}
+                className="promo-enter mb-5 inline-flex items-center gap-2 rounded-full border border-gold-500/40 bg-[#1A2F52]/70 py-1.5 pl-1.5 pr-4 text-sm font-semibold text-gold-100 backdrop-blur transition hover:bg-[#1A2F52]"
+              >
+                <span className="promo-ribbon">
+                  <Flame size={13} strokeWidth={2.5} />
+                  {offerCount > 0 ? `${offerCount} ${offerCount === 1 ? "oferta" : "ofertas"}` : "Nuevo"}
+                </span>
+                {offerCount > 0 ? "Descuentos y regalos esta semana" : "Mira lo que acaba de llegar"}
+                <ArrowRight size={14} />
+              </button>
+            ) : null}
             <p className="font-display text-4xl font-semibold tracking-tight text-gold-100 sm:text-5xl lg:text-6xl">
               HogarPlus
             </p>
@@ -188,6 +226,27 @@ export function HomePage() {
       </section>
 
       <main>
+        {highlights.length > 0 ? (
+          <section id="ofertas" className="relative scroll-mt-24 overflow-hidden border-t border-gold-500/20 bg-[#132540] py-16 sm:py-20">
+            <div className="home-glow pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-gold-500/20 blur-3xl" aria-hidden />
+            <div className="home-glow pointer-events-none absolute -bottom-40 -left-24 h-96 w-96 rounded-full bg-orange-500/15 blur-3xl" aria-hidden />
+            <div className="relative mx-auto max-w-6xl px-4 sm:px-8">
+              <div className="flex items-end justify-between gap-4">
+                <div className="max-w-2xl">
+                  <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-gold-300">
+                    <Sparkles size={14} className="promo-float" /> Ofertas y novedades
+                  </p>
+                  <h2 className="mt-3 font-display text-3xl font-semibold sm:text-4xl">Aprovecha antes de que se acaben</h2>
+                  <p className="mt-3 text-sm leading-7 text-slate-300 sm:text-base">
+                    Descuentos, regalos y lo último que llegó. Escríbenos y te lo apartamos.
+                  </p>
+                </div>
+              </div>
+              <HighlightsCarousel products={highlights} />
+            </div>
+          </section>
+        ) : null}
+
         <section id="catalogo" className="scroll-mt-24 border-t border-white/10 bg-[#15263f] py-16 sm:py-20">
           <div className="mx-auto max-w-6xl px-4 sm:px-8">
             <div className="max-w-2xl">
@@ -347,51 +406,31 @@ function CategoryCarousel({ title, products }: { title: string; products: Public
       </div>
       <div ref={ref} className="carousel items-stretch">
         {products.map((product) => (
-          <article
+          <ShowcaseCard
             key={product.id}
-            className="group flex min-w-full shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#1e3454] lg:min-w-[calc((100%-2rem)/3)] lg:w-[calc((100%-2rem)/3)]"
-          >
-            <div className="relative aspect-[4/3] shrink-0 overflow-hidden bg-navy-900">
-              {product.imageUrl ? (
-                <img
-                  src={mediaUrl(product.imageUrl)}
-                  alt={product.name}
-                  className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center text-slate-500">
-                  <Package size={28} />
-                </div>
-              )}
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-[#1e3454] to-transparent" />
-              <div className="absolute left-3 top-3">
-                <CatalogBadge tier={product.catalogTier} />
-              </div>
-            </div>
-            <div className="flex flex-1 flex-col px-5 pb-5 pt-1">
-              <h4 className="line-clamp-1 text-[1.05rem] font-semibold tracking-tight text-white">{product.name}</h4>
-              <p className="mt-1.5 line-clamp-2 min-h-[2.5rem] text-sm leading-5 text-slate-300">
-                {product.description || "Disponible a crédito con cuotas semanales."}
-              </p>
-              <div className="mt-auto flex items-end justify-between gap-3 border-t border-white/10 pt-4">
-                <div>
-                  <p className="text-[11px] font-medium uppercase tracking-wider text-slate-400">Precio</p>
-                  <p className="mt-0.5 font-display text-xl text-gold-100">{money(product.price)}</p>
-                </div>
-                <a
-                  href={whatsappHref(product)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-gold-500/50 bg-transparent px-4 text-sm font-semibold text-gold-100 transition hover:border-gold-500 hover:bg-gold-500 hover:text-navy-950"
-                >
-                  Consultar
-                  <ArrowRight size={14} />
-                </a>
-              </div>
-            </div>
-          </article>
+            product={product}
+            className="min-w-full lg:min-w-[calc((100%-2rem)/3)] lg:w-[calc((100%-2rem)/3)]"
+            action={<ConsultButton product={product} />}
+          />
         ))}
       </div>
+    </div>
+  );
+}
+
+function HighlightsCarousel({ products }: { products: PublicProduct[] }) {
+  return (
+    <div className="carousel mt-10 items-stretch pb-2 pt-1">
+      {products.map((product, index) => (
+        <ShowcaseCard
+          key={product.id}
+          product={product}
+          eyebrow={CATEGORY_LABELS[product.category]}
+          delay={Math.min(index, 5) * 90}
+          className="min-w-[85%] sm:min-w-[calc((100%-1rem)/2)] sm:w-[calc((100%-1rem)/2)] lg:min-w-[calc((100%-2rem)/3)] lg:w-[calc((100%-2rem)/3)]"
+          action={<ConsultButton product={product} />}
+        />
+      ))}
     </div>
   );
 }

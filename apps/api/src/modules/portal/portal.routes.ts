@@ -13,6 +13,7 @@ import { paymentClaimsService } from "../payment-claims/payment-claims.service";
 import { paymentsService } from "../payments/payments.service";
 import { asUploadError, claimImageUpload } from "../../lib/upload";
 import { portalUrl, sendClientTemplate } from "../../shared/mailer";
+import { promoSelect, publicPromo } from "../products/products.service";
 
 export const portalRouter = Router();
 
@@ -95,6 +96,7 @@ portalRouter.post(
         price: true,
         description: true,
         imageUrl: true,
+        ...promoSelect,
         images: { take: 1, orderBy: { createdAt: "asc" }, select: { path: true } },
       },
     });
@@ -111,6 +113,7 @@ portalRouter.post(
         price: product.price,
         description: product.description,
         imageUrl: product.imageUrl || product.images[0]?.path || null,
+        ...publicPromo(product),
         canRequest: access.canRequest,
         lockReason: access.lockReason,
         requested: pendingIds.has(product.id),

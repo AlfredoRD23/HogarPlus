@@ -46,6 +46,12 @@ enum ProductStatus {
   INACTIVE
 }
 
+enum OfferType {
+  DISCOUNT
+  GIFT
+  PROMO
+}
+
 enum CreditStatus {
   DRAFT
   ACTIVE
@@ -205,6 +211,11 @@ model Product {
   minStock    Int             @default(2)
   status      ProductStatus   @default(ACTIVE)
   imageUrl    String?
+  offerType     OfferType?
+  offerDiscount Int?
+  offerLabel    String?       @db.VarChar(120)
+  offerEndsAt   DateTime?
+  newUntil      DateTime?
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 

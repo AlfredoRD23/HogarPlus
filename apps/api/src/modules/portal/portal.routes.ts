@@ -14,6 +14,7 @@ import { paymentsService } from "../payments/payments.service";
 import { asUploadError, claimImageUpload } from "../../lib/upload";
 import { portalUrl, sendClientTemplate } from "../../shared/mailer";
 import { promoSelect, publicPromo } from "../products/products.service";
+import { exclusiveOffer } from "../client-offers/client-offers.service";
 
 export const portalRouter = Router();
 
@@ -103,8 +104,18 @@ portalRouter.post(
     const pendingIds = new Set(client.productRequests.map((item) => item.productId));
     const debt = await outstandingCredits(client.id);
     const hasDebt = debt.length > 0;
+    const exclusiveRows = await prisma.clientOffer.findMany({
+      where: { clientId: client.id, status: "ACTIVE" },
+      orderBy: { createdAt: "desc" },
+    });
+    const now = new Date();
     const catalog = products.map((product) => {
       const access = productRequestAccess(client.level, product.catalogTier, client.catalogApproved, hasDebt);
+      const promo = publicPromo(product);
+      const row = exclusiveRows.find((item) => item.productId === product.id && exclusiveOffer(item, Number(product.price), now));
+      const exclusive = row ? exclusiveOffer(row, Number(product.price), now) : null;
+      // La exclusiva se muestra si da mejor precio o si no hay oferta general.
+      const useExclusive = exclusive && (!promo.offer || exclusive.finalPrice <= promo.finalPrice);
       return {
         id: product.id,
         name: product.name,
@@ -113,7 +124,9 @@ portalRouter.post(
         price: product.price,
         description: product.description,
         imageUrl: product.imageUrl || product.images[0]?.path || null,
-        ...publicPromo(product),
+        ...promo,
+        ...(useExclusive ? { offer: exclusive, finalPrice: exclusive.finalPrice } : {}),
+        exclusive,
         canRequest: access.canRequest,
         lockReason: access.lockReason,
         requested: pendingIds.has(product.id),

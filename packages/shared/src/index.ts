@@ -435,6 +435,11 @@ export function hasFullAccess(role: Role): boolean {
   return role === "DIRECCION" || role === "ADMINISTRACION";
 }
 
+/** Quién puede crear y quitar ofertas exclusivas por cliente. */
+export function canManageClientOffers(role: Role): boolean {
+  return hasFullAccess(role) || role === "VENTAS" || role === "INVENTARIO";
+}
+
 export function canAccessModule(role: Role, moduleId: AppModule): boolean {
   return ROLE_MODULES[role].includes(moduleId);
 }

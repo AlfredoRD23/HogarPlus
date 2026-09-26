@@ -18,7 +18,7 @@ import { writeAudit } from "../../middleware/auth";
 import { portalUrl, sendClientTemplate } from "../../shared/mailer";
 import { clientOffersService } from "../client-offers/client-offers.service";
 import type { z } from "zod";
-import type { createCreditSchema, updateCreditSchema } from "./credits.schema";
+import type { createCreditSchema, installmentDiscountSchema, updateCreditSchema } from "./credits.schema";
 
 function formatRd(value: number) {
   return `RD$ ${value.toLocaleString("es-DO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -301,6 +301,10 @@ export class CreditsService {
     if (planTouched && hasInstallmentPayments) {
       throw new AppError(400, "PLAN_LOCKED", "Ya hay cuotas cobradas. No se puede cambiar el plan, solo la nota");
     }
+    const hasDiscounts = before.installments.some((item) => Number(item.discountAmount) > 0);
+    if (planTouched && hasDiscounts) {
+      throw new AppError(400, "PLAN_LOCKED", "Ya hay cuotas con descuento. No se puede cambiar el plan, solo la nota");
+    }
 
     const credit = await prisma.$transaction(async (tx) => {
       if (!planTouched) {
@@ -383,6 +387,96 @@ export class CreditsService {
       ip,
     });
     return credit;
+  }
+
+  async discountInstallment(
+    creditId: string,
+    installmentId: string,
+    input: z.infer<typeof installmentDiscountSchema>,
+    actorId: string,
+    ip?: string,
+  ) {
+    const credit = await prisma.credit.findUnique({
+      where: { id: creditId },
+      include: {
+        client: { select: { firstName: true, lastName: true, email: true } },
+        product: { select: { name: true } },
+      },
+    });
+    if (!credit) throw new AppError(404, "NOT_FOUND", "Crédito no encontrado");
+    if (credit.status !== "ACTIVE") throw new AppError(400, "CREDIT_CLOSED", "Solo se descuenta en créditos activos");
+
+    const inst = await prisma.installment.findUnique({ where: { id: installmentId } });
+    if (!inst || inst.creditId !== credit.id) throw new AppError(404, "NOT_FOUND", "Cuota no encontrada");
+    if (inst.status === "PAID" || inst.status === "PREPAID") {
+      throw new AppError(400, "INSTALLMENT_PAID", "Esa cuota ya está pagada");
+    }
+
+    const due = money(new Prisma.Decimal(inst.amount).minus(inst.paidAmount));
+    if (due <= 0) throw new AppError(400, "INSTALLMENT_PAID", "Esa cuota ya está pagada");
+    if (input.mode === "PERCENT" && input.value > 100) {
+      throw new AppError(400, "DISCOUNT_HIGH", "El descuento no puede pasar del 100%");
+    }
+    const discount = money(input.mode === "PERCENT" ? (due * input.value) / 100 : input.value);
+    if (discount <= 0) throw new AppError(400, "DISCOUNT_LOW", "El descuento es muy pequeño");
+    if (discount > due + 0.001) {
+      throw new AppError(400, "DISCOUNT_HIGH", `El descuento no puede pasar lo que falta de la cuota (${formatRd(due)})`);
+    }
+
+    const newAmount = new Prisma.Decimal(inst.amount).minus(discount);
+    const fullyCovered = new Prisma.Decimal(inst.paidAmount).greaterThanOrEqualTo(newAmount);
+    const newBalance = Prisma.Decimal.max(new Prisma.Decimal(credit.balance).minus(discount), 0);
+    const completed = newBalance.lessThanOrEqualTo(0);
+
+    await prisma.$transaction(async (tx) => {
+      await tx.installment.update({
+        where: { id: inst.id },
+        data: {
+          amount: newAmount,
+          discountAmount: { increment: discount },
+          discountReason: input.reason || null,
+          discountedAt: new Date(),
+          discountedById: actorId,
+          ...(fullyCovered ? { status: "PAID" as const } : {}),
+        },
+      });
+      await tx.credit.update({
+        where: { id: credit.id },
+        data: {
+          balance: newBalance,
+          ...(completed ? { status: "COMPLETED" as const, completedAt: new Date() } : {}),
+        },
+      });
+    });
+
+    await writeAudit({
+      userId: actorId,
+      action: "DISCOUNT",
+      entity: "Installment",
+      entityId: inst.id,
+      before: { amount: money(inst.amount), balance: money(credit.balance) },
+      after: { amount: money(newAmount), balance: money(newBalance), discount, reason: input.reason },
+      ip,
+    });
+
+    let notified = false;
+    if (input.notify && credit.client.email) {
+      notified = true;
+      void sendClientTemplate(credit.client.email, "installment_discount", {
+        clientName: `${credit.client.firstName} ${credit.client.lastName}`,
+        productName: credit.product.name,
+        creditCode: credit.code,
+        installmentNumber: `#${inst.number}`,
+        dueDate: inst.dueDate.toLocaleDateString("es-DO", { timeZone: "America/Santo_Domingo" }),
+        previousAmount: formatRd(due),
+        discount: formatRd(discount),
+        amount: formatRd(money(new Prisma.Decimal(due).minus(discount))),
+        reason: input.reason,
+        portalUrl: portalUrl(),
+      });
+    }
+
+    return { credit: await this.get(credit.id), discount, notified };
   }
 }
 

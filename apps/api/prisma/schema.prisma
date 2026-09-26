@@ -332,6 +332,11 @@ model Installment {
   amount     Decimal            @db.Decimal(12, 2)
   paidAmount Decimal            @db.Decimal(12, 2) @default(0)
   status     InstallmentStatus  @default(PENDING)
+  /// Rebaja acumulada; `amount` ya la tiene descontada (original = amount + discountAmount).
+  discountAmount Decimal        @db.Decimal(12, 2) @default(0)
+  discountReason String?        @db.VarChar(200)
+  discountedAt   DateTime?
+  discountedById String?
 
   credit      Credit              @relation(fields: [creditId], references: [id], onDelete: Cascade)
   allocations PaymentAllocation[]

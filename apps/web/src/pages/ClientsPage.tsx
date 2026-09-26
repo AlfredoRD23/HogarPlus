@@ -22,6 +22,7 @@ import {
   cedulaError,
   catalogsForLevel,
   catalogAccessLabel,
+  canManageClientOffers,
   digitsOnly,
   firstError,
   formatCedula,
@@ -47,6 +48,8 @@ import {
   type ReferralStatus,
 } from "@hogarplus/shared";
 import { CreditBadge, InstallmentBadge, LevelBadge } from "../components/Badges";
+import { ClientExclusiveOffers } from "../components/ExclusiveOffers";
+import { useAuth } from "../auth/AuthContext";
 
 type NextInstallment = { dueDate: string; amount: number; number: number; status: InstallmentStatus };
 
@@ -645,6 +648,8 @@ export function ClientDetailPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { user } = useAuth();
+  const canManageOffers = Boolean(user && canManageClientOffers(user.role));
   const [editing, setEditing] = useState(false);
   const q = useQuery({
     queryKey: ["client", id],
@@ -836,6 +841,7 @@ export function ClientDetailPage() {
           {c.notes ? <p className="mt-2 text-sm text-slate-600">{c.notes}</p> : null}
         </div>
       </div>
+      {c.status === "ACTIVE" && canManageOffers ? <ClientExclusiveOffers client={c} /> : null}
       <div className="grid gap-4 md:grid-cols-2">
         <div className="panel p-5">
           <p className="text-xs uppercase tracking-widest text-slate-500">Referencia personal</p>

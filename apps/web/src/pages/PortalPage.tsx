@@ -1,6 +1,6 @@
 import { useRef, useState, type ReactNode } from "react";
 import toast from "react-hot-toast";
-import { Bell, CheckCircle2, ChevronLeft, ChevronRight, Download, Flame, Home, Info, Lock, LogOut, Package, UserPlus, Wallet, ArrowRight } from "lucide-react";
+import { Bell, CheckCircle2, ChevronLeft, ChevronRight, Crown, Download, Flame, Home, Info, Lock, LogOut, Package, UserPlus, Wallet, ArrowRight } from "lucide-react";
 import { api, formatDate, mediaUrl, money } from "../lib/api";
 import { creditsFromDebtError, debtFacts, debtNotes, isDebtError } from "../lib/debt";
 import { openInvoice, type InvoiceData } from "../lib/invoice";
@@ -52,6 +52,7 @@ type PortalInstallment = {
   dueDate: string;
   amount: number;
   paidAmount?: number;
+  discountAmount?: number;
   status: InstallmentStatus;
 };
 
@@ -220,7 +221,8 @@ export function PortalPage() {
     ? Math.min(100, Math.round(((data.client.points - levelRange.min) / (levelRange.max + 1 - levelRange.min)) * 100))
     : 100;
   const selected = data.credits.find((credit) => credit.id === activeCreditId) ?? data.credits[0] ?? null;
-  const highlights = promoRank(data.catalog);
+  const exclusives = data.catalog.filter((product) => product.exclusive);
+  const highlights = promoRank(data.catalog.filter((product) => !product.exclusive));
   const firstName = data.client.name.trim().split(/\s+/)[0]?.toLowerCase() ?? "";
 
   async function askProduct(product: CatalogProduct) {
@@ -383,6 +385,30 @@ export function PortalPage() {
             </div>
           </div>
         </section>
+
+        {exclusives.length > 0 ? (
+          <section className="portal-exclusive rounded-3xl p-4 sm:p-6">
+            <div className="home-glow pointer-events-none absolute -left-20 -top-20 h-64 w-64 rounded-full bg-violet-500/25 blur-3xl" aria-hidden />
+            <div className="relative">
+              <Carousel
+                title="Solo para ti"
+                hint="Ofertas exclusivas que preparamos para ti. Nadie más las ve"
+                icon={<Crown size={20} className="promo-float text-violet-300" />}
+              >
+                {exclusives.map((product, index) => (
+                  <ShowcaseCard
+                    key={product.id}
+                    product={product}
+                    eyebrow={CATEGORY_LABELS[product.category]}
+                    delay={Math.min(index, 5) * 90}
+                    className={SLIDE_WIDTH}
+                    action={<RequestButton product={product} busy={busy === product.id} onAsk={() => void askProduct(product)} />}
+                  />
+                ))}
+              </Carousel>
+            </div>
+          </section>
+        ) : null}
 
         {highlights.length > 0 ? (
           <section className="portal-offers rounded-3xl p-4 sm:p-6">
@@ -854,8 +880,18 @@ function InstallmentPlan({
                 {item.number}
               </span>
               <div className="min-w-0 flex-1">
-                <p className="font-medium">{money(item.amount)}</p>
+                <p className="font-medium">
+                  {money(item.amount)}
+                  {Number(item.discountAmount ?? 0) > 0 ? (
+                    <span className="ml-2 text-xs text-slate-400 line-through">
+                      {money(Number(item.amount) + Number(item.discountAmount))}
+                    </span>
+                  ) : null}
+                </p>
                 <p className="text-xs text-slate-400">{formatDate(item.dueDate)}</p>
+                {Number(item.discountAmount ?? 0) > 0 ? (
+                  <p className="mt-0.5 text-xs font-semibold text-emerald-300">Descuento −{money(item.discountAmount ?? 0)}</p>
+                ) : null}
               </div>
               <InstallmentBadge status={item.status} dueDate={item.dueDate} />
             </li>

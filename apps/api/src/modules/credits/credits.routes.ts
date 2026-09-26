@@ -13,6 +13,11 @@ creditsRouter.post(
   authorize("VENTAS"),
   asyncHandler((req, res) => creditsController.create(req, res)),
 );
+creditsRouter.post(
+  "/:id/installments/:installmentId/discount",
+  authorize("VENTAS", "COBRANZA"),
+  asyncHandler((req, res) => creditsController.discountInstallment(req, res)),
+);
 creditsRouter.patch(
   "/:id",
   authorize("VENTAS"),

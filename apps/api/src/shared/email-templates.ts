@@ -10,7 +10,8 @@ export type EmailTemplateId =
   | "product_delivered"
   | "exclusive_offer"
   | "catalog_offer"
-  | "catalog_new";
+  | "catalog_new"
+  | "installment_discount";
 
 export type EmailPayload = {
   subject: string;
@@ -195,6 +196,10 @@ export type ClientEmailVars = {
   /** Precio antes de la oferta, ya formateado. */
   previousAmount?: string;
   endsAt?: string;
+  /** Descuento aplicado a una cuota: número, monto descontado y fecha. */
+  installmentNumber?: string;
+  discount?: string;
+  dueDate?: string;
 };
 
 export function renderStaffAlert(title: string, message: string): EmailPayload {
@@ -385,6 +390,26 @@ export function renderClientEmail(id: EmailTemplateId, vars: ClientEmailVars): E
         "Recuerda: puedes pedir los productos de tu categoría.",
         vars.portalUrl ? { label: "Ver lo nuevo", url: vars.portalUrl } : undefined,
       );
+    case "installment_discount":
+      return pack(
+        `HogarPlus · Recibiste un descuento de ${vars.discount ?? ""} en tu próximo pago`,
+        "¡Recibiste un descuento!",
+        "Gracias por pagar bien",
+        `Hola ${name},`,
+        `Por tu buen historial de pagos te aplicamos un descuento${vars.discount ? ` de ${vars.discount}` : ""} en tu próxima cuota de ${product}.`,
+        [
+          { label: "Producto", value: product },
+          ...(creditCode ? [{ label: "Crédito", value: creditCode }] : []),
+          ...(vars.installmentNumber ? [{ label: "Cuota", value: vars.installmentNumber }] : []),
+          ...(vars.dueDate ? [{ label: "Fecha", value: vars.dueDate }] : []),
+          ...(vars.previousAmount ? [{ label: "Antes pagabas", value: vars.previousAmount }] : []),
+          ...(vars.discount ? [{ label: "Descuento", value: vars.discount }] : []),
+          ...(amount ? [{ label: "Ahora pagas", value: amount }] : []),
+          ...(reason ? [{ label: "Motivo", value: reason }] : []),
+        ],
+        "Sigue así: cada pago a tiempo suma puntos para subir de nivel.",
+        cta,
+      );
     default: {
       const _exhaustive: never = id;
       return _exhaustive;
@@ -409,6 +434,7 @@ export const EMAIL_TEMPLATE_CATALOG: {
   { id: "exclusive_offer", name: "Oferta exclusiva", description: "Cuando creas una oferta solo para ese cliente.", audience: "cliente" },
   { id: "catalog_offer", name: "Oferta en el catálogo", description: "Cuando un producto entra en oferta (a clientes de esa categoría).", audience: "cliente" },
   { id: "catalog_new", name: "Producto nuevo", description: "Cuando se agrega un producto marcado como Nuevo.", audience: "cliente" },
+  { id: "installment_discount", name: "Descuento en cuota", description: "Cuando le rebajas una cuota a un cliente.", audience: "cliente" },
   { id: "staff_alert", name: "Aviso al equipo", description: "Notificaciones internas (solicitudes, avisos, referidos).", audience: "equipo" },
 ];
 
@@ -428,6 +454,9 @@ export function previewEmailTemplate(id: EmailTemplateId): EmailPayload {
     offerDetail: "Solo este mes",
     previousAmount: "RD$ 5,000.00",
     endsAt: "30/09/2026",
+    installmentNumber: "#2",
+    discount: "RD$ 200.00",
+    dueDate: "03/10/2026",
   };
 
   if (id === "staff_alert") {

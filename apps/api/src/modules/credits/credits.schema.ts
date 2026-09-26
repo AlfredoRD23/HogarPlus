@@ -12,6 +12,13 @@ export const createCreditSchema = z.object({
   notes: z.string().max(400).optional(),
 });
 
+export const installmentDiscountSchema = z.object({
+  mode: z.enum(["AMOUNT", "PERCENT"]).default("AMOUNT"),
+  value: z.coerce.number().positive("El descuento debe ser mayor que 0").max(9_999_999.99),
+  reason: z.string().trim().max(200).optional(),
+  notify: z.boolean().default(true),
+});
+
 export const updateCreditSchema = z.object({
   weeklyQuota: z.coerce.number().positive("La cuota debe ser mayor que 0").max(9_999_999.99).optional(),
   weeks: z.coerce.number().int().min(1, "Debe haber al menos 1 cuota").max(104, "El plazo máximo es 104 cuotas").optional(),

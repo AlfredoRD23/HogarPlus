@@ -10,7 +10,7 @@ import { DataTable } from "../components/DataTable";
 import { TableCard } from "../components/TableCard";
 import { Loader, WaitLabel } from "../components/Loader";
 import { useOnceSubmit } from "../hooks/useOnceSubmit";
-import { ArrowLeft, FileText, Package, Pencil, Plus } from "lucide-react";
+import { ArrowLeft, BadgePercent, Crown, FileText, Package, Pencil, Plus } from "lucide-react";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { InfoModal } from "../components/InfoModal";
 import { RowActions } from "../components/RowActions";
@@ -36,6 +36,7 @@ import {
   type OutstandingCredit,
   type PaymentFrequency,
   type ProductPromoFields,
+  type ActiveOffer,
   effectivePrice,
 } from "@hogarplus/shared";
 import { CatalogBadge, CreditBadge, InstallmentBadge } from "../components/Badges";
@@ -59,8 +60,108 @@ type Credit = {
   installments?: Array<{ paidAmount: number }>;
 };
 
-function canEditCreditPlan(credit: { installments?: Array<{ paidAmount: number }> }) {
-  return (credit.installments ?? []).every((item) => Number(item.paidAmount) === 0);
+type CreditInstallment = {
+  id: string;
+  number: number;
+  dueDate: string;
+  amount: number;
+  paidAmount: number;
+  status: InstallmentStatus;
+  discountAmount?: number;
+  discountReason?: string | null;
+};
+
+function canEditCreditPlan(credit: { installments?: Array<{ paidAmount: number; discountAmount?: number }> }) {
+  return (credit.installments ?? []).every(
+    (item) => Number(item.paidAmount) === 0 && Number(item.discountAmount ?? 0) === 0,
+  );
+}
+
+function InstallmentDiscountForm({
+  creditId,
+  installment,
+  onDone,
+}: {
+  creditId: string;
+  installment: CreditInstallment;
+  onDone: () => void;
+}) {
+  const due = Math.max(0, Number(installment.amount) - Number(installment.paidAmount));
+  const [mode, setMode] = useState<"AMOUNT" | "PERCENT">("AMOUNT");
+  const [value, setValue] = useState("");
+  const [reason, setReason] = useState("Por pagar a tiempo");
+  const [notify, setNotify] = useState(true);
+
+  const parsed = mode === "AMOUNT" ? parseMoney(value) : Number(value.replace(/[^\d.]/g, ""));
+  const discount = Number.isFinite(parsed) && parsed > 0
+    ? Math.round((mode === "AMOUNT" ? parsed : (due * parsed) / 100) * 100) / 100
+    : 0;
+  const error =
+    !value ? undefined
+    : discount <= 0 ? "Pon un descuento mayor que 0"
+    : mode === "PERCENT" && parsed > 100 ? "Máximo 100%"
+    : discount > due + 0.001 ? `No puede pasar lo que falta: ${money(due)}`
+    : undefined;
+
+  const save = useMutation({
+    mutationFn: () =>
+      api<{ discount: number; notified: boolean }>(
+        `/api/credits/${creditId}/installments/${installment.id}/discount`,
+        { method: "POST", body: JSON.stringify({ mode, value: parsed, reason: reason.trim() || undefined, notify }) },
+      ),
+    onSuccess: (res) => {
+      toast.success(
+        res.data.notified
+          ? `Descuento de ${money(res.data.discount)} aplicado y avisado por correo`
+          : `Descuento de ${money(res.data.discount)} aplicado`,
+      );
+      onDone();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <form
+      className="space-y-4"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (!error && discount > 0) save.mutate();
+      }}
+    >
+      <div className="rounded-2xl bg-slate-50 p-4 text-sm">
+        <div className="flex justify-between"><span className="text-slate-500">Falta de esta cuota</span><strong>{money(due)}</strong></div>
+        <div className="mt-1 flex justify-between text-emerald-700"><span>Descuento</span><strong>−{money(discount)}</strong></div>
+        <div className="mt-2 flex justify-between border-t pt-2 text-base"><span>Pagará</span><strong>{money(Math.max(0, due - discount))}</strong></div>
+      </div>
+      <div className="flex gap-2">
+        {(["AMOUNT", "PERCENT"] as const).map((item) => (
+          <button
+            key={item}
+            type="button"
+            onClick={() => { setMode(item); setValue(""); }}
+            className={`flex-1 rounded-full border px-3 py-2 text-sm font-semibold transition ${mode === item ? "border-navy-900 bg-navy-900 text-white" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+          >
+            {item === "AMOUNT" ? "Monto RD$" : "Porcentaje %"}
+          </button>
+        ))}
+      </div>
+      <Field label={mode === "AMOUNT" ? "Monto a descontar" : "Porcentaje a descontar"} error={error} required>
+        <FormattedInput kind={mode === "AMOUNT" ? "money" : "percent"} value={value} onValue={setValue} error={Boolean(error)} autoFocus />
+      </Field>
+      <Field label="Motivo" hint="Sale en el correo del cliente">
+        <FormattedInput kind="text" value={reason} onValue={setReason} maxLength={200} />
+      </Field>
+      <label className="flex items-center gap-2 text-sm">
+        <input type="checkbox" checked={notify} onChange={(event) => setNotify(event.target.checked)} />
+        Avisar al cliente por correo
+      </label>
+      <div className="flex justify-end gap-2">
+        <button type="submit" className="btn-primary" disabled={save.isPending || Boolean(error) || discount <= 0}>
+          <WaitLabel waiting={save.isPending} idle="Aplicar descuento" busy="Aplicando..." />
+        </button>
+      </div>
+    </form>
+  );
 }
 
 function isoDay(value: string) {
@@ -428,6 +529,7 @@ function CreditEditForm({
 export function NewCreditPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
+  const [clientId, setClientId] = useState(params.get("clientId") ?? "");
   const clients = useQuery({
     queryKey: ["clients"],
     queryFn: () =>
@@ -453,16 +555,26 @@ export function NewCreditPage() {
     queryFn: () =>
       api<Array<{ id: string; name: string; price: number; catalogTier: CatalogTier; imageUrl?: string | null; description?: string | null; status?: string } & ProductPromoFields>>("/api/products?pageSize=100"),
   });
-  const pricedProducts = (products.data?.data ?? []).map((p) => ({
-    ...p,
-    basePrice: Number(p.price),
-    price: effectivePrice(p),
-  }));
+  const exclusiveOffers = useQuery({
+    queryKey: ["client-offers", clientId],
+    enabled: Boolean(clientId),
+    queryFn: () =>
+      api<Array<{ productId: string; offer: ActiveOffer | null }>>(`/api/client-offers?clientId=${clientId}`),
+  });
+  const pricedProducts = (products.data?.data ?? []).map((p) => {
+    const general = effectivePrice(p);
+    const exclusive = (exclusiveOffers.data?.data ?? []).find((item) => item.productId === p.id && item.offer)?.offer ?? null;
+    return {
+      ...p,
+      basePrice: Number(p.price),
+      price: exclusive ? Math.min(general, exclusive.finalPrice) : general,
+      exclusive,
+    };
+  });
   const settings = useQuery({
     queryKey: ["settings"],
     queryFn: () => api<{ weeklyQuota: number; defaultWeeks: number }>("/api/settings"),
   });
-  const [clientId, setClientId] = useState(params.get("clientId") ?? "");
   const [productId, setProductId] = useState("");
   const [frequency, setFrequency] = useState<PaymentFrequency>("WEEKLY");
   const [downPayment, setDownPayment] = useState("0");
@@ -646,7 +758,14 @@ export function NewCreditPage() {
                     )}
                   </div>
                   <div className="p-3">
-                    <div className="mb-1"><CatalogBadge tier={p.catalogTier} /></div>
+                    <div className="mb-1 flex flex-wrap items-center gap-1.5">
+                      <CatalogBadge tier={p.catalogTier} />
+                      {p.exclusive ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-bold text-violet-700">
+                          <Crown size={11} /> Exclusiva: {p.exclusive.headline}
+                        </span>
+                      ) : null}
+                    </div>
                     <p className="font-semibold leading-tight">{p.name}</p>
                     {p.description ? <p className="mt-1 line-clamp-2 text-xs text-slate-500">{p.description}</p> : null}
                     <p className="mt-1 text-sm font-bold">
@@ -655,6 +774,9 @@ export function NewCreditPage() {
                       ) : null}
                       {money(p.price)}
                     </p>
+                    {p.exclusive?.detail ? (
+                      <p className="mt-0.5 text-xs text-violet-700">{p.exclusive.type === "GIFT" ? `Gratis: ${p.exclusive.detail}` : p.exclusive.detail}</p>
+                    ) : null}
                   </div>
                 </button>
               ))}
@@ -736,10 +858,11 @@ export function CreditDetailPage() {
         notes?: string | null;
         client: { firstName: string; lastName: string; id: string };
         product: { name: string; imageUrl?: string | null };
-        installments: Array<{ id: string; number: number; dueDate: string; amount: number; paidAmount: number; status: InstallmentStatus }>;
+        installments: CreditInstallment[];
         payments: Array<{ id: string; type: string; amount: number }>;
       }>(`/api/credits/${id}`),
   });
+  const [discounting, setDiscounting] = useState<CreditInstallment | null>(null);
   const c = q.data?.data;
 
   const update = useMutation({
@@ -766,7 +889,21 @@ export function CreditDetailPage() {
 
   if (!c) return <Loader label="Cargando crédito..." />;
   const nextOpen = c.installments.find((item) => item.status !== "PAID");
-  const canEditPlan = c.installments.every((item) => Number(item.paidAmount) === 0);
+  const canEditPlan = c.installments.every(
+    (item) => Number(item.paidAmount) === 0 && Number(item.discountAmount ?? 0) === 0,
+  );
+  const canDiscount = (i: CreditInstallment) =>
+    c.status === "ACTIVE" && i.status !== "PAID" && i.status !== "PREPAID" && Number(i.amount) - Number(i.paidAmount) > 0;
+  const amountCell = (i: CreditInstallment) => (
+    <>
+      {money(i.amount)}
+      {Number(i.discountAmount ?? 0) > 0 ? (
+        <span className="block text-xs font-semibold text-emerald-600" title={i.discountReason ?? undefined}>
+          Descuento −{money(i.discountAmount ?? 0)}
+        </span>
+      ) : null}
+    </>
+  );
   const initialPaid = (c.payments ?? []).find((item) => item.type === "DOWN_PAYMENT");
 
   return (
@@ -849,7 +986,7 @@ export function CreditDetailPage() {
         rows={c.installments.length}
         emptyTitle="Sin cuotas"
         emptyDescription="Este crédito no tiene cuotas programadas."
-        headers={["#", "Vence", "Cuota", "Pagado", "Estado"]}
+        headers={["#", "Vence", "Cuota", "Pagado", "Estado", ""]}
         mobile={c.installments.map((i) => (
           <TableCard
             key={i.id}
@@ -858,9 +995,16 @@ export function CreditDetailPage() {
             initials={String(i.number)}
             badge={<InstallmentBadge status={i.status} dueDate={i.dueDate} />}
             fields={[
-              { label: "Cuota", value: money(i.amount) },
+              { label: "Cuota", value: amountCell(i) },
               { label: "Pagado", value: money(i.paidAmount) },
             ]}
+            actions={
+              canDiscount(i) ? (
+                <button type="button" className="btn-ghost text-emerald-700" onClick={() => setDiscounting(i)}>
+                  <BadgePercent className="h-4 w-4" /> Dar descuento
+                </button>
+              ) : undefined
+            }
           />
         ))}
       >
@@ -868,12 +1012,36 @@ export function CreditDetailPage() {
           <tr key={i.id} className="border-t">
             <td className="px-5 py-3.5">{i.number}</td>
             <td className="px-5 py-3.5">{formatDate(i.dueDate)}</td>
-            <td className="px-5 py-3.5">{money(i.amount)}</td>
+            <td className="px-5 py-3.5">{amountCell(i)}</td>
             <td className="px-5 py-3.5">{money(i.paidAmount)}</td>
             <td className="px-5 py-3.5"><InstallmentBadge status={i.status} dueDate={i.dueDate} /></td>
+            <td className="px-5 py-3.5 text-right">
+              {canDiscount(i) ? (
+                <button type="button" className="btn-ghost text-emerald-700" onClick={() => setDiscounting(i)}>
+                  <BadgePercent className="h-4 w-4" /> Descuento
+                </button>
+              ) : null}
+            </td>
           </tr>
         ))}
       </DataTable>
+      {discounting && (
+        <Modal
+          title={`Descuento en la cuota ${discounting.number}`}
+          description={`${c.client.firstName} ${c.client.lastName} · vence ${formatDate(discounting.dueDate)}`}
+          onClose={() => setDiscounting(null)}
+        >
+          <InstallmentDiscountForm
+            creditId={id}
+            installment={discounting}
+            onDone={() => {
+              setDiscounting(null);
+              qc.invalidateQueries({ queryKey: ["credit", id] });
+              qc.invalidateQueries({ queryKey: ["credits"] });
+            }}
+          />
+        </Modal>
+      )}
       {confirmOff && (
         <ConfirmModal
           title={c.status === "ACTIVE" ? "Desactivar crédito" : "Reactivar crédito"}

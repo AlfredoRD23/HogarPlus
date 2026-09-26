@@ -7,7 +7,8 @@ import { ConfirmModal } from "../components/ConfirmModal";
 import { ImagePicker, MAX_PRODUCT_IMAGES } from "../components/ImagePicker";
 import { RowActions } from "../components/RowActions";
 import { PageHeader } from "../components/PageHeader";
-import { Package, Plus, Sparkles } from "lucide-react";
+import { Crown, Package, Plus, Sparkles } from "lucide-react";
+import { ExclusiveOfferForm } from "../components/ExclusiveOffers";
 import {
   activeOffer,
   CATEGORY_LABELS,
@@ -90,12 +91,14 @@ function ProductCard({
   onActivate,
   onDeactivate,
   onDelete,
+  onExclusive,
 }: {
   product: Product;
   onEdit: () => void;
   onActivate?: () => void;
   onDeactivate?: () => void;
   onDelete: () => void;
+  onExclusive?: () => void;
 }) {
   const cover = coverOf(product);
   const promo = promoOf(product);
@@ -137,6 +140,7 @@ function ProductCard({
           onDeactivate={onDeactivate}
           onActivate={onActivate}
           onDelete={onDelete}
+          extra={onExclusive ? [{ label: "Oferta exclusiva", icon: Crown, onClick: onExclusive }] : []}
         />
       </div>
     </article>
@@ -151,6 +155,7 @@ export function ProductsPage() {
   const [search, setSearch] = useState("");
   const [tier, setTier] = useState<CatalogTierFilter>("ALL");
   const [statusTab, setStatusTab] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
+  const [exclusive, setExclusive] = useState<{ product?: Product } | null>(null);
   const q = useQuery({
     queryKey: ["products", search],
     queryFn: () => api<Product[]>(`/api/products?pageSize=100&search=${encodeURIComponent(search)}`),
@@ -221,8 +226,24 @@ export function ProductsPage() {
         searchPlaceholder="Buscar producto o SKU"
         searchValue={search}
         onSearchChange={setSearch}
-        actions={[{ label: "Nuevo producto", icon: Plus, onClick: () => setOpen(true) }]}
+        actions={[
+          { label: "Oferta exclusiva", icon: Crown, variant: "ghost", onClick: () => setExclusive({}) },
+          { label: "Nuevo producto", icon: Plus, onClick: () => setOpen(true) },
+        ]}
       />
+      {exclusive && (
+        <Modal
+          title="Oferta exclusiva"
+          description="Elige a qué clientes. Solo ellos la verán en su portal."
+          onClose={() => setExclusive(null)}
+          size="lg"
+        >
+          <ExclusiveOfferForm
+            fixedProduct={exclusive.product}
+            onDone={() => setExclusive(null)}
+          />
+        </Modal>
+      )}
       <CatalogTierTabs value={tier} onChange={setTier} counts={tierCounts} />
       <StatusTabs
         value={statusTab}
@@ -256,6 +277,7 @@ export function ProductsPage() {
               onDeactivate={p.status === "ACTIVE" ? () => setConfirm({ product: p, kind: "deactivate" }) : undefined}
               onActivate={p.status !== "ACTIVE" ? () => setConfirm({ product: p, kind: "activate" }) : undefined}
               onDelete={() => setConfirm({ product: p, kind: "delete" })}
+              onExclusive={p.status === "ACTIVE" ? () => setExclusive({ product: p }) : undefined}
             />
           ))}
         </div>

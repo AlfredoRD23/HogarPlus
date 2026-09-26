@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import type { AuthedRequest } from "../../middleware/auth";
 import { creditsService } from "./credits.service";
-import { createCreditSchema, updateCreditSchema } from "./credits.schema";
+import { createCreditSchema, installmentDiscountSchema, updateCreditSchema } from "./credits.schema";
 
 export class CreditsController {
   async list(req: Request, res: Response) {
@@ -29,6 +29,18 @@ export class CreditsController {
   async update(req: Request, res: Response) {
     const body = updateCreditSchema.parse(req.body);
     const data = await creditsService.update(req.params.id, body, (req as AuthedRequest).user.id, req.ip);
+    res.json({ success: true, data });
+  }
+
+  async discountInstallment(req: Request, res: Response) {
+    const body = installmentDiscountSchema.parse(req.body);
+    const data = await creditsService.discountInstallment(
+      req.params.id,
+      req.params.installmentId,
+      body,
+      (req as AuthedRequest).user.id,
+      req.ip,
+    );
     res.json({ success: true, data });
   }
 }

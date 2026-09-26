@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
-import { Clock, Gift, Package, Percent, Sparkles, Tag } from "lucide-react";
+import { Clock, Crown, Gift, Package, Percent, Sparkles, Tag } from "lucide-react";
 import type { ActiveOffer, CatalogTier, OfferType } from "@hogarplus/shared";
 import { mediaUrl, money } from "../lib/api";
 import { CatalogBadge } from "./Badges";
@@ -8,6 +8,8 @@ export type PromoInfo = {
   offer: ActiveOffer | null;
   isNew: boolean;
   finalPrice: number;
+  /** Oferta exclusiva del cliente (solo en el portal). */
+  exclusive?: ActiveOffer | null;
 };
 
 function offerIcon(type: OfferType) {
@@ -35,6 +37,15 @@ export function OfferRibbon({ offer }: { offer: ActiveOffer }) {
   );
 }
 
+export function ExclusiveBadge() {
+  return (
+    <span className="promo-exclusive">
+      <Crown size={12} strokeWidth={2.5} />
+      Solo para ti
+    </span>
+  );
+}
+
 export function NewBadge() {
   return (
     <span className="promo-new">
@@ -46,9 +57,10 @@ export function NewBadge() {
 
 /** Insignias de oferta y novedad para la esquina de la foto. */
 export function PromoBadges({ promo }: { promo: PromoInfo }) {
-  if (!promo.offer && !promo.isNew) return null;
+  if (!promo.offer && !promo.isNew && !promo.exclusive) return null;
   return (
     <div className="flex flex-col items-end gap-1.5">
+      {promo.exclusive ? <ExclusiveBadge /> : null}
       {promo.offer ? <OfferRibbon offer={promo.offer} /> : null}
       {promo.isNew ? <NewBadge /> : null}
     </div>
@@ -126,7 +138,11 @@ export function ShowcaseCard({
     <article
       style={style}
       className={`promo-enter group flex h-full shrink-0 snap-start flex-col overflow-hidden rounded-2xl text-white ${
-        product.offer ? "promo-card shadow-[0_18px_50px_-20px_rgba(196,160,74,0.55)]" : "portal-card"
+        product.exclusive
+          ? "promo-card-exclusive shadow-[0_18px_50px_-20px_rgba(124,58,237,0.6)]"
+          : product.offer
+            ? "promo-card shadow-[0_18px_50px_-20px_rgba(196,160,74,0.55)]"
+            : "portal-card"
       } ${className}`}
     >
       <div className="relative aspect-[4/3] shrink-0 overflow-hidden bg-[#223b5e]">

@@ -282,12 +282,14 @@ export function HomePage() {
             <button type="button" className="mt-3 block text-left text-sm text-slate-300 transition hover:text-white" onClick={() => openWhatsApp()}>
               WhatsApp 829-881-9361
             </button>
-            <p className="mt-1 text-sm text-slate-500">info@hogarplus.do</p>
+            <a href="mailto:hogarplusdr@gmail.com" className="mt-1 block text-sm text-slate-400 transition hover:text-white">
+              hogarplusdr@gmail.com
+            </a>
           </div>
           <div>
             <p className="text-sm font-semibold text-gold-100">Redes</p>
             <div className="mt-3 flex flex-wrap gap-2">
-              <a href="https://www.facebook.com/hogarplus" target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center gap-2 rounded-full border border-white/15 px-3 text-sm text-slate-200 transition hover:bg-white/10">
+              <a href="https://www.facebook.com/profile.php?id=61594514707916" target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center gap-2 rounded-full border border-white/15 px-3 text-sm text-slate-200 transition hover:bg-white/10">
                 <Facebook size={16} /> Facebook
               </a>
               <a href="https://www.instagram.com/hogarplus" target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center gap-2 rounded-full border border-white/15 px-3 text-sm text-slate-200 transition hover:bg-white/10">

@@ -33,10 +33,12 @@ const CONTACT = {
   whatsappLabel: "829-881-9361",
   email: "hogarplusdr@gmail.com",
   facebook: "https://www.facebook.com/profile.php?id=61594514707916",
+  instagram: "https://www.instagram.com/hogarplusdr2026",
 };
 
 const SOCIAL_LINKS = [
   { label: "Facebook", url: CONTACT.facebook, color: "#1877F2" },
+  { label: "Instagram", url: CONTACT.instagram, color: "#E1306C" },
   { label: "WhatsApp", url: `https://wa.me/${CONTACT.whatsapp}`, color: "#25D366" },
   { label: "Correo", url: `mailto:${CONTACT.email}`, color: "#C4A04A" },
 ];
@@ -46,6 +48,7 @@ const TEXT_FOOTER = [
   "—",
   "HOGAR PLUS · Ventas de todo a crédito",
   `Facebook: ${CONTACT.facebook}`,
+  `Instagram: ${CONTACT.instagram}`,
   `WhatsApp: ${CONTACT.whatsappLabel} (https://wa.me/${CONTACT.whatsapp})`,
   `Correo: ${CONTACT.email}`,
 ].join("\n");

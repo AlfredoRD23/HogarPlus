@@ -380,7 +380,7 @@ export function HomePage() {
               <a href="https://www.facebook.com/profile.php?id=61594514707916" target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center gap-2 rounded-full border border-white/15 px-3 text-sm text-slate-200 transition hover:bg-white/10">
                 <Facebook size={16} /> Facebook
               </a>
-              <a href="https://www.instagram.com/hogarplus" target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center gap-2 rounded-full border border-white/15 px-3 text-sm text-slate-200 transition hover:bg-white/10">
+              <a href="https://www.instagram.com/hogarplusdr2026" target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center gap-2 rounded-full border border-white/15 px-3 text-sm text-slate-200 transition hover:bg-white/10">
                 <Instagram size={16} /> Instagram
               </a>
               <a href="https://www.tiktok.com/@hogarplus" target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center gap-2 rounded-full border border-white/15 px-3 text-sm text-slate-200 transition hover:bg-white/10">

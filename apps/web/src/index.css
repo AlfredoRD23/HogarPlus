@@ -12,8 +12,22 @@ body,
   min-height: 100%;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   @apply bg-slate-50 text-navy-900 antialiased;
+}
+
+/* iOS Safari hace zoom al enfocar campos con letra menor de 16px y no lo revierte. */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
 }
 
 .gold-line {
